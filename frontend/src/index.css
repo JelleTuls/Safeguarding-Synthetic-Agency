@@ -1,0 +1,62 @@
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Above code is auto-generated with a react app, most likely will be removed */
+
+/* ---------------------------- */
+
+/* Below styling is a habit i have for projects, if you wish to change let me (brendan) know */
+
+*{
+  margin: 0;
+  padding: 0;
+}
+
+body{
+  color: #17202a;
+  background:
+    linear-gradient(180deg, #ffffff 0%, #f5f7fb 58%, #edf5ff 100%);
+}
+
+#root{
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* Scrollbar styling */
+
+::-webkit-scrollbar {
+  width: 12px;
+}
+
+::-webkit-scrollbar-track {
+  background: #eef2f7;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #b8c6d8;
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #8fa2b8;
+}
+
+/* font classes */
+
+.unbounded-weight300 {
+  font-family: "Unbounded", sans-serif;
+  font-optical-sizing: auto;
+  font-weight: 300; /* can go from 200-900 for this font */
+  font-style: normal;
+}
+
+.unbounded-weight400 {
+  font-family: "Unbounded", sans-serif;
+  font-optical-sizing: auto;
+  font-weight: 400;
+  font-style: normal;
+}

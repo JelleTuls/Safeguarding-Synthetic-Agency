@@ -1,0 +1,10 @@
+# ignoring pycache files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.DS_Store
+.env
+
+app/guardrails/log/*.txt
+app/runtime/

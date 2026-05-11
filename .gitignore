@@ -1,0 +1,17 @@
+# ignoring pycache files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.DS_Store
+
+# ignoring env
+env/
+venv/
+.env/
+.env
+
+# runtime chat artifacts
+backend/app/guardrails/log/*.txt
+backend/app/runtime/
+frontend/build/

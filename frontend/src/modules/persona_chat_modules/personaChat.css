@@ -1,0 +1,307 @@
+.PersonaChatExample {
+    margin-bottom: 50px;
+}
+
+.PersonaChat {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background:
+        radial-gradient(circle at 50% 0%, rgba(10, 132, 255, 0.10), transparent 42%),
+        rgba(245, 247, 251, 0.58);
+    backdrop-filter: blur(12px) saturate(1.15);
+    -webkit-backdrop-filter: blur(12px) saturate(1.15);
+    z-index: 20;
+}
+
+#chat-bubble {
+    position: relative;
+    width: min(900px, calc(100vw - 48px));
+    height: min(720px, calc(100vh - 48px));
+    border: 1px solid rgba(185, 198, 214, 0.72);
+    border-radius: 24px;
+    padding: 28px;
+    background: rgba(255, 255, 255, 0.92);
+    box-shadow:
+        0 30px 80px rgba(33, 54, 78, 0.20),
+        inset 0 1px 0 rgba(255, 255, 255, 0.85);
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+#chat-close {
+    width: 34px;
+    aspect-ratio: 1;
+    position: absolute;
+    top: 22px;
+    right: 22px;
+    cursor: pointer;
+    border-radius: 999px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(240, 244, 249, 0.9);
+    border: 1px solid rgba(201, 211, 223, 0.9);
+    transition: transform 0.18s ease, background 0.18s ease;
+}
+
+#chat-close:hover {
+    transform: translateY(-1px);
+    background: #e9f2ff;
+}
+
+#chat-close-cross {
+    width: 14px;
+    filter: brightness(0) saturate(100%) invert(35%) sepia(24%) saturate(700%) hue-rotate(173deg) brightness(87%) contrast(88%);
+    pointer-events: none;
+}
+
+#persona-chat-header {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    width: calc(100% - 54px);
+    padding-bottom: 16px;
+    border-bottom: 1px solid rgba(216, 226, 238, 0.9);
+}
+
+#chat-with-text {
+    color: #69788a;
+    font-size: 11px;
+    letter-spacing: 0;
+    margin-bottom: 10px;
+}
+
+#persona-name {
+    color: #17202a;
+    font-size: clamp(22px, 3vw, 34px);
+    position: relative;
+    text-transform: none;
+    margin-bottom: 14px;
+    line-height: 1.1;
+}
+
+#anthro-warning {
+    color: #0a84ff;
+    aspect-ratio: 1;
+    border-radius: 100%;
+    width: 22px;
+    border: 1px solid rgba(10, 132, 255, 0.55);
+    position: absolute;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #eef6ff;
+    right: -34px;
+    top: 5px;
+    z-index: 3;
+}
+
+#anthro-warning > p {
+    font-size: 14px;
+    color: #0a84ff;
+    z-index: 3;
+}
+
+#chat-not-real-warning {
+    color: #0b5fc1;
+    background-color: #e6f2ff;
+    position: absolute;
+    left: calc(100% + 40px);
+    top: 1px;
+    z-index: 2;
+    padding: 7px 10px;
+    border-radius: 999px;
+    border: 1px solid rgba(10, 132, 255, 0.18);
+    font-size: 9px;
+    white-space: nowrap;
+}
+
+#persona-chat-attributes {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.persona-chat-attributes-single {
+    color: #344256;
+    font-size: 11px;
+    border-radius: 999px;
+    border: 1px solid rgba(188, 201, 216, 0.8);
+    background: linear-gradient(180deg, #ffffff 0%, #f1f5fa 100%);
+    padding: 7px 11px;
+}
+
+#persona-chat-history {
+    flex: 1;
+    width: 100%;
+    padding: 4px 4px 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
+.persona-chat-error {
+    color: #b42318;
+    background: #fff1f0;
+    border: 1px solid #ffd5d1;
+    border-radius: 12px;
+    font-size: 12px;
+    margin: 0;
+    padding: 10px 12px;
+}
+
+#persona-chat-history::-webkit-scrollbar {
+  width: 8px;
+}
+
+#persona-chat-history::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+#persona-chat-history::-webkit-scrollbar-thumb {
+  background: #c4d0df;
+  border-radius: 999px;
+}
+
+#persona-chat-history::-webkit-scrollbar-thumb:hover {
+  background: #aebccc;
+}
+
+#persona-chat-input {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    gap: 10px;
+    padding-top: 14px;
+    border-top: 1px solid rgba(216, 226, 238, 0.9);
+}
+
+#persona-chat-input > input {
+    height: 48px;
+    border-radius: 16px;
+    background-color: #ffffff;
+    border: 1px solid rgba(185, 198, 214, 0.92);
+    color: #17202a;
+    padding: 0 16px;
+    flex: 1;
+    min-width: 0;
+    outline: none;
+    box-shadow: inset 0 1px 2px rgba(33, 54, 78, 0.04);
+}
+
+#persona-chat-input > input:focus {
+    border-color: rgba(10, 132, 255, 0.75);
+    box-shadow: 0 0 0 4px rgba(10, 132, 255, 0.12);
+}
+
+#persona-chat-input > input::placeholder {
+    color: #8a99aa;
+}
+
+#persona-chat-input > div {
+    background: linear-gradient(180deg, #2997ff 0%, #0a84ff 100%);
+    height: 48px;
+    aspect-ratio: 1;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 12px 24px rgba(10, 132, 255, 0.25);
+}
+
+#persona-chat-input > div:hover {
+    cursor: pointer;
+    filter: brightness(1.03);
+}
+
+#persona-chat-input > div > img {
+    filter: brightness(0) invert(1);
+    aspect-ratio: 1;
+    height: 23px;
+}
+
+@media screen and (max-width: 810px) {
+    .PersonaChat {
+        padding: 16px;
+    }
+
+    #chat-bubble {
+        width: calc(100vw - 32px);
+        height: calc(100vh - 32px);
+        padding: 22px;
+        border-radius: 22px;
+    }
+
+    #persona-chat-header {
+        width: calc(100% - 46px);
+    }
+
+    #chat-not-real-warning {
+        position: static;
+        display: inline-block;
+        margin-left: 10px;
+        vertical-align: middle;
+    }
+
+    #anthro-warning {
+        display: none;
+    }
+}
+
+@media screen and (max-width: 450px) {
+    .PersonaChat {
+        padding: 10px;
+    }
+
+    #chat-bubble {
+        width: calc(100vw - 20px);
+        height: calc(100vh - 20px);
+        padding: 16px;
+        border-radius: 18px;
+        gap: 12px;
+    }
+
+    #chat-close {
+        top: 16px;
+        right: 16px;
+        width: 30px;
+    }
+
+    #chat-with-text {
+        font-size: 10px;
+    }
+
+    #persona-name {
+        font-size: 22px;
+    }
+
+    .persona-chat-attributes-single {
+        font-size: 9px;
+        padding: 6px 8px;
+    }
+
+    #persona-chat-input > input {
+        height: 42px;
+        border-radius: 14px;
+        font-size: 12px;
+    }
+
+    #persona-chat-input > div {
+        height: 42px;
+        border-radius: 14px;
+    }
+
+    #persona-chat-input > div > img {
+        height: 18px;
+    }
+}

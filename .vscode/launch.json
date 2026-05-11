@@ -1,0 +1,48 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Backend: FastAPI",
+      "type": "debugpy",
+      "request": "launch",
+      "python": "${workspaceFolder}/env/bin/python",
+      "module": "uvicorn",
+      "cwd": "${workspaceFolder}/backend",
+      "args": [
+        "main:app",
+        "--reload",
+        "--host",
+        "127.0.0.1",
+        "--port",
+        "8000"
+      ],
+      "jinja": true,
+      "console": "integratedTerminal"
+    },
+    {
+      "name": "Frontend: React",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "python3 -c \"import os, signal, subprocess; result=subprocess.run(['lsof','-ti','tcp:3000'], capture_output=True, text=True); [os.kill(int(pid), signal.SIGTERM) for pid in result.stdout.split()]\"; BROWSER=none PORT=3000 npm start",
+      "cwd": "${workspaceFolder}/frontend"
+    },
+    {
+      "name": "Open Frontend",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "python3 -c \"import socket, subprocess, time; deadline=time.time()+45\nwhile time.time()<deadline:\n    sock=socket.socket(); sock.settimeout(1)\n    try:\n        sock.connect(('127.0.0.1', 3000)); break\n    except OSError:\n        time.sleep(1)\n    finally:\n        sock.close()\nsubprocess.run(['open', 'http://localhost:3000'])\"",
+      "cwd": "${workspaceFolder}"
+    }
+  ],
+  "compounds": [
+    {
+      "name": "Full Stack: Frontend + Backend",
+      "configurations": [
+        "Backend: FastAPI",
+        "Frontend: React",
+        "Open Frontend"
+      ],
+      "stopAll": true
+    }
+  ]
+}
