@@ -1,4 +1,4 @@
-"""Epistemic-boundary stage for the guardrailed pipeline."""
+"""Layer 03: epistemic boundary preparation."""
 
 from .engine import evaluate_epistemic_boundaries
 

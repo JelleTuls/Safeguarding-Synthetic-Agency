@@ -1,4 +1,4 @@
-"""Response-generation stage for the guardrailed pipeline."""
+"""Layer 07: guarded response generation."""
 
 from .engine import generate_policy_response
 

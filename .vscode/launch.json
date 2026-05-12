@@ -8,6 +8,7 @@
       "python": "${workspaceFolder}/env/bin/python",
       "module": "uvicorn",
       "cwd": "${workspaceFolder}/backend",
+      "envFile": "${workspaceFolder}/backend/.env",
       "args": [
         "main:app",
         "--reload",

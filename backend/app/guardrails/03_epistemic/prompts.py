@@ -1,11 +1,4 @@
-"""Epistemic sub-prompt preparation for the guardrailed pipeline."""
-
-from app.guardrails.schemas import EpistemicSignal
-
-
-# =============================================================================
-# Prompt Builder
-# =============================================================================
+"""Prompt text for layer 03 epistemic boundary evaluation."""
 
 EPISTEMIC_JUDGE_SUBPROMPT = """
 Epistemic evaluation:
@@ -23,20 +16,11 @@ Epistemic evaluation:
 """.strip()
 
 
-# =============================================================================
-# Public Evaluation Entry Point
-# =============================================================================
-
-def evaluate_epistemic_boundaries(*, user_message: str, persona_biography: str) -> EpistemicSignal:
-    """Build the epistemic instructions that will be injected into the judge prompt."""
-    judge_prompt = (
+def build_epistemic_judge_prompt(*, user_message: str) -> str:
+    """Build the epistemic prompt segment passed into the judge bundle."""
+    return (
         f"{EPISTEMIC_JUDGE_SUBPROMPT}\n\n"
         "Context for epistemic evaluation:\n"
         f"- User message: {user_message}\n"
         "- Persona biography: provided separately in the judge prompt."
-    )
-
-    return EpistemicSignal(
-        summary="Epistemic evaluation is delegated to the judge model through a dedicated sub-prompt.",
-        judge_prompt=judge_prompt,
     )

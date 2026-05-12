@@ -1,9 +1,15 @@
 """Top-level orchestration helpers for the guardrailed persona chat flow."""
 
+from importlib import import_module
+
 from app.biography.store import get_or_create_biography
 from app.guardrails.engine import generate_response as generate_guardrailed_response
 from app.guardrails.session_trace import get_or_create_session_trace
-from app.guardrails.stylometry.store import get_or_create_stylometric_profile
+
+
+get_or_create_stylometric_profile = import_module(
+    "app.guardrails.05_stylometry"
+).get_or_create_stylometric_profile
 
 
 # =============================================================================

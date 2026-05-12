@@ -2,91 +2,14 @@
 
 import json
 
-from app.guardrails.prompts import GUARDRAILED_JUDGE_SYS_PROMPT
 from app.guardrails.schemas import GuardrailInput, GuardrailSignals, PolicyDecision
 from app.guardrails.session_trace import append_kv_block, append_named_block
 from app.logging import get_logger
 from app.utils import build_chat_messages, run_chat_completion
+from .prompts import GUARDRAILED_JUDGE_SYS_PROMPT, build_judge_user_message
 
 
 log = get_logger(__name__)
-
-
-# =============================================================================
-# Internal Helpers
-# =============================================================================
-
-def _build_judge_user_message(*, guardrail_input: GuardrailInput, signals: GuardrailSignals) -> str:
-    """Build the structured judge prompt input."""
-    lexical_terms = ", ".join(signals.lexical.matched_terms) if signals.lexical.matched_terms else "None"
-    user_word_count = len(guardrail_input.user_message.split())
-    if guardrail_input.chat_history:
-        chat_history = "\n".join(
-            f"- {message.get('role', 'unknown')}: {message.get('content', '')}"
-            for message in guardrail_input.chat_history
-        )
-    else:
-        chat_history = "None"
-
-    return (
-        "Persona biography:\n"
-        f"{guardrail_input.persona_biography}\n\n"
-        "Prior conversation:\n"
-        f"{chat_history}\n\n"
-        "User message:\n"
-        f"{guardrail_input.user_message}\n\n"
-        "Question length signal:\n"
-        f"- User message word count: {user_word_count}\n"
-        "- Treat this as a conversational-length clue, not as a hard rule.\n\n"
-        "Lexical signal:\n"
-        f"- Triggered: {signals.lexical.triggered}\n"
-        f"- Risk level: {signals.lexical.risk_level}\n"
-        f"- Matched terms: {lexical_terms}\n\n"
-        f"{signals.relevance.judge_prompt}\n\n"
-        f"{signals.epistemic.judge_prompt}\n\n"
-        f"{signals.stylometric.judge_prompt}\n\n"
-        "Expertise-depth rule:\n"
-        "- User requests for detail do not by themselves justify a detailed answer.\n"
-        "- Set detail_allowed to true only when the biography shows strong grounds for depth on this topic.\n"
-        "- Strong grounds means at least one of: relevant education, relevant job exposure, substantial lived experience, or a clearly stated domain hobby/interest.\n"
-        "- If the topic is far from the persona's interests, work, or educational direction, set detail_allowed to false and expertise_basis to none.\n"
-        "- When detail_allowed is false, the persona should stay at a very basic layperson level even if the user asks for a super detailed explanation.\n\n"
-        "Response length rule:\n"
-        "- Return response_length_target as one of: very_short, short, medium, long.\n"
-        "- Short user questions should usually lead to very_short or short answers unless the topic is strongly grounded in the biography and genuinely invites more.\n"
-        "- Phrases like 'in detail', 'fully', 'extensively', or 'super detail' may raise length by at most one level, and only when detail_allowed is true.\n"
-        "- Do not let detail wording alone justify a long answer.\n"
-        "- If the topic is far from the persona's real background, the answer should not exceed short.\n"
-        "- Prefer natural conversation over essay-like structure.\n\n"
-        "Dynamic style modulation rule:\n"
-        "- Start from the stylometric profile as the persona's baseline speaking style.\n"
-        "- If the topic strongly resonates with the persona's work, hobbies, study, or lived experience, you may raise confidence_style and lower hedging_style somewhat.\n"
-        "- If the topic is far from the persona's profile, lower confidence_style and raise hedging_style.\n"
-        "- Keep the modulation proportional and believable.\n\n"
-        "Return JSON with this shape:\n"
-        "{\n"
-        '  "action": "allow | limited_answer | redirect | refuse",\n'
-        '  "lexical_score": 0.0,\n'
-        '  "relevance_score": 0.0,\n'
-        '  "epistemic_score": 0.0,\n'
-        '  "knowledge_level": "very_limited | limited | moderate | high",\n'
-        '  "response_length_target": "very_short | short | medium | long",\n'
-        '  "detail_allowed": false,\n'
-        '  "expertise_basis": "none | biography_interest | lived_experience | work_exposure | education_background | domain_expert",\n'
-        '  "hedging_style": "low | medium | high",\n'
-        '  "confidence_style": "tentative | balanced | assured",\n'
-        '  "language_level": "plain | everyday | nuanced | technical",\n'
-        '  "register_style": "plain | everyday | polished | articulate",\n'
-        '  "sentence_style": "short | mixed | long",\n'
-        '  "abstraction_level": "concrete | mixed | abstract",\n'
-        '  "vocabulary_level": "simple | moderate | advanced",\n'
-        '  "explanation_style": "example_first | balanced | concept_first",\n'
-        '  "tone_style": "calm | warm | direct | cautious | engaged",\n'
-        '  "emotional_style": "neutral | reserved | empathetic | concerned | passionate",\n'
-        '  "rationale": "short explanation",\n'
-        '  "response_guidance": "clear advice for the answering model"\n'
-        "}"
-    )
 
 
 def _safe_float(value, fallback: float) -> float:
@@ -137,6 +60,26 @@ def _normalize_response_length_target(value: str | None) -> str:
     if value in {"very_short", "short", "medium", "long"}:
         return value
     return "short"
+
+
+def _normalize_response_mode(value: str | None, fallback: str) -> str:
+    """Normalize authority response mode into a supported category."""
+    if value in {
+        "subjective",
+        "anecdotal",
+        "belief_affirmation",
+        "uncertain_interpretation",
+        "limited_factual",
+    }:
+        return value
+    return fallback
+
+
+def _normalize_authority_level(value: str | None, fallback: str) -> str:
+    """Normalize authority level into a supported category."""
+    if value in {"low", "medium", "high"}:
+        return value
+    return fallback
 
 
 def _safe_bool(value, fallback: bool) -> bool:
@@ -222,6 +165,8 @@ def _parse_judge_response(raw_response: str, signals: GuardrailSignals) -> Polic
             abstraction_level="mixed",
             vocabulary_level="moderate",
             explanation_style="balanced",
+            response_mode=signals.authority.response_mode,
+            authority_level=signals.authority.authority_level,
             lexical_score=1.0 if signals.lexical.triggered else 0.0,
             relevance_score=0.5,
             epistemic_score=0.5,
@@ -249,6 +194,8 @@ def _parse_judge_response(raw_response: str, signals: GuardrailSignals) -> Polic
             abstraction_level="mixed",
             vocabulary_level="moderate",
             explanation_style="balanced",
+            response_mode=signals.authority.response_mode,
+            authority_level=signals.authority.authority_level,
             lexical_score=1.0 if signals.lexical.triggered else 0.0,
             relevance_score=0.5,
             epistemic_score=0.5,
@@ -275,6 +222,14 @@ def _parse_judge_response(raw_response: str, signals: GuardrailSignals) -> Polic
         abstraction_level=payload.get("abstraction_level", "mixed"),
         vocabulary_level=payload.get("vocabulary_level", "moderate"),
         explanation_style=payload.get("explanation_style", "balanced"),
+        response_mode=_normalize_response_mode(
+            payload.get("response_mode"),
+            signals.authority.response_mode,
+        ),
+        authority_level=_normalize_authority_level(
+            payload.get("authority_level"),
+            signals.authority.authority_level,
+        ),
         lexical_score=_safe_float(payload.get("lexical_score"), 1.0 if signals.lexical.triggered else 0.0),
         relevance_score=_safe_float(payload.get("relevance_score"), 0.5),
         epistemic_score=_safe_float(payload.get("epistemic_score"), 0.5),
@@ -291,7 +246,7 @@ def _parse_judge_response(raw_response: str, signals: GuardrailSignals) -> Polic
 
 def decide_policy(*, guardrail_input: GuardrailInput, signals: GuardrailSignals) -> PolicyDecision:
     """Convert guardrail signals into LLM-judged response advice."""
-    judge_user_message = _build_judge_user_message(
+    judge_user_message = build_judge_user_message(
         guardrail_input=guardrail_input,
         signals=signals,
     )
@@ -345,6 +300,8 @@ def decide_policy(*, guardrail_input: GuardrailInput, signals: GuardrailSignals)
     log.info("  Abstraction level: %s", decision.abstraction_level)
     log.info("  Vocabulary level: %s", decision.vocabulary_level)
     log.info("  Explanation style: %s", decision.explanation_style)
+    log.info("  Response mode: %s", decision.response_mode)
+    log.info("  Authority level: %s", decision.authority_level)
     log.info("  Tone style: %s", decision.tone_style)
     log.info("  Emotional style: %s", decision.emotional_style)
     append_kv_block(
@@ -368,6 +325,8 @@ def decide_policy(*, guardrail_input: GuardrailInput, signals: GuardrailSignals)
             ("Abstraction level", decision.abstraction_level),
             ("Vocabulary level", decision.vocabulary_level),
             ("Explanation style", decision.explanation_style),
+            ("Response mode", decision.response_mode),
+            ("Authority level", decision.authority_level),
             ("Tone style", decision.tone_style),
             ("Emotional style", decision.emotional_style),
             ("Rationale", decision.rationale),

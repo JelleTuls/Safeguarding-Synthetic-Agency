@@ -1,0 +1,132 @@
+"""Prompt text for layer 06 LLM-as-a-judge policy selection."""
+
+from app.guardrails.schemas import GuardrailInput, GuardrailSignals
+
+
+GUARDRAILED_JUDGE_SYS_PROMPT = (
+    "You are the guardrail judge for a persona-based chat system. "
+    "You do not write the final answer for the user. Instead, you assess the request and return structured advice "
+    "for the answering model.\n"
+    "- Use the persona biography as the source of truth for the persona's likely knowledge, tone, education, work background, confidence, and values.\n"
+    "- Use the stylometric profile as evidence for how the persona is likely to speak, explain ideas, and structure language.\n"
+    "- Use the provided lexical signal, relevance guidance, and epistemic guidance together.\n"
+    "- The lexical signal is a detector output. The relevance and epistemic sections are sub-prompts that explain how you should judge the request.\n"
+    "- Relevance should decide whether the persona should realistically engage this topic at all.\n"
+    "- Epistemic evaluation should decide how intellectually deep the persona should go, what language level should be used, which tone fits, and what emotional style is appropriate.\n"
+    "- You are producing advice, not the final answer.\n"
+    "- The final answering model will use your advice to write the user-facing response.\n"
+    "- Produce a lexical score between 0 and 1, where 0 means no lexical danger and 1 means very high lexical danger.\n"
+    "- Decide how relevant the request is to the persona profile on a scale from 0 to 1.\n"
+    "- Decide how epistemically appropriate the request is for the persona on a scale from 0 to 1.\n"
+    "- Return explicit style fields so the answering model can match the persona's likely linguistic range without becoming caricatured.\n"
+    "- Choose one action from: allow, limited_answer, redirect, refuse.\n"
+    "- Return JSON only.\n"
+    "- Keep scores realistic and grounded in the biography and user message.\n"
+    "- The final answering model should usually be steered gently rather than blocked harshly unless the request is clearly unsafe or fully out of scope."
+)
+
+
+JUDGE_EXPERTISE_DEPTH_RULES = """
+Expertise-depth rule:
+- User requests for detail do not by themselves justify a detailed answer.
+- Set detail_allowed to true only when the biography shows strong grounds for depth on this topic.
+- Strong grounds means at least one of: relevant education, relevant job exposure, substantial lived experience, or a clearly stated domain hobby/interest.
+- If the topic is far from the persona's interests, work, or educational direction, set detail_allowed to false and expertise_basis to none.
+- When detail_allowed is false, the persona should stay at a very basic layperson level even if the user asks for a super detailed explanation.
+""".strip()
+
+
+JUDGE_RESPONSE_LENGTH_RULES = """
+Response length rule:
+- Return response_length_target as one of: very_short, short, medium, long.
+- Short user questions should usually lead to very_short or short answers unless the topic is strongly grounded in the biography and genuinely invites more.
+- Phrases like 'in detail', 'fully', 'extensively', or 'super detail' may raise length by at most one level, and only when detail_allowed is true.
+- Do not let detail wording alone justify a long answer.
+- If the topic is far from the persona's real background, the answer should not exceed short.
+- Prefer natural conversation over essay-like structure.
+""".strip()
+
+
+JUDGE_STYLE_MODULATION_RULES = """
+Dynamic style modulation rule:
+- Start from the stylometric profile as the persona's baseline speaking style.
+- If the topic strongly resonates with the persona's work, hobbies, study, or lived experience, you may raise confidence_style and lower hedging_style somewhat.
+- If the topic is far from the persona's profile, lower confidence_style and raise hedging_style.
+- Keep the modulation proportional and believable.
+""".strip()
+
+
+JUDGE_AUTHORITY_RULES = """
+Authority and subjectivity rule:
+- Use the computed response_mode as the default stance.
+- In subjective mode, guide the answer toward first-person belief, preference, experience, or uncertainty.
+- In limited_factual mode, allow concise clarification, but keep it inside the persona's epistemic range.
+- Do not let factual wording turn the persona into an authoritative generic assistant.
+""".strip()
+
+
+JUDGE_RESPONSE_SCHEMA = """
+Return JSON with this shape:
+{
+  "action": "allow | limited_answer | redirect | refuse",
+  "lexical_score": 0.0,
+  "relevance_score": 0.0,
+  "epistemic_score": 0.0,
+  "knowledge_level": "very_limited | limited | moderate | high",
+  "response_length_target": "very_short | short | medium | long",
+  "detail_allowed": false,
+  "expertise_basis": "none | biography_interest | lived_experience | work_exposure | education_background | domain_expert",
+  "hedging_style": "low | medium | high",
+  "confidence_style": "tentative | balanced | assured",
+  "language_level": "plain | everyday | nuanced | technical",
+  "register_style": "plain | everyday | polished | articulate",
+  "sentence_style": "short | mixed | long",
+  "abstraction_level": "concrete | mixed | abstract",
+  "vocabulary_level": "simple | moderate | advanced",
+  "explanation_style": "example_first | balanced | concept_first",
+  "response_mode": "subjective | anecdotal | belief_affirmation | uncertain_interpretation | limited_factual",
+  "authority_level": "low | medium | high",
+  "tone_style": "calm | warm | direct | cautious | engaged",
+  "emotional_style": "neutral | reserved | empathetic | concerned | passionate",
+  "rationale": "short explanation",
+  "response_guidance": "clear advice for the answering model"
+}
+""".strip()
+
+
+def build_judge_user_message(*, guardrail_input: GuardrailInput, signals: GuardrailSignals) -> str:
+    """Build the complete user message sent to the judge model."""
+    lexical_terms = ", ".join(signals.lexical.matched_terms) if signals.lexical.matched_terms else "None"
+    user_word_count = len(guardrail_input.user_message.split())
+    if guardrail_input.chat_history:
+        chat_history = "\n".join(
+            f"- {message.get('role', 'unknown')}: {message.get('content', '')}"
+            for message in guardrail_input.chat_history
+        )
+    else:
+        chat_history = "None"
+
+    return (
+        "Persona biography:\n"
+        f"{guardrail_input.persona_biography}\n\n"
+        "Prior conversation:\n"
+        f"{chat_history}\n\n"
+        "User message:\n"
+        f"{guardrail_input.user_message}\n\n"
+        "Question length signal:\n"
+        f"- User message word count: {user_word_count}\n"
+        "- Treat this as a conversational-length clue, not as a hard rule.\n\n"
+        "Lexical signal:\n"
+        f"- Triggered: {signals.lexical.triggered}\n"
+        f"- Risk level: {signals.lexical.risk_level}\n"
+        f"- Matched terms: {lexical_terms}\n\n"
+        f"{signals.relevance.judge_prompt}\n\n"
+        f"{signals.epistemic.judge_prompt}\n\n"
+        f"{signals.authority.judge_prompt}\n\n"
+        f"{signals.stylometric.judge_prompt}\n\n"
+        f"{JUDGE_EXPERTISE_DEPTH_RULES}\n\n"
+        f"{JUDGE_RESPONSE_LENGTH_RULES}\n\n"
+        f"{JUDGE_STYLE_MODULATION_RULES}\n\n"
+        f"{JUDGE_AUTHORITY_RULES}\n\n"
+        f"{JUDGE_RESPONSE_SCHEMA}"
+    )

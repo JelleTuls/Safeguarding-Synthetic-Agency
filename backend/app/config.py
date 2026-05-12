@@ -1,6 +1,7 @@
 """Shared configuration for persona chat mode selection and model access."""
 
 import os
+from pathlib import Path
 
 from dotenv import load_dotenv
 
@@ -9,15 +10,17 @@ from dotenv import load_dotenv
 # Environment Loading
 # =============================================================================
 
-# Load environment variables once for the whole package.
+# Load environment variables once for the whole package. The backend can be
+# started from VS Code, uvicorn, or tests, so resolve the backend .env directly
+# instead of relying on the current working directory.
+BACKEND_DIR = Path(__file__).resolve().parents[1]
+load_dotenv(BACKEND_DIR / ".env")
 load_dotenv()
 
 
 # =============================================================================
 # Model Configuration
 # =============================================================================
-
-LLM_PROVIDER = os.getenv("LLM_PROVIDER", "openai").strip().lower()
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-oss-120b")
@@ -31,6 +34,21 @@ GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 GROQ_API_KEY_2 = os.getenv("GROQ_API_KEY_2")
 GROQ_MODEL = os.getenv("GROQ_MODEL", "openai/gpt-oss-120b")
 GROQ_BASE_URL = os.getenv("GROQ_BASE_URL", "https://api.groq.com/openai/v1")
+
+
+def _resolve_llm_provider() -> str:
+    """Resolve the active provider, preferring explicit configuration."""
+    configured_provider = os.getenv("LLM_PROVIDER")
+    if configured_provider:
+        return configured_provider.strip().lower()
+    if AZURE_OPENAI_API_KEY and AZURE_OPENAI_BASE_URL and AZURE_OPENAI_MODEL:
+        return "azure"
+    if GROQ_API_KEY or GROQ_API_KEY_2:
+        return "groq"
+    return "openai"
+
+
+LLM_PROVIDER = _resolve_llm_provider()
 
 
 def get_llm_config() -> dict:

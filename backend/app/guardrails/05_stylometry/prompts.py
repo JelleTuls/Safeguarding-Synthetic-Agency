@@ -1,9 +1,6 @@
-"""Stylometric profile generation and judge-guidance preparation."""
+"""Prompt text for layer 05 stylometric profile generation and guidance."""
 
 import json
-
-from app.guardrails.schemas import StylometricSignal
-from app.utils import run_chat_completion
 
 
 STYLOMETRY_SYS_PROMPT = (
@@ -37,8 +34,13 @@ Stylometric evaluation:
 """.strip()
 
 
-def _build_generation_user_prompt(*, persona_biography: str, persona_details: dict, persona_country: str) -> str:
-    """Build the profile-generation prompt from biography and structured details."""
+def build_stylometry_generation_user_prompt(
+    *,
+    persona_biography: str,
+    persona_details: dict,
+    persona_country: str,
+) -> str:
+    """Build the prompt used to create a cached stylometric profile."""
     normalized_details = json.dumps(
         {
             "country": persona_country,
@@ -74,54 +76,10 @@ def _build_generation_user_prompt(*, persona_biography: str, persona_details: di
     )
 
 
-def generate_stylometric_profile(*, persona_biography: str, persona_details: dict, persona_country: str) -> dict:
-    """Generate a structured stylometric profile from the biography and persona details."""
-    raw_response = run_chat_completion(
-        messages=[
-            {"role": "system", "content": STYLOMETRY_SYS_PROMPT},
-            {
-                "role": "user",
-                "content": _build_generation_user_prompt(
-                    persona_biography=persona_biography,
-                    persona_details=persona_details,
-                    persona_country=persona_country,
-                ),
-            },
-        ],
-        temperature=0.2,
-        json_mode=True,
-    )
-
-    profile = json.loads(raw_response)
-    return {
-        "register": profile.get("register", "everyday"),
-        "sentence_style": profile.get("sentence_style", "mixed"),
-        "abstraction_level": profile.get("abstraction_level", "mixed"),
-        "vocabulary_level": profile.get("vocabulary_level", "moderate"),
-        "hedging_style": profile.get("hedging_style", "medium"),
-        "confidence_style": profile.get("confidence_style", "balanced"),
-        "warmth_style": profile.get("warmth_style", "warm"),
-        "explanation_style": profile.get("explanation_style", "balanced"),
-        "reasoning_style": profile.get("reasoning_style", "blended"),
-        "profile_summary": profile.get(
-            "profile_summary",
-            "The persona speaks in an everyday, grounded way with a balance of warmth and practical explanation.",
-        ),
-        "evidence": profile.get("evidence", []),
-    }
-
-
-def prepare_stylometric_signal(*, stylometric_profile: dict) -> StylometricSignal:
-    """Build the stylometric instructions that will be injected into the judge prompt."""
-    judge_prompt = (
+def build_stylometry_judge_prompt(*, stylometric_profile: dict) -> str:
+    """Build the stylometry prompt segment passed into the judge bundle."""
+    return (
         f"{STYLOMETRY_JUDGE_SUBPROMPT}\n\n"
         "Stylometric profile context:\n"
         f"{json.dumps(stylometric_profile, ensure_ascii=False, indent=2)}"
-    )
-    return StylometricSignal(
-        summary=stylometric_profile.get(
-            "profile_summary",
-            "Stylometric guidance is based on the persona's likely communication style.",
-        ),
-        judge_prompt=judge_prompt,
     )

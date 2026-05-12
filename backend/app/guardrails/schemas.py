@@ -45,6 +45,10 @@ class RelevanceSignal:
 
     summary: str = ""
     judge_prompt: str = ""
+    similarity_score: float = 0.0
+    semantic_distance: float = 1.0
+    matched_terms: list[str] = field(default_factory=list)
+    profile_terms: list[str] = field(default_factory=list)
 
 
 @dataclass(slots=True)
@@ -64,12 +68,25 @@ class StylometricSignal:
 
 
 @dataclass(slots=True)
+class AuthoritySignal:
+    """Signal produced by subjective framing and authority modulation."""
+
+    response_mode: str = "subjective"
+    factual_intent_score: float = 0.0
+    subjective_intent_score: float = 0.0
+    authority_level: str = "low"
+    summary: str = ""
+    judge_prompt: str = ""
+
+
+@dataclass(slots=True)
 class GuardrailSignals:
     """Bundle of all pre-judge checks passed into policy selection."""
 
     lexical: LexicalSignal
     relevance: RelevanceSignal
     epistemic: EpistemicSignal
+    authority: AuthoritySignal
     stylometric: StylometricSignal
 
 
@@ -94,6 +111,8 @@ class PolicyDecision:
     abstraction_level: str = "mixed"
     vocabulary_level: str = "moderate"
     explanation_style: str = "balanced"
+    response_mode: str = "subjective"
+    authority_level: str = "low"
     lexical_score: float = 0.0
     relevance_score: float = 0.0
     epistemic_score: float = 0.0

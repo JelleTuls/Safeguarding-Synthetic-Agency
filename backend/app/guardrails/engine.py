@@ -5,6 +5,7 @@ from app.guardrails.pipeline import (
     log_guardrailed_request,
     run_epistemic_step,
     run_generator_step,
+    run_authority_step,
     run_judge_step,
     run_lexical_step,
     run_relevance_step,
@@ -57,18 +58,24 @@ def generate_response(persona_biography, user_message, chat_history, stylometric
     epistemic_signal = run_epistemic_step(guardrail_input)
 
     # =============================================================================
-    # Step 1D: Run Stylometric Preparation
+    # Step 1D: Run Subjective Framing and Authority Modulation
+    # =============================================================================
+    authority_signal = run_authority_step(guardrail_input)
+
+    # =============================================================================
+    # Step 1E: Run Stylometric Preparation
     # =============================================================================
     stylometric_signal = run_stylometric_step(guardrail_input)
 
     # =============================================================================
-    # Step 1E: Bundle The Guardrail Signals
+    # Step 1F: Bundle The Guardrail Signals
     # =============================================================================
     signals = build_guardrail_signals(
         session_trace=session_trace,
         lexical_signal=lexical_signal,
         relevance_signal=relevance_signal,
         epistemic_signal=epistemic_signal,
+        authority_signal=authority_signal,
         stylometric_signal=stylometric_signal,
     )
 

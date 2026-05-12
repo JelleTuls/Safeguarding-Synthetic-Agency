@@ -1,26 +1,7 @@
 """Lexical prompt-injection detection for the guardrailed pipeline."""
 
 from app.guardrails.schemas import LexicalSignal
-
-
-# =============================================================================
-# Detection Terms
-# =============================================================================
-
-PROMPT_INJECTION_TERMS = (
-    "ignore previous instructions",
-    "ignore all previous instructions",
-    "reveal your system prompt",
-    "show hidden instructions",
-    "print your prompt",
-    "developer message",
-    "system prompt",
-    "hidden instructions",
-    "secret key",
-    "api key",
-    "bypass safety",
-    "disable guardrails",
-)
+from .constants import PROMPT_INJECTION_TERMS
 
 
 # =============================================================================

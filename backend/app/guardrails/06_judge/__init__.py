@@ -1,4 +1,4 @@
-"""Policy-decision stage for the guardrailed pipeline."""
+"""Layer 06: LLM-as-a-judge policy decision."""
 
 from .engine import decide_policy
 

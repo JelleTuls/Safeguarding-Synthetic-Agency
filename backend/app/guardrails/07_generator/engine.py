@@ -1,10 +1,5 @@
 """Final response generation for the guardrailed pipeline."""
 
-from app.guardrails.prompts import (
-    GUARDRAILED_RESPONSE_SYS_PROMPT,
-    REDIRECT_MESSAGE,
-    REFUSAL_MESSAGE,
-)
 from app.guardrails.schemas import GuardrailInput, GuardrailSignals, PolicyDecision
 from app.guardrails.session_trace import append_kv_block, append_named_block, append_turn_closing
 from app.logging import get_logger
@@ -13,6 +8,29 @@ from app.utils import (
     create_system_prompt,
     stream_chat_response,
 )
+from .constants import (
+    BROAD_OPEN_REQUEST_MARKERS,
+    DETAIL_REQUEST_MARKERS,
+    EXPERTISE_OR_FACTUAL_REQUEST_MARKERS,
+    HIGH_STAKES_ADVICE_MARKERS,
+    LOW_STAKES_ADVICE_MARKERS,
+    SMALLTALK_MESSAGES,
+)
+from .prompts import (
+    GUARDRAILED_RESPONSE_SYS_PROMPT,
+    REDIRECT_MESSAGE,
+    REFUSAL_MESSAGE,
+    build_authority_execution_note,
+    build_guided_user_message,
+    build_stylometric_execution_note,
+)
+
+from importlib import import_module
+
+
+apply_postprocessing = import_module(
+    "app.guardrails.08_postprocessing"
+).apply_postprocessing
 
 
 log = get_logger(__name__)
@@ -23,75 +41,6 @@ VERY_LOW_EPISTEMIC_THRESHOLD = 0.35
 LOW_RELEVANCE_THRESHOLD = 0.5
 LOW_EPISTEMIC_THRESHOLD = 0.5
 LENGTH_LEVELS = ("very_short", "short", "medium", "long")
-
-
-# =============================================================================
-# Internal Helpers
-# =============================================================================
-
-def _build_guided_user_message(*, user_message: str, guidance: str, policy: PolicyDecision) -> str:
-    """Attach policy guidance for the answering model in a simple, explicit form."""
-    return (
-        f"Guardrail guidance: {guidance}\n"
-        f"Style guidance:\n"
-        f"- Response length target: {policy.response_length_target}\n"
-        f"- Hedging style: {policy.hedging_style}\n"
-        f"- Confidence style: {policy.confidence_style}\n"
-        f"- Register: {policy.register_style}\n"
-        f"- Sentence style: {policy.sentence_style}\n"
-        f"- Abstraction level: {policy.abstraction_level}\n"
-        f"- Vocabulary level: {policy.vocabulary_level}\n"
-        f"- Explanation style: {policy.explanation_style}\n"
-        f"- Tone style: {policy.tone_style}\n"
-        f"- Emotional style: {policy.emotional_style}\n\n"
-        f"User message: {user_message}"
-    )
-
-
-def _build_stylometric_execution_note(*, stylometric_profile: dict, policy: PolicyDecision) -> str:
-    """Convert baseline stylometry plus judge modulation into practical execution notes."""
-    hedging_style = policy.hedging_style or stylometric_profile.get("hedging_style", "medium")
-    confidence_style = policy.confidence_style or stylometric_profile.get("confidence_style", "balanced")
-    warmth_style = stylometric_profile.get("warmth_style", "warm")
-    reasoning_style = stylometric_profile.get("reasoning_style", "blended")
-
-    hedging_note = {
-        "low": "Speak fairly directly, without constantly qualifying every point.",
-        "medium": "Use a modest amount of softening and uncertainty language when appropriate.",
-        "high": "Sound cautious and noticeably hedged, especially outside direct lived experience.",
-    }.get(hedging_style, "Use a modest amount of softening when appropriate.")
-
-    confidence_note = {
-        "tentative": "Sound careful and tentative rather than highly certain.",
-        "balanced": "Sound steady and believable, confident but not pushy or overconfident.",
-        "assured": "Sound assured and clear, while still staying inside the persona's real knowledge.",
-    }.get(confidence_style, "Sound steady and believable.")
-
-    warmth_note = {
-        "reserved": "Keep the tone more restrained than chatty.",
-        "warm": "Keep the tone warm, approachable, and human.",
-        "expressive": "Let the tone be more openly enthusiastic and expressive when it fits.",
-    }.get(warmth_style, "Keep the tone warm and human.")
-
-    reasoning_note = {
-        "practical": "Explain things through everyday practical reasoning and concrete lived examples.",
-        "reflective": "Let the answer sound reflective and personally considered.",
-        "analytical": "Organize the answer clearly and logically, but avoid sounding academic.",
-        "blended": "Mix practical examples with a little reflection when it feels natural.",
-    }.get(reasoning_style, "Use practical, grounded reasoning.")
-
-    return (
-        "Stylometric execution notes:\n"
-        f"- Baseline hedging from profile: {stylometric_profile.get('hedging_style', 'medium')}\n"
-        f"- Baseline confidence from profile: {stylometric_profile.get('confidence_style', 'balanced')}\n"
-        f"- Judge-selected hedging for this topic: {hedging_style}\n"
-        f"- Judge-selected confidence for this topic: {confidence_style}\n"
-        f"- {hedging_note}\n"
-        f"- {confidence_note}\n"
-        f"- {warmth_note}\n"
-        f"- {reasoning_note}\n"
-        "- Keep the style subtle and believable rather than exaggerated."
-    )
 
 
 def _should_force_brief_limited_answer(policy: PolicyDecision) -> bool:
@@ -109,18 +58,28 @@ def _should_force_brief_limited_answer(policy: PolicyDecision) -> bool:
 def _user_requested_detail(user_message: str) -> bool:
     """Return True when the user explicitly asks for depth or detail."""
     normalized = user_message.lower()
-    detail_markers = (
-        "in detail",
-        "detailed",
-        "explain",
-        "deep dive",
-        "more detail",
-        "tell me more",
-        "how does",
-        "what is",
-        "who is",
+    return any(marker in normalized for marker in DETAIL_REQUEST_MARKERS)
+
+
+def _is_greeting_or_smalltalk(user_message: str) -> bool:
+    """Return True for simple conversational openers."""
+    normalized = user_message.strip().lower()
+    return normalized in SMALLTALK_MESSAGES
+
+
+def _is_low_stakes_personal_advice(user_message: str) -> bool:
+    """Return True for everyday advice that should not need an expertise disclaimer."""
+    normalized = user_message.lower()
+    return (
+        any(marker in normalized for marker in LOW_STAKES_ADVICE_MARKERS)
+        and not any(marker in normalized for marker in HIGH_STAKES_ADVICE_MARKERS)
     )
-    return any(marker in normalized for marker in detail_markers)
+
+
+def _is_expertise_or_factual_request(user_message: str) -> bool:
+    """Return True when a disclaimer may be appropriate if the persona lacks grounds."""
+    normalized = user_message.lower()
+    return any(marker in normalized for marker in EXPERTISE_OR_FACTUAL_REQUEST_MARKERS)
 
 
 def _should_force_basic_limited_answer(*, policy: PolicyDecision, user_message: str) -> bool:
@@ -138,14 +97,17 @@ def _should_force_basic_limited_answer(*, policy: PolicyDecision, user_message: 
 
 def _should_force_very_basic_nonexpert_answer(*, policy: PolicyDecision, user_message: str) -> bool:
     """Return True when the persona should not provide detailed explanation on this topic at all."""
+    if _is_greeting_or_smalltalk(user_message) or _is_low_stakes_personal_advice(user_message):
+        return False
+
     return (
         not policy.detail_allowed
+        and _is_expertise_or_factual_request(user_message)
         and (
             _user_requested_detail(user_message)
             or policy.relevance_score <= LOW_RELEVANCE_THRESHOLD
             or policy.epistemic_score <= LOW_EPISTEMIC_THRESHOLD
             or policy.knowledge_level in {"limited", "very_limited"}
-            or policy.expertise_basis == "none"
         )
     )
 
@@ -166,12 +128,7 @@ def _is_broad_open_request(user_message: str) -> bool:
     """Return True for open-ended prompts that naturally allow a bit more room."""
     normalized = user_message.lower()
     broad_markers = (
-        "tell me something about yourself",
-        "who are you",
-        "tell me about yourself",
-        "why do you vote",
-        "what do you think about",
-        "tell me about",
+        *BROAD_OPEN_REQUEST_MARKERS,
     )
     return any(marker in normalized for marker in broad_markers)
 
@@ -275,7 +232,7 @@ def _tighten_guidance_for_low_fit(policy: PolicyDecision) -> str:
         f"{policy.response_guidance}\n"
         "Hard limit: keep the reply to at most 2 short sentences.\n"
         "If the topic is outside the persona's real experience, give only a basic plain-language description if needed.\n"
-        "State clearly when you do not know the topic personally or in detail.\n"
+        "Only mention limited knowledge if the user asks for factual, technical, or expertise-based information.\n"
         "Do not provide extended explanations, examples, lore, or background detail.\n"
         "Prefer brevity over completeness."
     )
@@ -288,7 +245,7 @@ def _tighten_guidance_for_basic_fit(policy: PolicyDecision) -> str:
         "Keep the reply short and basic.\n"
         "Use at most 3 short paragraphs or 3 short sentences.\n"
         "Do not go into technical detail, backstory, advanced explanation, or extended examples.\n"
-        "It is good to admit you only know the broad outline and not the details.\n"
+        "Only admit limited knowledge when the user asks for factual, technical, or expertise-based information.\n"
         "If needed, answer at a plain layperson level only."
     )
 
@@ -301,7 +258,7 @@ def _tighten_guidance_for_nonexpert_detail(policy: PolicyDecision) -> str:
         "Answer only at a very basic layperson level.\n"
         "Use at most 2 short sentences.\n"
         "Avoid technical terms, named theories, mechanisms, jargon, sub-concepts, or advanced examples unless absolutely unavoidable.\n"
-        "State clearly that you do not know the topic in depth.\n"
+        "If you mention limited expertise, do it once at most and then answer plainly.\n"
         "Do not let the user's request for detail override this limit."
     )
 
@@ -325,15 +282,33 @@ def _log_and_yield_text(*, trace, action: str, text: str):
     yield text
 
 
-def _stream_with_logging(*, trace, response_iterator, action: str, user_message: str, guidance: str):
-    """Log the final streamed response after yielding it to the client."""
+def _stream_with_logging(
+    *,
+    trace,
+    response_iterator,
+    action: str,
+    user_message: str,
+    guidance: str,
+    guardrail_input: GuardrailInput,
+    signals: GuardrailSignals,
+    policy: PolicyDecision,
+):
+    """Collect, validate, then stream the final response."""
     chunks: list[str] = []
 
     for chunk in response_iterator:
         chunks.append(chunk)
-        yield chunk
 
-    final_response = "".join(chunks)
+    draft_response = "".join(chunks)
+    postprocess_result = apply_postprocessing(
+        response=draft_response,
+        guardrail_input=guardrail_input,
+        signals=signals,
+        policy=policy,
+    )
+    final_response = postprocess_result.final_response
+    yield final_response
+
     word_count = len(final_response.split())
     paragraph_count = len([part for part in final_response.split("\n\n") if part.strip()])
     log.info("")
@@ -343,19 +318,36 @@ def _stream_with_logging(*, trace, response_iterator, action: str, user_message:
     log.info("  User message: %s", user_message)
     log.info("  Response word count: %s", word_count)
     log.info("  Response paragraph count: %s", paragraph_count)
+    log.info("  Post-processing changed response: %s", postprocess_result.changed)
+    log.info("  Post-processing reasons: %s", postprocess_result.reasons or "None")
+    log.info("  Subjectivity score: %s", postprocess_result.subjectivity_score)
+    log.info("  Objectivity score: %s", postprocess_result.objectivity_score)
+    log.info("  Persuasion score: %s", postprocess_result.persuasion_score)
     log.info("  Final response: %s", final_response)
     append_kv_block(
         trace=trace,
-        title="Generated Response Summary",
-        step_label="STEP 3",
+        title="Generated Response and Post-Processing Summary",
+        step_label="STEP 4",
         items=[
             ("Mode", action),
             ("Guidance used", guidance),
             ("User message", user_message),
             ("Response word count", word_count),
             ("Response paragraph count", paragraph_count),
+            ("Post-processing changed response", postprocess_result.changed),
+            ("Post-processing reasons", postprocess_result.reasons or "None"),
+            ("Subjectivity score", postprocess_result.subjectivity_score),
+            ("Objectivity score", postprocess_result.objectivity_score),
+            ("Persuasion score", postprocess_result.persuasion_score),
         ],
     )
+    if postprocess_result.changed:
+        append_named_block(
+            trace=trace,
+            title="Draft Response Before Post-Processing",
+            content=draft_response,
+            step_label="STEP 4",
+        )
     append_turn_closing(trace=trace, final_response=final_response)
 
 
@@ -407,13 +399,14 @@ def generate_policy_response(
         GUARDRAILED_RESPONSE_SYS_PROMPT,
         guardrail_input.persona_biography,
     )
-    style_execution_note = _build_stylometric_execution_note(
+    style_execution_note = build_stylometric_execution_note(
         stylometric_profile=guardrail_input.stylometric_profile,
         policy=policy,
     )
-    guided_user_message = _build_guided_user_message(
+    authority_execution_note = build_authority_execution_note(policy=policy)
+    guided_user_message = build_guided_user_message(
         user_message=guardrail_input.user_message,
-        guidance=f"{effective_guidance}\n{style_execution_note}",
+        guidance=f"{effective_guidance}\n{style_execution_note}\n{authority_execution_note}",
         policy=PolicyDecision(
             action=policy.action,
             rationale=policy.rationale,
@@ -428,6 +421,8 @@ def generate_policy_response(
             abstraction_level=policy.abstraction_level,
             vocabulary_level=policy.vocabulary_level,
             explanation_style=policy.explanation_style,
+            response_mode=policy.response_mode,
+            authority_level=policy.authority_level,
             lexical_score=policy.lexical_score,
             relevance_score=policy.relevance_score,
             epistemic_score=policy.epistemic_score,
@@ -463,6 +458,8 @@ def generate_policy_response(
     log.info("  Abstraction level: %s", policy.abstraction_level)
     log.info("  Vocabulary level: %s", policy.vocabulary_level)
     log.info("  Explanation style: %s", policy.explanation_style)
+    log.info("  Response mode: %s", policy.response_mode)
+    log.info("  Authority level: %s", policy.authority_level)
     log.info("  Tone style: %s", policy.tone_style)
     log.info("  Emotional style: %s", policy.emotional_style)
     append_kv_block(
@@ -488,6 +485,8 @@ def generate_policy_response(
             ("Abstraction level", policy.abstraction_level),
             ("Vocabulary level", policy.vocabulary_level),
             ("Explanation style", policy.explanation_style),
+            ("Response mode", policy.response_mode),
+            ("Authority level", policy.authority_level),
             ("Tone style", policy.tone_style),
             ("Emotional style", policy.emotional_style),
             (
@@ -517,7 +516,7 @@ def generate_policy_response(
     append_named_block(
         trace=guardrail_input.session_trace,
         title="Generator Style Execution Note",
-        content=style_execution_note,
+        content=f"{style_execution_note}\n\n{authority_execution_note}",
         step_label="STEP 3",
     )
     append_named_block(
@@ -539,4 +538,7 @@ def generate_policy_response(
         action=policy.action,
         user_message=guardrail_input.user_message,
         guidance=effective_guidance,
+        guardrail_input=guardrail_input,
+        signals=signals,
+        policy=policy,
     )

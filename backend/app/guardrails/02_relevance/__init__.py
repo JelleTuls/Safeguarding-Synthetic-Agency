@@ -1,4 +1,4 @@
-"""Topic relevance stage for the guardrailed pipeline."""
+"""Layer 02: semantic topic-distance relevance scoring."""
 
 from .engine import evaluate_relevance
 

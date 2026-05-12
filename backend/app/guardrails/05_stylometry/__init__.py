@@ -1,4 +1,4 @@
-"""Stylometric profile generation and judge-guidance helpers for the guardrailed flow."""
+"""Layer 05: stylometric profile generation and guidance."""
 
 from .engine import generate_stylometric_profile, prepare_stylometric_signal
 from .store import get_or_create_stylometric_profile

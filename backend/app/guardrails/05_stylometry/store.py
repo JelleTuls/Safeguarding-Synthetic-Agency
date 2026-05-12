@@ -4,7 +4,7 @@ import json
 import os
 from pathlib import Path
 
-from app.guardrails.stylometry.engine import generate_stylometric_profile
+from .engine import generate_stylometric_profile
 
 
 local_profiles_path = Path(__file__).resolve().parents[2] / "data" / "stylometric_profiles.json"
