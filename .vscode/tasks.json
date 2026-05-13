@@ -52,7 +52,7 @@
     {
       "label": "Start Backend",
       "type": "shell",
-      "command": "${workspaceFolder}/env/bin/python -m uvicorn main:app --reload",
+      "command": "SUBJECTIVITY_CLASSIFIER_URL=http://127.0.0.1:8001 ${workspaceFolder}/env/bin/python -m uvicorn main:app --reload",
       "options": {
         "cwd": "${workspaceFolder}/backend"
       },
@@ -71,6 +71,37 @@
             "activeOnStart": true,
             "beginsPattern": ".",
             "endsPattern": "Uvicorn running on"
+          }
+        }
+      ],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "group": "servers"
+      }
+    },
+    {
+      "label": "Start Subjectivity Classifier",
+      "type": "shell",
+      "command": "docker compose up --build subjectivity-classifier",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "isBackground": true,
+      "problemMatcher": [
+        {
+          "pattern": [
+            {
+              "regexp": ".",
+              "file": 1,
+              "location": 2,
+              "message": 3
+            }
+          ],
+          "background": {
+            "activeOnStart": true,
+            "beginsPattern": ".",
+            "endsPattern": "Subjectivity classifier model loaded"
           }
         }
       ],
@@ -113,8 +144,9 @@
     },
     {
       "label": "Start Servers",
-      "dependsOrder": "parallel",
+      "dependsOrder": "sequence",
       "dependsOn": [
+        "Start Subjectivity Classifier",
         "Start Backend",
         "Start Frontend"
       ]
@@ -123,7 +155,7 @@
       "label": "Start Frontend + Backend",
       "dependsOrder": "sequence",
       "dependsOn": [
-        "Stop Dev Ports",
+        "Stop Dev Environment",
         "Start Servers",
         "Open Frontend"
       ]
@@ -138,6 +170,29 @@
         "panel": "shared",
         "group": "servers"
       }
+    },
+    {
+      "label": "Stop Subjectivity Classifier",
+      "type": "shell",
+      "command": "docker compose down",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "group": "servers"
+      }
+    },
+    {
+      "label": "Stop Dev Environment",
+      "dependsOrder": "parallel",
+      "dependsOn": [
+        "Stop Dev Ports",
+        "Stop Subjectivity Classifier"
+      ],
+      "problemMatcher": []
     },
     {
       "label": "Open Frontend",

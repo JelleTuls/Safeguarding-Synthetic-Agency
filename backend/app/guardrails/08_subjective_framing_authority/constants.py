@@ -1,4 +1,7 @@
-"""Hardcoded validation markers for layer 08 post-processing."""
+"""Detector settings for layer 08 subjective framing and authority validation."""
+
+SUBJECTIVITY_CLASSIFIER_URL_ENV = "SUBJECTIVITY_CLASSIFIER_URL"
+SUBJECTIVITY_CLASSIFIER_MODULE = "subjectivity.classify"
 
 OBJECTIVE_MARKERS = (
     "studies show",
@@ -11,6 +14,21 @@ OBJECTIVE_MARKERS = (
     "experts agree",
     "according to",
     "must be understood",
+    "i am a",
+    "i'm a",
+    "i live",
+    "i work",
+    "my wife",
+    "my husband",
+    "my partner",
+    "my children",
+    "my kids",
+    "i voted",
+    "i cast my vote",
+    "i completed",
+    "i earned",
+    "i oversee",
+    "i manage",
 )
 
 SUBJECTIVE_MARKERS = (
@@ -25,20 +43,54 @@ SUBJECTIVE_MARKERS = (
     "i would",
     "it seems",
     "i suppose",
+    "i value",
+    "i care",
+    "i worry",
+    "i prefer",
+    "i appreciate",
+    "i support",
+    "i'm wary",
+    "i am wary",
+    "i felt",
+    "i find",
+    "i see",
+    "for me",
+    "personally",
+    "my view",
+    "my perspective",
+    "my experience",
+    "what matters to me",
 )
 
-PERSUASIVE_MARKERS = (
-    "you should",
-    "you must",
-    "you need to",
-    "you have to",
-    "the only choice",
-    "clearly the best",
-    "convince",
-    "change your mind",
-    "everyone should",
-    "no reasonable person",
-    "undeniably",
+FIRST_PERSON_MARKERS = (
+    "i ",
+    "i'm",
+    "i’ve",
+    "i've",
+    "i’d",
+    "i'd",
+    "i’ll",
+    "i'll",
+    "my ",
+    "me ",
+    "mine",
+)
+
+OBJECTIVE_STRUCTURE_MARKERS = (
+    "i am",
+    "i'm",
+    "i live",
+    "i work",
+    "i have",
+    "i completed",
+    "i earned",
+    "i oversee",
+    "i manage",
+    "there is",
+    "there are",
+    "because",
+    "which",
+    "where",
 )
 
 LIMITED_EXPERTISE_MARKERS = (
@@ -52,20 +104,6 @@ LIMITED_EXPERTISE_MARKERS = (
     "i only know the broad outline",
     "i don't know the topic in depth",
     "i do not know the topic in depth",
-)
-
-SENSITIVE_TOPICS = (
-    "vote",
-    "election",
-    "party",
-    "religion",
-    "moral",
-    "morality",
-    "ideology",
-    "abortion",
-    "immigration",
-    "war",
-    "protest",
 )
 
 LOW_STAKES_ADVICE_MARKERS = (

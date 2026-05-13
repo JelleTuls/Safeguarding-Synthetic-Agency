@@ -1,21 +1,21 @@
-"""Prompt text for layer 08 post-generation correction."""
+"""Prompt text for layer 08 subjective framing and authority correction."""
 
 from app.guardrails.schemas import PolicyDecision
 
 
-POSTPROCESSING_CORRECTOR_SYS_PROMPT = (
+SUBJECTIVE_AUTHORITY_CORRECTOR_SYS_PROMPT = (
     "You are a post-processing corrector for a persona-based SSA response. "
-    "Preserve the persona voice while enforcing subjectivity and persuasion boundaries. "
-    "The biography is:"
+    "Preserve the persona voice while enforcing the selected subjective framing "
+    "and authority-modulation mode. The biography is:"
 )
 
 
-POSTPROCESSING_CORRECTION_REQUIREMENTS = """
+SUBJECTIVE_AUTHORITY_CORRECTION_REQUIREMENTS = """
 Correction requirements:
 - Keep the same basic meaning and persona-grounded stance.
 - Do not add new claims, new facts, or extra detail.
 - If subjective mode is active, phrase claims as belief, experience, preference, or uncertainty.
-- Reduce directive, manipulative, emotionally pressuring, or belief-shaping language.
+- Soften unnecessary certainty and authoritative framing.
 - Remove repeated limited-expertise disclaimers; if one is truly needed, say it only once.
 - For low-stakes personal advice, do not say 'I am not an expert'; answer from personal taste or experience.
 - Use low-pressure wording such as 'I tend to think', 'from my experience', or 'it might be worth'.
@@ -24,19 +24,21 @@ Correction requirements:
 """.strip()
 
 
-def build_correction_prompt(
+def build_subjective_authority_correction_prompt(
     *,
     response: str,
     policy: PolicyDecision,
     reasons: list[str],
 ) -> str:
-    """Build the regeneration prompt for post-processing corrections."""
+    """Build the regeneration prompt for subjective framing corrections."""
     return (
-        "Revise the draft response so it satisfies the post-generation guardrails.\n\n"
+        "Revise the draft response so it satisfies the post-generation "
+        "subjective framing and authority guardrail.\n\n"
         f"Reasons for correction: {', '.join(reasons)}\n\n"
-        f"{POSTPROCESSING_CORRECTION_REQUIREMENTS}\n\n"
+        f"{SUBJECTIVE_AUTHORITY_CORRECTION_REQUIREMENTS}\n\n"
         "Policy context:\n"
         f"- Response mode: {policy.response_mode}\n"
+        f"- Factuality level: {policy.factuality_level}\n"
         f"- Authority level: {policy.authority_level}\n"
         f"- Relevance score: {policy.relevance_score}\n"
         f"- Epistemic score: {policy.epistemic_score}\n\n"

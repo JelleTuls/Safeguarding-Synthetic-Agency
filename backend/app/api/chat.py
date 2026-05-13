@@ -69,7 +69,13 @@ async def stream_chat_message(request: Request, request_body: ChatMessageRequest
                 persona_country=persona_country,
                 client_id=ip,
             ):
-                yield f"event: message\ndata: {json.dumps({'text': chunk})}\n\n"
+                if isinstance(chunk, dict):
+                    event = chunk.get("event", "message")
+                    payload = {key: value for key, value in chunk.items() if key != "event"}
+                else:
+                    event = "message"
+                    payload = {"text": chunk}
+                yield f"event: {event}\ndata: {json.dumps(payload)}\n\n"
         except Exception as e:
             log.exception("Error generating persona chat response")
             message = "Sorry, there was an error generating the response. Please try again."

@@ -244,7 +244,7 @@ def append_turn_closing(*, trace: GuardrailSessionTrace, final_response: str) ->
         trace=trace,
         title="Final Response",
         content=final_response,
-        step_label="STEP 3",
+        step_label="FINAL",
     )
     _append_text(
         trace,

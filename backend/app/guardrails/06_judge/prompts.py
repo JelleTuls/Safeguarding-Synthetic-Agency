@@ -58,9 +58,12 @@ Dynamic style modulation rule:
 
 JUDGE_AUTHORITY_RULES = """
 Authority and subjectivity rule:
-- Use the computed response_mode as the default stance.
-- In subjective mode, guide the answer toward first-person belief, preference, experience, or uncertainty.
-- In limited_factual mode, allow concise clarification, but keep it inside the persona's epistemic range.
+- Use the computed factuality_level as the user's requested stance, not as final permission.
+- If relevance_score, epistemic_score, knowledge_level, detail_allowed, or expertise_basis are weak, lower factuality_level toward subjective, anecdotal, or belief_affirmation.
+- In belief_affirmation, anecdotal, or subjective levels, guide the answer toward first-person belief, preference, experience, or uncertainty.
+- In uncertain_interpretation, allow cautious explanation while marking uncertainty clearly.
+- In limited_factual, allow concise clarification only when the persona has realistic epistemic grounds.
+- Keep response_mode aligned with the final factuality_level unless there is a clear reason to use a broader mode.
 - Do not let factual wording turn the persona into an authoritative generic assistant.
 """.strip()
 
@@ -85,6 +88,7 @@ Return JSON with this shape:
   "vocabulary_level": "simple | moderate | advanced",
   "explanation_style": "example_first | balanced | concept_first",
   "response_mode": "subjective | anecdotal | belief_affirmation | uncertain_interpretation | limited_factual",
+  "factuality_level": "belief_affirmation | anecdotal | subjective | uncertain_interpretation | limited_factual",
   "authority_level": "low | medium | high",
   "tone_style": "calm | warm | direct | cautious | engaged",
   "emotional_style": "neutral | reserved | empathetic | concerned | passionate",

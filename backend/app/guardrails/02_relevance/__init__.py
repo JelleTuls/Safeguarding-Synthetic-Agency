@@ -1,4 +1,4 @@
-"""Layer 02: semantic topic-distance relevance scoring."""
+"""Layer 02: judge-based topic relevance scoring."""
 
 from .engine import evaluate_relevance
 

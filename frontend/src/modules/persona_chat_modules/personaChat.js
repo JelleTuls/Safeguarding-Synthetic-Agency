@@ -28,6 +28,56 @@ function PersonaChat({ personaDetails, personaCountry, showChat }) {
 
   // function to post message and receive message from backend
   async function sendAndReceiveMessage(persona, country, message, chatHistory) {
+    const wait = (durationMs) => new Promise(resolve => setTimeout(resolve, durationMs));
+    const removeAwaitingBubble = () => {
+      setMessages(prev => prev.filter(message => message.id !== 'awaitingTemporary'));
+    };
+    const showStatusBubble = (text) => {
+      setMessages(prev => {
+        const withoutAwaiting = prev.filter(message => message.id !== 'awaitingTemporary');
+        return [...withoutAwaiting, {id: 'awaitingTemporary', type: 'awaiting', text}];
+      });
+    };
+    const addPersonaBubble = async (text) => {
+      const nextId = numMessages.current;
+      numMessages.current += 1;
+      let resolveTypingComplete;
+      const typingComplete = new Promise(resolve => {
+        resolveTypingComplete = resolve;
+      });
+      const fallbackTimeout = window.setTimeout(resolveTypingComplete, 8000);
+      setMessages(prev => {
+        const withoutAwaiting = prev.filter(message => message.id !== 'awaitingTemporary');
+        return [
+          ...withoutAwaiting,
+          {
+            id: nextId,
+            type: "persona",
+            text,
+            onTypingComplete: () => {
+              window.clearTimeout(fallbackTimeout);
+              resolveTypingComplete();
+            }
+          }
+        ];
+      });
+      await typingComplete;
+    };
+    const appendToLastPersonaBubble = (text) => {
+      setMessages(prev => {
+        const withoutAwaiting = prev.filter(message => message.id !== 'awaitingTemporary');
+        const updated = [...withoutAwaiting];
+        const last = updated[updated.length - 1];
+        if (!last || last.type !== "persona") {
+          const nextId = numMessages.current;
+          numMessages.current += 1;
+          return [...updated, {id: nextId, type: "persona", text}];
+        }
+        updated[updated.length - 1] = { ...last, text: (last.text || "") + text };
+        return updated;
+      });
+    };
+
     try {
       const response = await fetch(`${process.env.REACT_APP_API_URL}/api/chat/chat_message`, {
         method: "POST",
@@ -44,14 +94,15 @@ function PersonaChat({ personaDetails, personaCountry, showChat }) {
       const decoder = new TextDecoder();
 
       let currentEvent = "message"
-      let firstChunk = true;
+      let buffer = "";
 
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
 
-        const raw = decoder.decode(value);
-        const blocks = raw.split("\n\n").filter(Boolean);
+        buffer += decoder.decode(value, { stream: true });
+        const blocks = buffer.split("\n\n");
+        buffer = blocks.pop() || "";
 
         for (const block of blocks) {
           const lines = block.split("\n");
@@ -64,33 +115,20 @@ function PersonaChat({ personaDetails, personaCountry, showChat }) {
               if (payload === "[DONE]") break;
 
 
-              const { text } = JSON.parse(payload);
+              const parsed = JSON.parse(payload);
+              const { text } = parsed;
 
               if (currentEvent === "error") {
                 setError(text);
-                if (firstChunk) {
-                  setMessages(prev => prev.slice(0, -1)); // remove awaiting bubble
-                  addMessage("persona", ""); // add empty persona bubble
-                  firstChunk = false;
-                }
-                setMessages(prev => {
-                  const updated = [...prev];
-                  const last = updated[updated.length - 1];
-                  updated[updated.length - 1] = { ...last, text };
-                  return updated;
-                });
+                removeAwaitingBubble();
+                await addPersonaBubble(text);
+              } else if (currentEvent === "status") {
+                showStatusBubble(text);
+                await wait(parsed.duration_ms || 900);
+              } else if (currentEvent === "message_part") {
+                await addPersonaBubble(text);
               } else {
-                if (firstChunk) {
-                  setMessages(prev => prev.slice(0, -1)); // remove awaiting bubble
-                  addMessage("persona", ""); // add empty persona bubble
-                  firstChunk = false;
-                }
-                setMessages(prev => {
-                  const updated = [...prev];
-                  const last = updated[updated.length - 1];
-                  updated[updated.length - 1] = { ...last, text: (last.text || "") + text };
-                  return updated;
-                });
+                appendToLastPersonaBubble(text);
               }
 
             currentEvent = "message";
@@ -102,7 +140,7 @@ function PersonaChat({ personaDetails, personaCountry, showChat }) {
       setError(null);
     } catch (err) {
       setError(err.message);
-      setMessages(prev => prev.slice(0, -1));
+      setMessages(prev => prev.filter(message => message.id !== 'awaitingTemporary'));
     } finally {
       setWaitingForResponse(false);
     }
@@ -185,7 +223,13 @@ function PersonaChat({ personaDetails, personaCountry, showChat }) {
               ))} */}
               {messages.map((message) => {
                 const Component = messageTypes[message.type];
-                return <Component key={message.id} text={message.text} />;
+                return (
+                  <Component
+                    key={message.id}
+                    text={message.text}
+                    onTypingComplete={message.onTypingComplete}
+                  />
+                );
               })
 
               }

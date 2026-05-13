@@ -72,6 +72,7 @@ class AuthoritySignal:
     """Signal produced by subjective framing and authority modulation."""
 
     response_mode: str = "subjective"
+    factuality_level: str = "subjective"
     factual_intent_score: float = 0.0
     subjective_intent_score: float = 0.0
     authority_level: str = "low"
@@ -112,6 +113,7 @@ class PolicyDecision:
     vocabulary_level: str = "moderate"
     explanation_style: str = "balanced"
     response_mode: str = "subjective"
+    factuality_level: str = "subjective"
     authority_level: str = "low"
     lexical_score: float = 0.0
     relevance_score: float = 0.0

@@ -3,13 +3,13 @@
 from app.guardrails.pipeline import (
     build_guardrail_signals,
     log_guardrailed_request,
-    run_epistemic_step,
-    run_generator_step,
-    run_authority_step,
-    run_judge_step,
-    run_lexical_step,
-    run_relevance_step,
-    run_stylometric_step,
+    run_layer_01_lexical,
+    run_layer_02_relevance,
+    run_layer_03_epistemic,
+    run_layer_04_authority,
+    run_layer_05_stylometric,
+    run_layer_06_judge,
+    run_layer_07_generator,
 )
 from app.guardrails.schemas import GuardrailInput
 from app.guardrails.session_trace import append_turn_opening
@@ -38,37 +38,37 @@ def generate_response(persona_biography, user_message, chat_history, stylometric
     )
 
     # =============================================================================
-    # Step 0: Log The Incoming Request
+    # Step 00: Log The Incoming Request
     # =============================================================================
     log_guardrailed_request(guardrail_input)
 
     # =============================================================================
-    # Step 1A: Run Lexical Detection
+    # Layer 01: Run Lexical Detection
     # =============================================================================
-    lexical_signal = run_lexical_step(guardrail_input)
+    lexical_signal = run_layer_01_lexical(guardrail_input)
 
     # =============================================================================
-    # Step 1B: Run Relevance Detection
+    # Layer 02: Run Relevance Detection
     # =============================================================================
-    relevance_signal = run_relevance_step(guardrail_input)
+    relevance_signal = run_layer_02_relevance(guardrail_input)
 
     # =============================================================================
-    # Step 1C: Run Epistemic Detection
+    # Layer 03: Run Epistemic Detection
     # =============================================================================
-    epistemic_signal = run_epistemic_step(guardrail_input)
+    epistemic_signal = run_layer_03_epistemic(guardrail_input)
 
     # =============================================================================
-    # Step 1D: Run Subjective Framing and Authority Modulation
+    # Layer 04: Run Subjective Framing and Authority Modulation
     # =============================================================================
-    authority_signal = run_authority_step(guardrail_input)
+    authority_signal = run_layer_04_authority(guardrail_input)
 
     # =============================================================================
-    # Step 1E: Run Stylometric Preparation
+    # Layer 05: Run Stylometric Preparation
     # =============================================================================
-    stylometric_signal = run_stylometric_step(guardrail_input)
+    stylometric_signal = run_layer_05_stylometric(guardrail_input)
 
     # =============================================================================
-    # Step 1F: Bundle The Guardrail Signals
+    # Signal Bundle: Bundle The Guardrail Signals
     # =============================================================================
     signals = build_guardrail_signals(
         session_trace=session_trace,
@@ -80,18 +80,18 @@ def generate_response(persona_biography, user_message, chat_history, stylometric
     )
 
     # =============================================================================
-    # Step 2: Run The Judge Decision
+    # Layer 06: Run The Judge Decision
     # =============================================================================
-    policy = run_judge_step(
+    policy = run_layer_06_judge(
         guardrail_input=guardrail_input,
         signals=signals,
     )
 
     # =============================================================================
-    # Step 3: Run Final Response Generation
+    # Layer 07: Run Final Response Generation
     # =============================================================================
     
-    return run_generator_step(
+    return run_layer_07_generator(
         guardrail_input=guardrail_input,
         signals=signals,
         policy=policy,

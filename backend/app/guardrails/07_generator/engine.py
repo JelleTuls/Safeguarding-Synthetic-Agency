@@ -1,6 +1,7 @@
 """Final response generation for the guardrailed pipeline."""
 
 from app.guardrails.schemas import GuardrailInput, GuardrailSignals, PolicyDecision
+from app.guardrails.chat_bubbles import split_response_into_bubbles, typing_status_for_bubble
 from app.guardrails.session_trace import append_kv_block, append_named_block, append_turn_closing
 from app.logging import get_logger
 from app.utils import (
@@ -28,9 +29,12 @@ from .prompts import (
 from importlib import import_module
 
 
-apply_postprocessing = import_module(
-    "app.guardrails.08_postprocessing"
-).apply_postprocessing
+apply_subjective_framing_authority = import_module(
+    "app.guardrails.08_subjective_framing_authority"
+).apply_subjective_framing_authority
+apply_persuasive_governance = import_module(
+    "app.guardrails.09_persuasive_governance"
+).apply_persuasive_governance
 
 
 log = get_logger(__name__)
@@ -265,21 +269,36 @@ def _tighten_guidance_for_nonexpert_detail(policy: PolicyDecision) -> str:
 
 def _log_and_yield_text(*, trace, action: str, text: str):
     """Log and yield a static response."""
-    log.info("")
-    log.info("Guardrail Response")
-    log.info("  Mode: %s", action)
-    log.info("  Response: %s", text)
+    log.info("Layer 07 -> static %s response selected.", action)
     append_kv_block(
         trace=trace,
         title="Static Policy Response",
-        step_label="STEP 3",
+        step_label="LAYER 07",
         items=[
             ("Mode", action),
             ("Response", text),
         ],
     )
     append_turn_closing(trace=trace, final_response=text)
-    yield text
+    yield from _yield_bubbled_response(text)
+
+
+def _yield_bubbled_response(response: str):
+    """Yield status and message-part events for a final response."""
+    bubbles = split_response_into_bubbles(response)
+    for index, bubble in enumerate(bubbles):
+        status = typing_status_for_bubble(bubble=bubble, index=index)
+        yield {
+            "event": "status",
+            "text": status["text"],
+            "duration_ms": status["duration_ms"],
+        }
+        yield {
+            "event": "message_part",
+            "text": bubble,
+            "index": index,
+            "total": len(bubbles),
+        }
 
 
 def _stream_with_logging(
@@ -300,53 +319,99 @@ def _stream_with_logging(
         chunks.append(chunk)
 
     draft_response = "".join(chunks)
-    postprocess_result = apply_postprocessing(
+    subjective_result = apply_subjective_framing_authority(
         response=draft_response,
         guardrail_input=guardrail_input,
         signals=signals,
         policy=policy,
     )
-    final_response = postprocess_result.final_response
-    yield final_response
+    persuasive_result = apply_persuasive_governance(
+        response=subjective_result.final_response,
+        guardrail_input=guardrail_input,
+        signals=signals,
+        policy=policy,
+    )
+    final_response = persuasive_result.final_response
+    yield from _yield_bubbled_response(final_response)
 
+    postprocessing_changed = subjective_result.changed or persuasive_result.changed
+    postprocessing_reasons = [*subjective_result.reasons, *persuasive_result.reasons]
     word_count = len(final_response.split())
     paragraph_count = len([part for part in final_response.split("\n\n") if part.strip()])
-    log.info("")
-    log.info("Guardrail Response")
-    log.info("  Mode: %s", action)
-    log.info("  Guidance used: %s", guidance)
-    log.info("  User message: %s", user_message)
-    log.info("  Response word count: %s", word_count)
-    log.info("  Response paragraph count: %s", paragraph_count)
-    log.info("  Post-processing changed response: %s", postprocess_result.changed)
-    log.info("  Post-processing reasons: %s", postprocess_result.reasons or "None")
-    log.info("  Subjectivity score: %s", postprocess_result.subjectivity_score)
-    log.info("  Objectivity score: %s", postprocess_result.objectivity_score)
-    log.info("  Persuasion score: %s", postprocess_result.persuasion_score)
-    log.info("  Final response: %s", final_response)
+    bubbles = split_response_into_bubbles(final_response)
+    log.info(
+        "Layer 07 -> final response accepted: %s words across %s chat bubble(s).",
+        word_count,
+        len(bubbles),
+    )
+    if postprocessing_changed:
+        log.info(
+            "Post-generation validation rewrote the draft because: %s",
+            "; ".join(postprocessing_reasons),
+        )
+    else:
+        log.info(
+            "Post-generation validation accepted the draft (%s subjectivity, %s objectivity via %s; %s persuasion via %s).",
+            subjective_result.subjectivity_score,
+            subjective_result.objectivity_score,
+            subjective_result.detector_source,
+            persuasive_result.persuasion_score,
+            persuasive_result.detector_source,
+        )
     append_kv_block(
         trace=trace,
-        title="Generated Response and Post-Processing Summary",
-        step_label="STEP 4",
+        title="Generated Response and Post-Generation Validation Summary",
+        step_label="POST-GENERATION SUMMARY",
         items=[
             ("Mode", action),
             ("Guidance used", guidance),
             ("User message", user_message),
             ("Response word count", word_count),
             ("Response paragraph count", paragraph_count),
-            ("Post-processing changed response", postprocess_result.changed),
-            ("Post-processing reasons", postprocess_result.reasons or "None"),
-            ("Subjectivity score", postprocess_result.subjectivity_score),
-            ("Objectivity score", postprocess_result.objectivity_score),
-            ("Persuasion score", postprocess_result.persuasion_score),
+            ("Chat bubble count", len(bubbles)),
+            ("Post-processing changed response", postprocessing_changed),
+            ("Post-processing reasons", postprocessing_reasons or "None"),
+            ("Subjective framing reasons", subjective_result.reasons or "None"),
+            ("Persuasive governance reasons", persuasive_result.reasons or "None"),
+            ("Subjectivity detector", subjective_result.detector_source),
+            ("Persuasion detector", persuasive_result.detector_source),
+            ("Subjectivity score", subjective_result.subjectivity_score),
+            ("Objectivity score", subjective_result.objectivity_score),
+            ("Persuasion score", persuasive_result.persuasion_score),
         ],
     )
-    if postprocess_result.changed:
+    append_named_block(
+        trace=trace,
+        title="Layer 08 Subjective Framing and Authority Result",
+        content={
+            "changed": subjective_result.changed,
+            "reasons": subjective_result.reasons,
+            "detector_source": subjective_result.detector_source,
+            "subjectivity_score": subjective_result.subjectivity_score,
+            "objectivity_score": subjective_result.objectivity_score,
+            "objective_sentences": subjective_result.objective_sentences,
+            "subjective_sentences": subjective_result.subjective_sentences,
+        },
+        step_label="LAYER 08",
+    )
+    append_named_block(
+        trace=trace,
+        title="Layer 09 Persuasive Governance Result",
+        content={
+            "changed": persuasive_result.changed,
+            "reasons": persuasive_result.reasons,
+            "detector_source": persuasive_result.detector_source,
+            "persuasion_score": persuasive_result.persuasion_score,
+            "persuasive_sentences": persuasive_result.persuasive_sentences,
+        },
+        step_label="LAYER 09",
+    )
+    if postprocessing_changed:
         append_named_block(
             trace=trace,
-            title="Draft Response Before Post-Processing",
+            title="Draft Response Before Post-Generation Validation",
             content=draft_response,
-            step_label="STEP 4",
+            step_label="POST-GENERATION SUMMARY",
         )
     append_turn_closing(trace=trace, final_response=final_response)
 
@@ -422,6 +487,7 @@ def generate_policy_response(
             vocabulary_level=policy.vocabulary_level,
             explanation_style=policy.explanation_style,
             response_mode=policy.response_mode,
+            factuality_level=policy.factuality_level,
             authority_level=policy.authority_level,
             lexical_score=policy.lexical_score,
             relevance_score=policy.relevance_score,
@@ -438,34 +504,17 @@ def generate_policy_response(
         chat_history=guardrail_input.chat_history,
     )
 
-    log.info("")
-    log.info("Guardrail Response Preparation")
-    log.info("  Mode: %s", policy.action)
-    log.info("  Guidance: %s", effective_guidance)
-    log.info("  Lexical triggered: %s", signals.lexical.triggered)
-    log.info("  Lexical score: %s", policy.lexical_score)
-    log.info("  Relevance score: %s", policy.relevance_score)
-    log.info("  Epistemic score: %s", policy.epistemic_score)
-    log.info("  Knowledge level: %s", policy.knowledge_level)
-    log.info("  Response length target: %s", resolved_length_target)
-    log.info("  Detail allowed: %s", policy.detail_allowed)
-    log.info("  Expertise basis: %s", policy.expertise_basis)
-    log.info("  Hedging style: %s", policy.hedging_style)
-    log.info("  Confidence style: %s", policy.confidence_style)
-    log.info("  Language level: %s", policy.language_level)
-    log.info("  Register style: %s", policy.register_style)
-    log.info("  Sentence style: %s", policy.sentence_style)
-    log.info("  Abstraction level: %s", policy.abstraction_level)
-    log.info("  Vocabulary level: %s", policy.vocabulary_level)
-    log.info("  Explanation style: %s", policy.explanation_style)
-    log.info("  Response mode: %s", policy.response_mode)
-    log.info("  Authority level: %s", policy.authority_level)
-    log.info("  Tone style: %s", policy.tone_style)
-    log.info("  Emotional style: %s", policy.emotional_style)
+    log.info(
+        "Layer 07 -> preparing answer: %s, %s length, %s factuality, %s authority.",
+        policy.action,
+        resolved_length_target,
+        policy.factuality_level,
+        policy.authority_level,
+    )
     append_kv_block(
         trace=guardrail_input.session_trace,
         title="Response Preparation Summary",
-        step_label="STEP 3",
+        step_label="LAYER 07",
         items=[
             ("Mode", policy.action),
             ("Guidance", effective_guidance),
@@ -486,6 +535,7 @@ def generate_policy_response(
             ("Vocabulary level", policy.vocabulary_level),
             ("Explanation style", policy.explanation_style),
             ("Response mode", policy.response_mode),
+            ("Factuality level", policy.factuality_level),
             ("Authority level", policy.authority_level),
             ("Tone style", policy.tone_style),
             ("Emotional style", policy.emotional_style),
@@ -511,25 +561,25 @@ def generate_policy_response(
         trace=guardrail_input.session_trace,
         title="Generator System Prompt",
         content=system_prompt,
-        step_label="STEP 3",
+        step_label="LAYER 07",
     )
     append_named_block(
         trace=guardrail_input.session_trace,
         title="Generator Style Execution Note",
         content=f"{style_execution_note}\n\n{authority_execution_note}",
-        step_label="STEP 3",
+        step_label="LAYER 07",
     )
     append_named_block(
         trace=guardrail_input.session_trace,
         title="Generator Guided User Prompt",
         content=guided_user_message,
-        step_label="STEP 3",
+        step_label="LAYER 07",
     )
     append_named_block(
         trace=guardrail_input.session_trace,
         title="Generator Messages Payload",
         content=messages,
-        step_label="STEP 3",
+        step_label="LAYER 07",
     )
     response_iterator = stream_chat_response(messages=messages, temperature=0.45)
     return _stream_with_logging(

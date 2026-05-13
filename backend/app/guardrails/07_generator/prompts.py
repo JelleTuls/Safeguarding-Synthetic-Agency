@@ -1,6 +1,7 @@
 """Prompt text for layer 07 guarded response generation."""
 
 from app.guardrails.schemas import PolicyDecision
+from app.guardrails.chat_bubbles import BUBBLE_BREAK_TOKEN
 
 
 GUARDRAILED_RESPONSE_SYS_PROMPT = (
@@ -45,9 +46,14 @@ def build_guided_user_message(*, user_message: str, guidance: str, policy: Polic
         f"- Vocabulary level: {policy.vocabulary_level}\n"
         f"- Explanation style: {policy.explanation_style}\n"
         f"- Response mode: {policy.response_mode}\n"
+        f"- Factuality level: {policy.factuality_level}\n"
         f"- Authority level: {policy.authority_level}\n"
         f"- Tone style: {policy.tone_style}\n"
         f"- Emotional style: {policy.emotional_style}\n\n"
+        "Chat bubble guidance:\n"
+        f"- If the reply naturally has more than one thought, separate bubble parts with {BUBBLE_BREAK_TOKEN}.\n"
+        "- Keep each part self-contained and conversational.\n"
+        "- Do not use bullet lists unless the user clearly asked for a list.\n\n"
         f"User message: {user_message}"
     )
 
@@ -100,10 +106,25 @@ def build_stylometric_execution_note(*, stylometric_profile: dict, policy: Polic
 
 def build_authority_execution_note(*, policy: PolicyDecision) -> str:
     """Turn authority mode into concrete generator instructions."""
-    if policy.response_mode == "limited_factual":
+    if policy.factuality_level == "limited_factual":
         mode_note = (
             "Authority note: the user asked for factual clarification, so a concise factual answer is allowed. "
             "Keep it inside the persona's actual knowledge range and avoid sounding like an expert assistant."
+        )
+    elif policy.factuality_level == "uncertain_interpretation":
+        mode_note = (
+            "Authority note: use cautious interpretation. You may explain plainly, but mark uncertainty and avoid "
+            "presenting the answer as settled expertise."
+        )
+    elif policy.factuality_level == "anecdotal":
+        mode_note = (
+            "Authority note: use anecdotal, first-person framing. Ground the answer in lived experience or personal "
+            "examples, with only light factual support."
+        )
+    elif policy.factuality_level == "belief_affirmation":
+        mode_note = (
+            "Authority note: use belief- or value-oriented framing. Avoid broad factual claims and speak from personal "
+            "belief, preference, or concern."
         )
     else:
         mode_note = (
@@ -114,6 +135,7 @@ def build_authority_execution_note(*, policy: PolicyDecision) -> str:
     return (
         f"{mode_note}\n"
         f"- Response mode: {policy.response_mode}\n"
+        f"- Factuality level: {policy.factuality_level}\n"
         f"- Authority level: {policy.authority_level}\n"
         "- Keep factual claims clearly separated from personal interpretation."
     )

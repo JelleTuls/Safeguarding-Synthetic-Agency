@@ -75,6 +75,19 @@ def _normalize_response_mode(value: str | None, fallback: str) -> str:
     return fallback
 
 
+def _normalize_factuality_level(value: str | None, fallback: str) -> str:
+    """Normalize factuality level into the supported five-point scale."""
+    if value in {
+        "belief_affirmation",
+        "anecdotal",
+        "subjective",
+        "uncertain_interpretation",
+        "limited_factual",
+    }:
+        return value
+    return fallback
+
+
 def _normalize_authority_level(value: str | None, fallback: str) -> str:
     """Normalize authority level into a supported category."""
     if value in {"low", "medium", "high"}:
@@ -166,6 +179,7 @@ def _parse_judge_response(raw_response: str, signals: GuardrailSignals) -> Polic
             vocabulary_level="moderate",
             explanation_style="balanced",
             response_mode=signals.authority.response_mode,
+            factuality_level=signals.authority.factuality_level,
             authority_level=signals.authority.authority_level,
             lexical_score=1.0 if signals.lexical.triggered else 0.0,
             relevance_score=0.5,
@@ -195,6 +209,7 @@ def _parse_judge_response(raw_response: str, signals: GuardrailSignals) -> Polic
             vocabulary_level="moderate",
             explanation_style="balanced",
             response_mode=signals.authority.response_mode,
+            factuality_level=signals.authority.factuality_level,
             authority_level=signals.authority.authority_level,
             lexical_score=1.0 if signals.lexical.triggered else 0.0,
             relevance_score=0.5,
@@ -225,6 +240,10 @@ def _parse_judge_response(raw_response: str, signals: GuardrailSignals) -> Polic
         response_mode=_normalize_response_mode(
             payload.get("response_mode"),
             signals.authority.response_mode,
+        ),
+        factuality_level=_normalize_factuality_level(
+            payload.get("factuality_level"),
+            signals.authority.factuality_level,
         ),
         authority_level=_normalize_authority_level(
             payload.get("authority_level"),
@@ -259,19 +278,19 @@ def decide_policy(*, guardrail_input: GuardrailInput, signals: GuardrailSignals)
         trace=guardrail_input.session_trace,
         title="Judge System Prompt",
         content=GUARDRAILED_JUDGE_SYS_PROMPT,
-        step_label="STEP 2",
+        step_label="LAYER 06",
     )
     append_named_block(
         trace=guardrail_input.session_trace,
         title="Judge User Prompt",
         content=judge_user_message,
-        step_label="STEP 2",
+        step_label="LAYER 06",
     )
     append_named_block(
         trace=guardrail_input.session_trace,
         title="Judge Messages Payload",
         content=messages,
-        step_label="STEP 2",
+        step_label="LAYER 06",
     )
 
     raw_response = run_chat_completion(
@@ -283,31 +302,21 @@ def decide_policy(*, guardrail_input: GuardrailInput, signals: GuardrailSignals)
         trace=guardrail_input.session_trace,
         title="Judge Raw Response",
         content=raw_response,
-        step_label="STEP 2",
+        step_label="LAYER 06",
     )
     decision = _parse_judge_response(raw_response, signals)
 
-    log.info("Judge determination")
-    log.info("  Action: %s", decision.action)
-    log.info("  Lexical score: %s", decision.lexical_score)
-    log.info("  Relevance score: %s", decision.relevance_score)
-    log.info("  Epistemic score: %s", decision.epistemic_score)
-    log.info("  Knowledge level: %s", decision.knowledge_level)
-    log.info("  Response length target: %s", decision.response_length_target)
-    log.info("  Language level: %s", decision.language_level)
-    log.info("  Register style: %s", decision.register_style)
-    log.info("  Sentence style: %s", decision.sentence_style)
-    log.info("  Abstraction level: %s", decision.abstraction_level)
-    log.info("  Vocabulary level: %s", decision.vocabulary_level)
-    log.info("  Explanation style: %s", decision.explanation_style)
-    log.info("  Response mode: %s", decision.response_mode)
-    log.info("  Authority level: %s", decision.authority_level)
-    log.info("  Tone style: %s", decision.tone_style)
-    log.info("  Emotional style: %s", decision.emotional_style)
+    log.info(
+        "Layer 06 parsed policy: %s action, %.2f relevance, %.2f epistemic, %s factuality.",
+        decision.action,
+        decision.relevance_score,
+        decision.epistemic_score,
+        decision.factuality_level,
+    )
     append_kv_block(
         trace=guardrail_input.session_trace,
         title="Judge Policy Decision",
-        step_label="STEP 2",
+        step_label="LAYER 06",
         items=[
             ("Action", decision.action),
             ("Lexical score", decision.lexical_score),
@@ -326,6 +335,7 @@ def decide_policy(*, guardrail_input: GuardrailInput, signals: GuardrailSignals)
             ("Vocabulary level", decision.vocabulary_level),
             ("Explanation style", decision.explanation_style),
             ("Response mode", decision.response_mode),
+            ("Factuality level", decision.factuality_level),
             ("Authority level", decision.authority_level),
             ("Tone style", decision.tone_style),
             ("Emotional style", decision.emotional_style),
