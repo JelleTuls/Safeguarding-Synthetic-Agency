@@ -2,7 +2,9 @@
 
 from app.guardrails.schemas import GuardrailInput, GuardrailSignals, PolicyDecision
 from app.guardrails.chat_bubbles import split_response_into_bubbles, typing_status_for_bubble
+from app.guardrails.opening_variation import select_opening_variation
 from app.guardrails.session_trace import append_kv_block, append_named_block, append_turn_closing
+from app.guardrails.topic_policy import get_topic_persuasion_threshold
 from app.logging import get_logger
 from app.utils import (
     build_chat_messages,
@@ -45,6 +47,30 @@ VERY_LOW_EPISTEMIC_THRESHOLD = 0.35
 LOW_RELEVANCE_THRESHOLD = 0.5
 LOW_EPISTEMIC_THRESHOLD = 0.5
 LENGTH_LEVELS = ("very_short", "short", "medium", "long")
+LIGHT_POSTPROCESSING_WORD_LIMIT = 35
+LOW_RISK_LIGHT_TOPICS = {
+    "everyday_conversation",
+    "hobbies_leisure",
+    "food_lifestyle",
+    "sports_entertainment",
+}
+
+
+def _should_skip_expensive_postprocessing(*, response: str, policy: PolicyDecision) -> bool:
+    """Return True when the judge selected light mode and the draft stayed low-risk."""
+    if policy.postprocessing_mode != "light":
+        return False
+    if policy.action != "allow":
+        return False
+    if policy.topic_policy_category not in LOW_RISK_LIGHT_TOPICS:
+        return False
+    if len(response.split()) > LIGHT_POSTPROCESSING_WORD_LIMIT:
+        return False
+    if policy.authority_level != "low":
+        return False
+    if policy.factuality_level not in {"subjective", "belief_affirmation", "anecdotal"}:
+        return False
+    return True
 
 
 def _should_force_brief_limited_answer(policy: PolicyDecision) -> bool:
@@ -230,6 +256,15 @@ def _build_length_guidance(length_target: str) -> str:
     return guidance_map.get(length_target, guidance_map["short"])
 
 
+def _tighten_guidance_for_smalltalk(policy: PolicyDecision) -> str:
+    """Keep greetings and simple social turns fast, short, and low-risk."""
+    return (
+        f"{policy.response_guidance}\n"
+        "Smalltalk hard limit: keep the reply under 15 words.\n"
+        "Answer warmly and naturally without biography exposition, political content, advice, or explanation."
+    )
+
+
 def _tighten_guidance_for_low_fit(policy: PolicyDecision) -> str:
     """Add deterministic brevity constraints for low-fit topics."""
     return (
@@ -283,7 +318,174 @@ def _log_and_yield_text(*, trace, action: str, text: str):
     yield from _yield_bubbled_response(text)
 
 
-def _yield_bubbled_response(response: str):
+def _format_score(value) -> str:
+    """Format a score for frontend metadata and trace readability."""
+    if isinstance(value, (float, int)):
+        return f"{float(value):.3f}"
+    return str(value)
+
+
+def _format_count(values) -> str:
+    """Format a list-like value as a readable count."""
+    if isinstance(values, list):
+        return str(len(values))
+    return "0"
+
+
+def _format_reasons(reasons: list[str]) -> str:
+    """Format rewrite reasons for compact frontend display."""
+    return "; ".join(reasons) if reasons else "none"
+
+
+def _subjectivity_interpretation(subjectivity: float, objectivity: float) -> str:
+    """Return a plain-language interpretation of objective/subjective scores."""
+    if objectivity >= subjectivity + 0.15:
+        return "seen mostly as objective"
+    if subjectivity >= objectivity + 0.15:
+        return "seen mostly as subjective"
+    return "seen as mixed or borderline"
+
+
+def _intent_interpretation(factual_intent: float, subjective_intent: float) -> str:
+    """Return a plain-language interpretation of user intent scores."""
+    if factual_intent >= subjective_intent + 0.15:
+        return "user is mostly asking for an objective/factual answer"
+    if subjective_intent >= factual_intent + 0.15:
+        return "user is mostly asking for a subjective/opinion answer"
+    return "user intent is mixed or unclear"
+
+
+def _persuasion_interpretation(persuasion: float, threshold: float) -> str:
+    """Return a plain-language interpretation of persuasion thresholding."""
+    if persuasion > threshold:
+        return "above the allowed persuasion threshold"
+    return "within the allowed persuasion threshold"
+
+
+def _build_user_message_analysis(*, signals: GuardrailSignals, policy: PolicyDecision) -> dict:
+    """Build hover metadata for the current user message."""
+    return {
+        "title": "User Message Analysis",
+        "sections": [
+            {
+                "title": "User Intent",
+                "rows": [
+                    ["Interpretation", _intent_interpretation(
+                        signals.authority.factual_intent_score,
+                        signals.authority.subjective_intent_score,
+                    )],
+                    ["Objective/factual intent score (higher = asks for facts)", _format_score(signals.authority.factual_intent_score)],
+                    ["Subjective/opinion intent score (higher = asks for opinion)", _format_score(signals.authority.subjective_intent_score)],
+                    ["Requested factuality", signals.authority.factuality_level],
+                    ["Requested mode", signals.authority.response_mode],
+                    ["Authority signal", signals.authority.authority_level],
+                ],
+            },
+            {
+                "title": "Guardrail Decision",
+                "rows": [
+                    ["Topic", policy.topic_policy_category],
+                    ["Action", policy.action],
+                    ["Relevance", _format_score(policy.relevance_score)],
+                    ["Epistemic", _format_score(policy.epistemic_score)],
+                    ["Knowledge", policy.knowledge_level],
+                    ["Post-processing", policy.postprocessing_mode],
+                ],
+            },
+        ],
+    }
+
+
+def _build_response_analysis(
+    *,
+    subjective_result,
+    persuasive_result,
+    policy: PolicyDecision,
+    skipped_expensive_postprocessing: bool,
+    draft_response: str,
+    response_before_persuasion: str,
+) -> dict:
+    """Build hover metadata for final response bubble parts."""
+    framing_rows = [
+        ["Interpretation", _subjectivity_interpretation(
+            subjective_result.subjectivity_score,
+            subjective_result.objectivity_score,
+        )],
+        ["Subjectivity score (higher = more opinion/framing)", _format_score(subjective_result.subjectivity_score)],
+        ["Objectivity score (higher = more factual/statement-like)", _format_score(subjective_result.objectivity_score)],
+        ["Classified as", subjective_result.classification_label],
+        ["Objective sentences", _format_count(subjective_result.objective_sentences)],
+        ["Subjective sentences", _format_count(subjective_result.subjective_sentences)],
+        ["Classifier", subjective_result.detector_source],
+        ["Scoring", subjective_result.scoring_mode],
+        ["Framing rewrite needed", "yes" if subjective_result.changed else "no"],
+    ]
+    if subjective_result.changed:
+        framing_rows.extend(
+            [
+                ["Framing rewrite reasons", _format_reasons(subjective_result.reasons)],
+                ["Original draft before framing check", draft_response],
+            ]
+        )
+
+    persuasion_rows = [
+        ["Interpretation", _persuasion_interpretation(
+            persuasive_result.persuasion_score,
+            persuasive_result.persuasion_threshold,
+        )],
+        ["Persuasion score (higher = more influential language)", _format_score(persuasive_result.persuasion_score)],
+        ["Allowed threshold (rewrite if persuasion score is above this)", _format_score(persuasive_result.persuasion_threshold)],
+        ["Base topic threshold (before policy adjustments)", _format_score(persuasive_result.base_topic_threshold)],
+        ["Persuasive sentences", _format_count(persuasive_result.persuasive_sentences)],
+        ["Detector", persuasive_result.detector_source],
+        ["Persuasion rewrite needed", "yes" if persuasive_result.changed else "no"],
+    ]
+    if persuasive_result.changed:
+        persuasion_rows.extend(
+            [
+                ["Persuasion rewrite reasons", _format_reasons(persuasive_result.reasons)],
+                ["Response before persuasion check", response_before_persuasion],
+            ]
+        )
+
+    sections = [
+        {
+            "title": "Decision Summary",
+            "rows": [
+                ["Topic", policy.topic_policy_category],
+                ["Action", policy.action],
+                ["Final response changed", "yes" if subjective_result.changed or persuasive_result.changed else "no"],
+                ["Skipped classifiers", "yes" if skipped_expensive_postprocessing else "no"],
+            ],
+        },
+        {
+            "title": "Response Framing",
+            "rows": framing_rows,
+        },
+        {
+            "title": "Persuasion Check",
+            "rows": persuasion_rows,
+        },
+        {
+            "title": "Guardrail Policy",
+            "rows": [
+                ["Factuality", policy.factuality_level],
+                ["Authority", policy.authority_level],
+                ["Knowledge", policy.knowledge_level],
+                ["Relevance score", _format_score(policy.relevance_score)],
+                ["Epistemic score", _format_score(policy.epistemic_score)],
+                ["Post-processing", policy.postprocessing_mode],
+            ],
+        },
+    ]
+
+    return {
+        "title": "Model Response Analysis",
+        "sections": sections,
+    }
+
+
+def _yield_bubbled_response(response: str, analysis: dict | None = None):
     """Yield status and message-part events for a final response."""
     bubbles = split_response_into_bubbles(response)
     for index, bubble in enumerate(bubbles):
@@ -298,6 +500,7 @@ def _yield_bubbled_response(response: str):
             "text": bubble,
             "index": index,
             "total": len(bubbles),
+            "analysis": analysis if index == 0 else None,
         }
 
 
@@ -313,26 +516,119 @@ def _stream_with_logging(
     policy: PolicyDecision,
 ):
     """Collect, validate, then stream the final response."""
+    yield {
+        "event": "agent_state",
+        "policy": {
+            "action": policy.action,
+            "topic_policy_category": policy.topic_policy_category,
+            "response_length_target": policy.response_length_target,
+            "response_mode": policy.response_mode,
+            "factuality_level": policy.factuality_level,
+            "authority_level": policy.authority_level,
+            "postprocessing_mode": policy.postprocessing_mode,
+            "knowledge_level": policy.knowledge_level,
+            "relevance_score": policy.relevance_score,
+            "epistemic_score": policy.epistemic_score,
+            "tone_style": policy.tone_style,
+            "emotional_style": policy.emotional_style,
+        },
+        "stylometry": {
+            "profile_summary": guardrail_input.stylometric_profile.get("profile_summary"),
+            "baseline_hedging": guardrail_input.stylometric_profile.get("hedging_style"),
+            "baseline_confidence": guardrail_input.stylometric_profile.get("confidence_style"),
+            "warmth_style": guardrail_input.stylometric_profile.get("warmth_style"),
+            "reasoning_style": guardrail_input.stylometric_profile.get("reasoning_style"),
+            "register": policy.register_style or guardrail_input.stylometric_profile.get("register"),
+            "sentence_style": policy.sentence_style or guardrail_input.stylometric_profile.get("sentence_style"),
+            "abstraction_level": policy.abstraction_level or guardrail_input.stylometric_profile.get("abstraction_level"),
+            "vocabulary_level": policy.vocabulary_level or guardrail_input.stylometric_profile.get("vocabulary_level"),
+            "hedging_style": policy.hedging_style or guardrail_input.stylometric_profile.get("hedging_style"),
+            "confidence_style": policy.confidence_style or guardrail_input.stylometric_profile.get("confidence_style"),
+            "explanation_style": policy.explanation_style or guardrail_input.stylometric_profile.get("explanation_style"),
+        },
+    }
+    user_message_analysis = _build_user_message_analysis(signals=signals, policy=policy)
+    log.info("Message analysis attached to user bubble: %s", user_message_analysis)
+    append_named_block(
+        trace=trace,
+        title="Frontend User Message Hover Analysis",
+        content=user_message_analysis,
+        step_label="MESSAGE ANALYSIS",
+    )
+    yield {
+        "event": "user_message_analysis",
+        "analysis": user_message_analysis,
+    }
     chunks: list[str] = []
 
     for chunk in response_iterator:
         chunks.append(chunk)
 
     draft_response = "".join(chunks)
-    subjective_result = apply_subjective_framing_authority(
+    skipped_expensive_postprocessing = _should_skip_expensive_postprocessing(
         response=draft_response,
-        guardrail_input=guardrail_input,
-        signals=signals,
         policy=policy,
     )
-    persuasive_result = apply_persuasive_governance(
-        response=subjective_result.final_response,
-        guardrail_input=guardrail_input,
-        signals=signals,
-        policy=policy,
-    )
+    if skipped_expensive_postprocessing:
+        SubjectiveAuthorityResult = import_module(
+            "app.guardrails.08_subjective_framing_authority"
+        ).SubjectiveAuthorityResult
+        PersuasiveGovernanceResult = import_module(
+            "app.guardrails.09_persuasive_governance"
+        ).PersuasiveGovernanceResult
+
+        subjective_result = SubjectiveAuthorityResult(
+            final_response=draft_response,
+            detector_source="skipped_light_mode",
+            scoring_mode="skipped",
+            classification_label="not_run",
+        )
+        persuasive_result = PersuasiveGovernanceResult(
+            final_response=draft_response,
+            detector_source="skipped_light_mode",
+            topic_policy_category=policy.topic_policy_category,
+            base_topic_threshold=get_topic_persuasion_threshold(policy.topic_policy_category),
+            persuasion_threshold=get_topic_persuasion_threshold(policy.topic_policy_category),
+            threshold_check={
+                "check": "skipped because judge selected light post-processing",
+                "passed": True,
+            },
+        )
+        log.info(
+            "Post-generation classifiers skipped: judge selected light mode and draft stayed low-risk (%s words, %s topic).",
+            len(draft_response.split()),
+            policy.topic_policy_category,
+        )
+    else:
+        subjective_result = apply_subjective_framing_authority(
+            response=draft_response,
+            guardrail_input=guardrail_input,
+            signals=signals,
+            policy=policy,
+        )
+        persuasive_result = apply_persuasive_governance(
+            response=subjective_result.final_response,
+            guardrail_input=guardrail_input,
+            signals=signals,
+            policy=policy,
+        )
     final_response = persuasive_result.final_response
-    yield from _yield_bubbled_response(final_response)
+    response_analysis = _build_response_analysis(
+        subjective_result=subjective_result,
+        persuasive_result=persuasive_result,
+        policy=policy,
+        skipped_expensive_postprocessing=skipped_expensive_postprocessing,
+        draft_response=draft_response,
+        response_before_persuasion=subjective_result.final_response,
+    )
+    log.info("Message analysis attached to response bubble(s): %s", response_analysis)
+    append_named_block(
+        trace=trace,
+        title="Frontend Response Hover Analysis",
+        content=response_analysis,
+        step_label="MESSAGE ANALYSIS",
+    )
+    yield from _yield_bubbled_response(final_response, analysis=response_analysis)
 
     postprocessing_changed = subjective_result.changed or persuasive_result.changed
     postprocessing_reasons = [*subjective_result.reasons, *persuasive_result.reasons]
@@ -346,16 +642,17 @@ def _stream_with_logging(
     )
     if postprocessing_changed:
         log.info(
-            "Post-generation validation rewrote the draft because: %s",
+            "Post-generation validation rewrote the generated draft because: %s",
             "; ".join(postprocessing_reasons),
         )
     else:
         log.info(
-            "Post-generation validation accepted the draft (%s subjectivity, %s objectivity via %s; %s persuasion via %s).",
+            "Post-generation validation accepted the draft (%s subjectivity, %s objectivity via %s; %s persuasion <= %s threshold via %s).",
             subjective_result.subjectivity_score,
             subjective_result.objectivity_score,
             subjective_result.detector_source,
             persuasive_result.persuasion_score,
+            persuasive_result.persuasion_threshold,
             persuasive_result.detector_source,
         )
     append_kv_block(
@@ -366,31 +663,51 @@ def _stream_with_logging(
             ("Mode", action),
             ("Guidance used", guidance),
             ("User message", user_message),
+            ("Layer 08 analyzed text", "generated LLM response"),
+            ("Draft response before validation", draft_response),
             ("Response word count", word_count),
             ("Response paragraph count", paragraph_count),
             ("Chat bubble count", len(bubbles)),
             ("Post-processing changed response", postprocessing_changed),
+            ("Expensive post-processing skipped", skipped_expensive_postprocessing),
             ("Post-processing reasons", postprocessing_reasons or "None"),
             ("Subjective framing reasons", subjective_result.reasons or "None"),
             ("Persuasive governance reasons", persuasive_result.reasons or "None"),
             ("Subjectivity detector", subjective_result.detector_source),
             ("Persuasion detector", persuasive_result.detector_source),
+            ("Subjectivity scoring mode", subjective_result.scoring_mode),
+            ("Subjectivity classification", subjective_result.classification_label),
             ("Subjectivity score", subjective_result.subjectivity_score),
             ("Objectivity score", subjective_result.objectivity_score),
+            ("Objective sentences", subjective_result.objective_sentences or "None"),
+            ("Subjective sentences", subjective_result.subjective_sentences or "None"),
+            ("Persuasion topic policy category", persuasive_result.topic_policy_category),
             ("Persuasion score", persuasive_result.persuasion_score),
+            ("Persuasion base topic threshold", persuasive_result.base_topic_threshold),
+            ("Persuasion threshold", persuasive_result.persuasion_threshold),
+            ("Final response after validation", final_response),
         ],
     )
     append_named_block(
         trace=trace,
         title="Layer 08 Subjective Framing and Authority Result",
         content={
+            "analyzed_text": "generated LLM response",
             "changed": subjective_result.changed,
             "reasons": subjective_result.reasons,
             "detector_source": subjective_result.detector_source,
+            "scoring_mode": subjective_result.scoring_mode,
+            "classification_label": subjective_result.classification_label,
             "subjectivity_score": subjective_result.subjectivity_score,
             "objectivity_score": subjective_result.objectivity_score,
+            "topic_thresholds": subjective_result.topic_thresholds,
+            "factuality_thresholds": subjective_result.factuality_thresholds,
+            "combined_thresholds": subjective_result.combined_thresholds,
+            "threshold_checks": subjective_result.threshold_checks,
             "objective_sentences": subjective_result.objective_sentences,
             "subjective_sentences": subjective_result.subjective_sentences,
+            "sentence_scores": subjective_result.sentence_scores,
+            "rewritten_response": subjective_result.final_response if subjective_result.changed else None,
         },
         step_label="LAYER 08",
     )
@@ -402,7 +719,13 @@ def _stream_with_logging(
             "reasons": persuasive_result.reasons,
             "detector_source": persuasive_result.detector_source,
             "persuasion_score": persuasive_result.persuasion_score,
+            "base_topic_threshold": persuasive_result.base_topic_threshold,
+            "persuasion_threshold": persuasive_result.persuasion_threshold,
+            "threshold_adjustments": persuasive_result.threshold_adjustments,
+            "threshold_check": persuasive_result.threshold_check,
+            "topic_policy_category": persuasive_result.topic_policy_category,
             "persuasive_sentences": persuasive_result.persuasive_sentences,
+            "sentence_scores": persuasive_result.sentence_scores,
         },
         step_label="LAYER 09",
     )
@@ -446,7 +769,9 @@ def generate_policy_response(
         policy=policy,
         user_message=guardrail_input.user_message,
     )
-    if _should_force_very_basic_nonexpert_answer(
+    if _is_greeting_or_smalltalk(guardrail_input.user_message):
+        effective_guidance = _tighten_guidance_for_smalltalk(policy)
+    elif _should_force_very_basic_nonexpert_answer(
         policy=policy,
         user_message=guardrail_input.user_message,
     ):
@@ -469,9 +794,17 @@ def generate_policy_response(
         policy=policy,
     )
     authority_execution_note = build_authority_execution_note(policy=policy)
+    opening_variation_note = "" if _is_greeting_or_smalltalk(guardrail_input.user_message) else select_opening_variation(policy)
+    execution_guidance_parts = [
+        effective_guidance,
+        style_execution_note,
+        authority_execution_note,
+    ]
+    if opening_variation_note:
+        execution_guidance_parts.append(opening_variation_note)
     guided_user_message = build_guided_user_message(
         user_message=guardrail_input.user_message,
-        guidance=f"{effective_guidance}\n{style_execution_note}\n{authority_execution_note}",
+        guidance="\n".join(execution_guidance_parts),
         policy=PolicyDecision(
             action=policy.action,
             rationale=policy.rationale,
@@ -489,6 +822,8 @@ def generate_policy_response(
             response_mode=policy.response_mode,
             factuality_level=policy.factuality_level,
             authority_level=policy.authority_level,
+            topic_policy_category=policy.topic_policy_category,
+            postprocessing_mode=policy.postprocessing_mode,
             lexical_score=policy.lexical_score,
             relevance_score=policy.relevance_score,
             epistemic_score=policy.epistemic_score,
@@ -505,12 +840,17 @@ def generate_policy_response(
     )
 
     log.info(
-        "Layer 07 -> preparing answer: %s, %s length, %s factuality, %s authority.",
+        "Layer 07 -> preparing answer: %s, %s length, %s factuality, %s topic, %s authority.",
         policy.action,
         resolved_length_target,
         policy.factuality_level,
+        policy.topic_policy_category,
         policy.authority_level,
     )
+    if opening_variation_note:
+        log.info("Layer 07 opening variation: %s", opening_variation_note.replace("\n", " "))
+    else:
+        log.info("Layer 07 opening variation skipped for smalltalk.")
     append_kv_block(
         trace=guardrail_input.session_trace,
         title="Response Preparation Summary",
@@ -537,6 +877,9 @@ def generate_policy_response(
             ("Response mode", policy.response_mode),
             ("Factuality level", policy.factuality_level),
             ("Authority level", policy.authority_level),
+            ("Topic policy category", policy.topic_policy_category),
+            ("Post-processing mode", policy.postprocessing_mode),
+            ("Opening variation", opening_variation_note or "Skipped for smalltalk"),
             ("Tone style", policy.tone_style),
             ("Emotional style", policy.emotional_style),
             (

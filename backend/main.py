@@ -1,4 +1,5 @@
 import asyncio
+from importlib import import_module
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 from contextlib import asynccontextmanager
@@ -7,9 +8,11 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware#
 
 from app.api import chat_router
+from app.logging import get_logger
 from app.rate_limits import reset_ip_request_limits
 
 AMSTERDAM = ZoneInfo("Europe/Amsterdam")
+log = get_logger(__name__)
 
 
 async def run_daily():
@@ -22,9 +25,27 @@ async def run_daily():
         reset_ip_request_limits()
 
 
+async def warm_guardrail_classifiers():
+    """Warm expensive post-generation detectors outside request handling."""
+    try:
+        warm_subjectivity_detector = import_module(
+            "app.guardrails.08_subjective_framing_authority"
+        ).warm_subjectivity_detector
+        warm_persuasion_detector = import_module(
+            "app.guardrails.09_persuasive_governance"
+        ).warm_persuasion_detector
+        await asyncio.gather(
+            asyncio.to_thread(warm_subjectivity_detector),
+            asyncio.to_thread(warm_persuasion_detector),
+        )
+    except Exception as exc:
+        log.info("Guardrail classifier warmup did not complete: %s", exc)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     asyncio.create_task(run_daily())
+    asyncio.create_task(warm_guardrail_classifiers())
     yield
 
 app = FastAPI(title="Synthetic Social Agent Chat", lifespan=lifespan)

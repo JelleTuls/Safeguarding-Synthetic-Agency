@@ -8,14 +8,71 @@ import ReceivedMessage from "./receivedMessage";
 import UserMessage from "./userMessage";
 import AwaitingMessage from "./awaitingMessage";
 
-function PersonaChat({ personaDetails, personaCountry, showChat }) {
+function PersonaChat({ personaProfile, personaDetails, personaCountry, showChat }) {
 
   // below code is for sending and retrieving messages
 
   const [error, setError] = useState(null);
   const [waitingForResponse, setWaitingForResponse] = useState(false);
+  const [agentState, setAgentState] = useState(null);
+  const waitingForResponseRef = useRef(false);
+  const chatSessionId = useRef(
+    `chat-${Date.now()}-${Math.random().toString(36).slice(2)}`
+  );
 
   const { index, ...personaWithoutIndex } = personaDetails;
+  const baselineStylometry = {
+    register: "everyday",
+    sentence_style: "mixed",
+    vocabulary_level: "moderate",
+    abstraction_level: "mixed",
+    hedging_style: "medium",
+    confidence_style: "balanced",
+    warmth_style: "warm",
+    reasoning_style: "blended",
+    explanation_style: "balanced",
+    profile_summary: "Starting from a neutral everyday profile until the cached or live stylometric profile is available.",
+  };
+  const stylometricProfile = {
+    ...baselineStylometry,
+    ...(personaProfile?.stylometric_profile || {}),
+    ...(agentState?.stylometry || {}),
+  };
+  function formatLabel(value) {
+    if (value === null || value === undefined || value === "") return "Unknown";
+    return String(value).replaceAll("_", " ");
+  }
+
+  function isMeaningfulMetadata(key, value) {
+    if (value === null || value === undefined || value === "") return false;
+    if (key === "index") return false;
+    const normalizedValue = String(value).trim();
+    if (/^GM\d+$/i.test(normalizedValue)) return false;
+    if (/^\d+$/.test(normalizedValue)) return false;
+    return true;
+  }
+
+  function cleanBiographyText(text) {
+    if (!text) return "";
+    return text
+      .split("\n")
+      .map(line => line.replace(/^\s*(part\s*[12]|neutral biography|political biography)\s*:\s*/i, ""))
+      .filter(line => !/^\s*(part\s*[12]|part one|part two|neutral biography|political biography)\s*:?\s*$/i.test(line))
+      .join("\n")
+      .trim();
+  }
+
+  const styleFields = [
+    ["Register", stylometricProfile.register],
+    ["Sentence style", stylometricProfile.sentence_style],
+    ["Vocabulary", stylometricProfile.vocabulary_level],
+    ["Abstraction", stylometricProfile.abstraction_level],
+    ["Hedging", stylometricProfile.hedging_style],
+    ["Confidence", stylometricProfile.confidence_style],
+    ["Warmth", stylometricProfile.warmth_style],
+    ["Reasoning", stylometricProfile.reasoning_style],
+    ["Explanation", stylometricProfile.explanation_style],
+  ];
 
   function buildChatHistory(messageList) {
     return messageList
@@ -38,7 +95,20 @@ function PersonaChat({ personaDetails, personaCountry, showChat }) {
         return [...withoutAwaiting, {id: 'awaitingTemporary', type: 'awaiting', text}];
       });
     };
-    const addPersonaBubble = async (text) => {
+    const attachAnalysisToLatestMessage = (messageType, analysis) => {
+      if (!analysis) return;
+      setMessages(prev => {
+        const updated = [...prev];
+        for (let index = updated.length - 1; index >= 0; index -= 1) {
+          if (updated[index].type === messageType) {
+            updated[index] = { ...updated[index], analysis };
+            break;
+          }
+        }
+        return updated;
+      });
+    };
+    const addPersonaBubble = async (text, analysis = null) => {
       const nextId = numMessages.current;
       numMessages.current += 1;
       let resolveTypingComplete;
@@ -54,6 +124,7 @@ function PersonaChat({ personaDetails, personaCountry, showChat }) {
             id: nextId,
             type: "persona",
             text,
+            analysis,
             onTypingComplete: () => {
               window.clearTimeout(fallbackTimeout);
               resolveTypingComplete();
@@ -63,7 +134,7 @@ function PersonaChat({ personaDetails, personaCountry, showChat }) {
       });
       await typingComplete;
     };
-    const appendToLastPersonaBubble = (text) => {
+    const appendToLastPersonaBubble = (text, analysis = null) => {
       setMessages(prev => {
         const withoutAwaiting = prev.filter(message => message.id !== 'awaitingTemporary');
         const updated = [...withoutAwaiting];
@@ -71,9 +142,13 @@ function PersonaChat({ personaDetails, personaCountry, showChat }) {
         if (!last || last.type !== "persona") {
           const nextId = numMessages.current;
           numMessages.current += 1;
-          return [...updated, {id: nextId, type: "persona", text}];
+          return [...updated, {id: nextId, type: "persona", text, analysis}];
         }
-        updated[updated.length - 1] = { ...last, text: (last.text || "") + text };
+        updated[updated.length - 1] = {
+          ...last,
+          text: (last.text || "") + text,
+          analysis: analysis || last.analysis,
+        };
         return updated;
       });
     };
@@ -86,7 +161,8 @@ function PersonaChat({ personaDetails, personaCountry, showChat }) {
           message: message,
           persona_details: persona,
           persona_country: country,
-          chat_history: chatHistory
+          chat_history: chatHistory,
+          client_session_id: chatSessionId.current,
         })
       });
 
@@ -125,10 +201,17 @@ function PersonaChat({ personaDetails, personaCountry, showChat }) {
               } else if (currentEvent === "status") {
                 showStatusBubble(text);
                 await wait(parsed.duration_ms || 900);
+              } else if (currentEvent === "agent_state") {
+                setAgentState({
+                  policy: parsed.policy || {},
+                  stylometry: parsed.stylometry || {},
+                });
+              } else if (currentEvent === "user_message_analysis") {
+                attachAnalysisToLatestMessage("user", parsed.analysis);
               } else if (currentEvent === "message_part") {
-                await addPersonaBubble(text);
+                await addPersonaBubble(text, parsed.analysis);
               } else {
-                appendToLastPersonaBubble(text);
+                appendToLastPersonaBubble(text, parsed.analysis);
               }
 
             currentEvent = "message";
@@ -142,11 +225,14 @@ function PersonaChat({ personaDetails, personaCountry, showChat }) {
       setError(err.message);
       setMessages(prev => prev.filter(message => message.id !== 'awaitingTemporary'));
     } finally {
+      waitingForResponseRef.current = false;
       setWaitingForResponse(false);
     }
   };
 
   function sendMessage(message){
+    if (waitingForResponseRef.current) return;
+    waitingForResponseRef.current = true;
     const chatHistory = buildChatHistory(messages);
     setWaitingForResponse(true);
     addMessage("user", message);
@@ -183,7 +269,7 @@ function PersonaChat({ personaDetails, personaCountry, showChat }) {
 
   function handleSubmit() {
     if (!inputValue.trim()) return; // ignores empty messages
-    if (waitingForResponse) return;
+    if (waitingForResponse || waitingForResponseRef.current) return;
 
     sendMessage(inputValue);
 
@@ -193,69 +279,95 @@ function PersonaChat({ personaDetails, personaCountry, showChat }) {
   const chatBottomRef = useRef(null);
 
   useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, []);
+
+  useEffect(() => {
     chatBottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
   return (
     <div className="PersonaChat">
         <div id="chat-bubble">
-            <div id="persona-chat-header">
-                <p id="chat-with-text" className="unbounded-weight300">SSA PROFILE</p>
-                <div id="persona-name" className="unbounded-weight400">
-                    Agent {index + 1}
-                    <div id="anthro-warning">
-                        <p className="unbounded-weight400">!</p>
-                    </div>
-                    <p className="unbounded-weight400" id="chat-not-real-warning">SYNTHETIC PROFILE</p>
+            <aside id="persona-profile-card">
+                <div id="profile-card-header">
+                  <p id="chat-with-text" className="unbounded-weight300">SSA PROFILE</p>
+                  <div id="persona-name" className="unbounded-weight400">
+                      Agent {index + 1}
+                  </div>
                 </div>
+
                 <div id="persona-chat-attributes">
-                    {Object.entries(personaWithoutIndex).map(([key, value]) => (
-                        <p key={key} className="persona-chat-attributes-single unbounded-weight300">#{value}</p>
+                    {Object.entries(personaWithoutIndex).filter(([key, value]) => isMeaningfulMetadata(key, value)).map(([key, value]) => (
+                        <p key={key} className="persona-chat-attributes-single unbounded-weight300">#{formatLabel(value)}</p>
                     ))}
                 </div>
-            </div>
 
-            <div id="persona-chat-history">
-              {/* {messages.map((message) => (
-                message.type === "user"
-                  ? <UserMessage key={message.id} text={message.text} />
-                  : <ReceivedMessage key={message.id} text={message.text} />
-              ))} */}
-              {messages.map((message) => {
-                const Component = messageTypes[message.type];
-                return (
-                  <Component
-                    key={message.id}
-                    text={message.text}
-                    onTypingComplete={message.onTypingComplete}
-                  />
-                );
-              })
+                <section className="profile-section">
+                  <h3 className="unbounded-weight400">Profile Generated</h3>
+                  <p className="profile-biography unbounded-weight300">{cleanBiographyText(personaProfile?.biography)}</p>
+                </section>
 
-              }
-              <div ref={chatBottomRef} /> {/* reference to scroll to when a new message is sent */}
-            </div>
+                <section className="profile-section">
+                  <h3 className="unbounded-weight400">Stylometric State</h3>
+                  <p className="profile-summary unbounded-weight300">
+                    {stylometricProfile.profile_summary}
+                  </p>
+                  <div className="style-pill-grid">
+                    {styleFields.map(([label, value]) => (
+                      <div className="style-pill" key={label}>
+                        <span>{label}</span>
+                        <strong>{formatLabel(value)}</strong>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+            </aside>
 
-            {error && <p className="persona-chat-error unbounded-weight300">{error}</p>}
+            <section id="persona-chat-panel">
+              <div id="persona-chat-panel-header">
+                <div id="chat-close" onClick={() => showChat(false)}>
+                  <img id="chat-close-cross" src={closeCross} alt="Close chat"></img>
+                </div>
+              </div>
 
-            <div id="persona-chat-input">
-                <input 
-                  className="unbounded-weight300" 
-                  type="text" 
-                  alt="Input for persona chat interface" 
-                  placeholder="Message this agent..."
-                  value={inputValue}
-                  onChange={(e) => setInputValue(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") handleSubmit();
-                  }}
-                ></input>
-                <div><img onClick={handleSubmit} src={sendArrow} alt="Arrow to send text"></img></div>
-            </div>
-                
-            <div id="chat-close" onClick={() => showChat(false)}>
-              <img id="chat-close-cross" src={closeCross} alt="Close chat"></img>
-            </div>
+              <div id="persona-chat-history">
+                {messages.map((message) => {
+                  const Component = messageTypes[message.type];
+                  return (
+                    <Component
+                      key={message.id}
+                      text={message.text}
+                      analysis={message.analysis}
+                      onTypingComplete={message.onTypingComplete}
+                    />
+                  );
+                })}
+                <div ref={chatBottomRef} />
+              </div>
+
+              {error && <p className="persona-chat-error unbounded-weight300">{error}</p>}
+
+              <div id="persona-chat-input">
+                  <input
+                    className="unbounded-weight300"
+                    type="text"
+                    alt="Input for persona chat interface"
+                    placeholder="Message this agent..."
+                    value={inputValue}
+                    onChange={(e) => setInputValue(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") handleSubmit();
+                    }}
+                  ></input>
+                  <div><img onClick={handleSubmit} src={sendArrow} alt="Arrow to send text"></img></div>
+              </div>
+            </section>
 
         </div>
     </div>

@@ -1,0 +1,120 @@
+.MessageAnalysis{
+    position: absolute;
+    top: 4px;
+    z-index: 12;
+}
+
+.MessageAnalysis--right{
+    left: -24px;
+}
+
+.MessageAnalysis--left{
+    right: -24px;
+}
+
+.message-analysis-trigger{
+    width: 16px;
+    height: 16px;
+    border: 1px solid rgba(17, 27, 33, 0.18);
+    border-radius: 50%;
+    background-color: rgba(255, 255, 255, 0.94);
+    color: #128c7e;
+    font-size: 10px;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    cursor: help;
+    box-shadow: 0 1px 2px rgba(11, 20, 26, 0.14);
+    opacity: 0.72;
+    transition: opacity 120ms ease, transform 120ms ease, background 120ms ease;
+}
+
+.MessageAnalysis:hover .message-analysis-trigger,
+.MessageAnalysis:focus-within .message-analysis-trigger{
+    opacity: 1;
+    transform: scale(1.04);
+    background-color: #ffffff;
+}
+
+.message-analysis-popover{
+    position: fixed;
+    z-index: 9999;
+    overflow-y: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    padding: 12px;
+    border: 1px solid rgba(17, 27, 33, 0.12);
+    border-radius: 8px;
+    background-color: #ffffff;
+    color: #111b21;
+    box-shadow: 0 12px 30px rgba(11, 20, 26, 0.22);
+    animation: message-analysis-enter 120ms ease both;
+}
+
+.message-analysis-popover::-webkit-scrollbar{
+    display: none;
+}
+
+.message-analysis-popover h4{
+    margin: 0 0 10px 0;
+    font-size: 13px;
+    color: #075e54;
+}
+
+.message-analysis-popover section + section{
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px solid #e9edef;
+}
+
+.message-analysis-popover h5{
+    margin: 0 0 8px 0;
+    font-size: 11px;
+    color: #667781;
+    text-transform: uppercase;
+}
+
+.message-analysis-grid{
+    display: grid;
+    gap: 6px;
+}
+
+.message-analysis-row{
+    display: grid;
+    grid-template-columns: minmax(92px, 0.9fr) minmax(96px, 1.1fr);
+    gap: 10px;
+    align-items: start;
+    font-size: 11px;
+    line-height: 1.35;
+}
+
+.message-analysis-row span{
+    color: #667781;
+}
+
+.message-analysis-row strong{
+    color: #111b21;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+
+@media screen and (max-width: 450px){
+    .message-analysis-row{
+        grid-template-columns: 1fr;
+        gap: 2px;
+    }
+}
+
+@keyframes message-analysis-enter{
+    from{
+        opacity: 0;
+        transform: translateY(4px);
+    }
+
+    to{
+        opacity: 1;
+        transform: translateY(0);
+    }
+}

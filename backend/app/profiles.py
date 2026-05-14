@@ -3,12 +3,18 @@
 import json
 import threading
 import time
+from importlib import import_module
 from pathlib import Path
 
 import pandas as pd
 
 from app.biography.store import get_or_create_biography, load_biographies
 from app.logging import get_logger
+
+
+load_stylometric_profiles = import_module(
+    "app.guardrails.05_stylometry.store"
+).load_stylometric_profiles
 
 
 APP_DIR = Path(__file__).resolve().parent
@@ -23,6 +29,38 @@ DISPLAY_COLUMNS = ("municipality", "gender", "age_group", "education", "vote_203
 
 log = get_logger(__name__)
 _profile_fill_lock = threading.Lock()
+
+
+def clean_biography_for_display(biography: str) -> str:
+    """Remove generation section labels from stored biographies before display."""
+    if not biography:
+        return biography
+    lines = []
+    for line in biography.splitlines():
+        normalized = line.strip().lower().strip(":")
+        if normalized in {
+            "part 1",
+            "part 2",
+            "part one",
+            "part two",
+            "neutral biography",
+            "political biography",
+        }:
+            continue
+        cleaned = line
+        for prefix in (
+            "PART 1:",
+            "PART 2:",
+            "Part 1:",
+            "Part 2:",
+            "Neutral biography:",
+            "Political biography:",
+        ):
+            if cleaned.strip().startswith(prefix):
+                cleaned = cleaned.replace(prefix, "", 1).strip()
+        if cleaned.strip():
+            lines.append(cleaned)
+    return "\n".join(lines)
 
 
 def load_profile_set() -> dict:
@@ -52,6 +90,7 @@ def _load_sample_records(country: str) -> list[dict]:
 
 def _public_profile(*, country: str, persona_details: dict, biography: str) -> dict:
     index = int(persona_details["index"])
+    stylometric_profile = load_stylometric_profiles().get(country, {}).get(str(index))
     traits = {
         key: persona_details.get(key)
         for key in DISPLAY_COLUMNS
@@ -64,7 +103,8 @@ def _public_profile(*, country: str, persona_details: dict, biography: str) -> d
         "label": f"Persona {index + 1}",
         "details": persona_details,
         "traits": traits,
-        "biography": biography,
+        "biography": clean_biography_for_display(biography),
+        "stylometric_profile": stylometric_profile,
     }
 
 

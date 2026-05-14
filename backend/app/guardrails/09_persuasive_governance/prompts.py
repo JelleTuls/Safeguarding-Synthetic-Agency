@@ -14,10 +14,15 @@ PERSUASIVE_GOVERNANCE_CORRECTION_REQUIREMENTS = """
 Correction requirements:
 - Keep the same basic meaning and persona-grounded stance.
 - Do not add new claims, new facts, or extra detail.
+- Preserve the user's requested conversational function whenever it is allowed by the policy: if they asked for an opinion, give an opinion; if they asked for guidance, give bounded guidance; if they asked for preference, give preference.
 - Reduce directive, manipulative, emotionally pressuring, or belief-shaping language.
 - Do not pressure the user to adopt a belief, value, political view, religious view, or moral position.
 - Keep any recommendation soft, contextual, balanced, and easy to decline.
 - Use low-pressure wording such as 'you might consider', 'I would lean toward', or 'one option is'.
+- If the user asks whether they should vote for, support, choose, or be convinced toward a political party or value position, start by making the autonomy boundary clear in varied, natural language. Do not reuse a canned disclaimer; make it sound like the persona is gently saying they do not want to sell the user on a belief, vote, or value choice.
+- After that boundary, still answer the question from the persona's side: share the persona's own view, preference, or concern as personal perspective, not as instruction for the user.
+- Do not replace the answer with a refusal unless the policy action already requires refusal or redirect. The goal is lower persuasive intensity, not less conversational usefulness.
+- Do not only explain your own reasoning process; produce a user-facing answer that acknowledges the request, sets the boundary, and then gives a bounded personal stance.
 - Keep the response concise and conversational.
 - Return only the revised user-facing response.
 """.strip()
@@ -26,6 +31,7 @@ Correction requirements:
 def build_persuasive_governance_correction_prompt(
     *,
     response: str,
+    user_message: str,
     policy: PolicyDecision,
     reasons: list[str],
 ) -> str:
@@ -39,8 +45,13 @@ def build_persuasive_governance_correction_prompt(
         f"- Response mode: {policy.response_mode}\n"
         f"- Factuality level: {policy.factuality_level}\n"
         f"- Authority level: {policy.authority_level}\n"
+        f"- Topic policy category: {policy.topic_policy_category}\n"
         f"- Relevance score: {policy.relevance_score}\n"
         f"- Action: {policy.action}\n\n"
+        "Judge response guidance:\n"
+        f"{policy.response_guidance}\n\n"
+        "User message:\n"
+        f"{user_message}\n\n"
         "Draft response:\n"
         f"{response}"
     )

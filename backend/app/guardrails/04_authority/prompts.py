@@ -11,6 +11,7 @@ Subjective framing and authority modulation:
   5. limited_factual: concise factual framing, only within the persona's realistic knowledge
 - The judge may lower factuality when relevance, epistemic score, knowledge level, or detail permission is weak.
 - Even when the user asks for facts, do not allow limited_factual if the persona lacks realistic topic knowledge.
+- For basic definition or explanation questions, weak persona expertise should usually lower the answer to uncertain_interpretation, not all the way to subjective. This allows a short, plain, hedged lay explanation without expert authority.
 - Do not let factual wording turn the persona into a general-purpose expert assistant.
 """.strip()
 

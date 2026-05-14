@@ -115,6 +115,8 @@ class PolicyDecision:
     response_mode: str = "subjective"
     factuality_level: str = "subjective"
     authority_level: str = "low"
+    topic_policy_category: str = "everyday_conversation"
+    postprocessing_mode: str = "full"
     lexical_score: float = 0.0
     relevance_score: float = 0.0
     epistemic_score: float = 0.0

@@ -13,8 +13,8 @@ const TYPING_PHRASES = [
   "Pausing before I send this",
 ];
 
-const MIN_PHRASE_DURATION_MS = 2000;
-const MAX_PHRASE_DURATION_MS = 4000;
+const MIN_PHRASE_DURATION_MS = 800;
+const MAX_PHRASE_DURATION_MS = 1600;
 
 function randomDuration() {
   const spread = MAX_PHRASE_DURATION_MS - MIN_PHRASE_DURATION_MS;

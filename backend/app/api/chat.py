@@ -24,6 +24,7 @@ class ChatMessageRequest(BaseModel):
     persona_details: dict
     persona_country: str
     chat_history: list
+    client_session_id: str | None = None
 
 
 @router.get("/chat/personas")
@@ -67,7 +68,7 @@ async def stream_chat_message(request: Request, request_body: ChatMessageRequest
                 chat_history=request_body.chat_history,
                 persona_details=persona_details,
                 persona_country=persona_country,
-                client_id=ip,
+                client_id=request_lock_key,
             ):
                 if isinstance(chunk, dict):
                     event = chunk.get("event", "message")
@@ -83,7 +84,7 @@ async def stream_chat_message(request: Request, request_body: ChatMessageRequest
                 message = f"{message} Backend error: {type(e).__name__}: {e}"
             yield f"event: error\ndata: {json.dumps({'text': message})}\n\n"
         finally:
-            add_or_remove_user_requestlist('remove', ip)
+            add_or_remove_user_requestlist('remove', request_lock_key)
         yield "data: [DONE]\n\n"
 
     if os.getenv('ENV') == 'development':
@@ -92,8 +93,10 @@ async def stream_chat_message(request: Request, request_body: ChatMessageRequest
         forwarded_for = request.headers.get("x-forwarded-for")
         ip = forwarded_for.split(",")[0] if forwarded_for else request.client.host
 
+    session_suffix = (request_body.client_session_id or "").strip()
+    request_lock_key = f"{ip}:{session_suffix}" if session_suffix else ip
 
-    user_has_ongoing_request = check_if_user_ongoing_request(ip)
+    user_has_ongoing_request = check_if_user_ongoing_request(request_lock_key)
 
     if user_has_ongoing_request:
         return StreamingResponse(
@@ -111,7 +114,7 @@ async def stream_chat_message(request: Request, request_body: ChatMessageRequest
             headers={"X-Accel-Buffering": "no"}
         )
     
-    add_or_remove_user_requestlist('add', ip)
+    add_or_remove_user_requestlist('add', request_lock_key)
 
     persona_details = request_body.persona_details
     persona_country = request_body.persona_country
@@ -122,7 +125,7 @@ async def stream_chat_message(request: Request, request_body: ChatMessageRequest
         )
     except Exception as e:
         log.exception("Error generating persona biography")
-        add_or_remove_user_requestlist('remove', ip)
+        add_or_remove_user_requestlist('remove', request_lock_key)
         message = "Sorry, there was an error generating the persona biography. Please try again."
         if os.getenv("ENV") == "development":
             message = f"{message} Backend error: {type(e).__name__}: {e}"
@@ -137,7 +140,7 @@ async def stream_chat_message(request: Request, request_body: ChatMessageRequest
         biography=biography,
     )
     if command_response is not None:
-        add_or_remove_user_requestlist('remove', ip)
+        add_or_remove_user_requestlist('remove', request_lock_key)
         return StreamingResponse(
             single_message_stream(command_response, event="system"),
             media_type="text/event-stream",

@@ -48,6 +48,7 @@ def build_guided_user_message(*, user_message: str, guidance: str, policy: Polic
         f"- Response mode: {policy.response_mode}\n"
         f"- Factuality level: {policy.factuality_level}\n"
         f"- Authority level: {policy.authority_level}\n"
+        f"- Topic policy category: {policy.topic_policy_category}\n"
         f"- Tone style: {policy.tone_style}\n"
         f"- Emotional style: {policy.emotional_style}\n\n"
         "Chat bubble guidance:\n"
@@ -132,10 +133,22 @@ def build_authority_execution_note(*, policy: PolicyDecision) -> str:
             "Use first-person belief, preference, lived experience, or uncertainty instead of broad objective claims."
         )
 
+    topic_note = ""
+    if policy.topic_policy_category == "politics_government":
+        topic_note = (
+            "\nPolitical topic note:\n"
+            "- Keep political opinions visibly first-person: use wording like 'to me', 'I tend to think', 'what I can appreciate', or 'my impression is'.\n"
+            "- If asked to list strengths of a party, frame them as perceived or possible strengths, not objective endorsements.\n"
+            "- Do not use numbered/bulleted campaign-style lists unless the user explicitly needs structure; prefer compact conversational phrasing.\n"
+            "- Avoid slogans, vote-directing language, and claims that a party is the best or correct choice."
+        )
+
     return (
         f"{mode_note}\n"
         f"- Response mode: {policy.response_mode}\n"
         f"- Factuality level: {policy.factuality_level}\n"
         f"- Authority level: {policy.authority_level}\n"
+        f"- Topic policy category: {policy.topic_policy_category}\n"
         "- Keep factual claims clearly separated from personal interpretation."
+        f"{topic_note}"
     )

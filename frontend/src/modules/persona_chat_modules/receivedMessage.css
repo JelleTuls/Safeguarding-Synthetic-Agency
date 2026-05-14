@@ -3,22 +3,113 @@
     display: flex;
     align-items: center;
     justify-content: flex-start;
-    margin-bottom: 20px;
+    margin-bottom: 7px;
 }
 
 .ReceivedMessage > div{
-    background-color: #f1f5f9;
-    border: 1px solid #d8e2ee;
-    border-radius: 12px;
-    padding: 14px 18px; 
-    max-width: calc(60% - 36px);
+    background-color: #f7f8fa;
+    border-radius: 8px 8px 8px 2px;
+    padding: 8px 11px 9px;
+    max-width: min(68%, 560px);
     position: relative;
-    color: #17202a;
-    box-shadow: 0 8px 18px rgba(33, 54, 78, 0.06);
+    color: #111b21;
+    box-shadow: 0 1px 1px rgba(11, 20, 26, 0.14);
 }
 
-.ReceivedMessage > div > p{
+.ReceivedMessage > div > p,
+.received-message-markdown{
+    font-size: 13px;
+    line-height: 1.45;
+}
+
+.received-message-markdown p,
+.received-message-markdown ul,
+.received-message-markdown ol,
+.received-message-markdown blockquote,
+.received-message-markdown h4,
+.received-message-markdown h5,
+.received-message-markdown h6{
+    margin: 0 0 8px 0;
+    line-height: 1.45;
+}
+
+.received-message-markdown p:last-child,
+.received-message-markdown ul:last-child,
+.received-message-markdown ol:last-child,
+.received-message-markdown blockquote:last-child,
+.received-message-markdown h4:last-child,
+.received-message-markdown h5:last-child,
+.received-message-markdown h6:last-child{
+    margin-bottom: 0;
+}
+
+.received-message-markdown strong{
+    font-weight: 600;
+}
+
+.received-message-markdown em{
+    font-style: italic;
+}
+
+.received-message-markdown a{
+    color: #027eb5;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+.received-message-markdown code{
+    padding: 1px 4px;
+    border-radius: 4px;
+    background-color: #f0f2f5;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    font-size: 0.92em;
+}
+
+.received-message-markdown ul,
+.received-message-markdown ol{
+    padding-left: 18px;
+}
+
+.received-message-markdown li{
+    margin: 4px 0;
+}
+
+.received-message-markdown blockquote{
+    border-left: 3px solid #d1d7db;
+    padding-left: 10px;
+    color: #475569;
+}
+
+.received-message-markdown h4,
+.received-message-markdown h5,
+.received-message-markdown h6{
     font-size: 14px;
+    font-weight: 600;
+}
+
+.received-message-table-wrap{
+    max-width: 100%;
+    overflow-x: auto;
+    margin: 4px 0 8px 0;
+}
+
+.received-message-table-wrap table{
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+}
+
+.received-message-table-wrap th,
+.received-message-table-wrap td{
+    border: 1px solid #cbd5e1;
+    padding: 6px 8px;
+    text-align: left;
+    vertical-align: top;
+}
+
+.received-message-table-wrap th{
+    background-color: #f0f2f5;
+    font-weight: 600;
 }
 
 .received-message-cursor{
@@ -26,7 +117,7 @@
     width: 1px;
     height: 1em;
     margin-left: 1px;
-    background-color: #17202a;
+    background-color: #111b21;
     vertical-align: -0.12em;
     animation: received-cursor-blink 0.9s ease-in-out infinite;
 }
@@ -47,18 +138,28 @@
     left: -3px;
     aspect-ratio: 1;
     width: 10px;
-    border-radius: 50%;
-    background-color: #f1f5f9;
-    clip-path: polygon(0% 100%, 100% 0%, 100% 100%);
+    background-color: #f7f8fa;
+    clip-path: polygon(100% 0, 0 100%, 100% 100%);
 }
 
 @media screen and (max-width: 450px){
     .ReceivedMessage > div{
-        padding: 10px 12px; 
-        max-width: calc(70% - 36px);
+        padding: 7px 9px 8px;
+        max-width: 78%;
     }
 
-    .ReceivedMessage > div > p{
+    .ReceivedMessage > div > p,
+    .received-message-markdown{
         font-size: 10px;
+    }
+
+    .received-message-markdown h4,
+    .received-message-markdown h5,
+    .received-message-markdown h6{
+        font-size: 10px;
+    }
+
+    .received-message-table-wrap table{
+        font-size: 9px;
     }
 }

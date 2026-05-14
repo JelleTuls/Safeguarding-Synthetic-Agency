@@ -15,3 +15,7 @@ venv/
 backend/app/guardrails/log/*.txt
 backend/app/runtime/
 frontend/build/
+
+# large local classifier assets
+services/subjectivity_classifier/model/*
+!services/subjectivity_classifier/model/.gitkeep

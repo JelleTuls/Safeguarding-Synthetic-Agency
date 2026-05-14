@@ -3,21 +3,23 @@
     display: flex;
     align-items: center;
     justify-content: flex-end;
-    margin-bottom: 20px;
+    margin-bottom: 7px;
 }
 
 .UserMessage > div{
-    background-color: #0a84ff;
-    border-radius: 12px;
-    padding: 14px 18px; 
-    max-width: calc(60% - 36px);
+    background-color: #d9fdd3;
+    border-radius: 8px 8px 2px 8px;
+    padding: 8px 11px 9px;
+    max-width: min(68%, 560px);
     position: relative;
-    color: #ffffff;
-    box-shadow: 0 10px 22px rgba(10, 132, 255, 0.22);
+    color: #111b21;
+    box-shadow: 0 1px 1px rgba(11, 20, 26, 0.14);
 }
 
 .UserMessage > div > p{
-    font-size: 14px;
+    font-size: 13px;
+    line-height: 1.45;
+    margin: 0;
 }
 
 #user-message-bubbletick{
@@ -26,15 +28,14 @@
     right: -3px;
     aspect-ratio: 1;
     width: 10px;
-    border-radius: 50%;
-    background-color: #0a84ff;
-    clip-path: polygon(100% 100%, 0% 0%, 0% 100%);
+    background-color: #d9fdd3;
+    clip-path: polygon(0 0, 0 100%, 100% 100%);
 }
 
 @media screen and (max-width: 450px){
     .UserMessage > div{
-        padding: 10px 12px; 
-        max-width: calc(70% - 36px);
+        padding: 7px 9px 8px;
+        max-width: 78%;
     }
 
     .UserMessage > div > p{

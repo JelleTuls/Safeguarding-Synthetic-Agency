@@ -3,22 +3,21 @@
     display: flex;
     align-items: center;
     justify-content: flex-start;
-    margin-bottom: 20px;
+    margin-bottom: 8px;
 }
 
 .AwaitingMessage > div{
-    background-color: #f1f5f9;
-    border: 1px solid #d8e2ee;
-    border-radius: 12px;
-    padding: 14px 18px; 
-    max-width: calc(60% - 36px);
+    background-color: #ffffff;
+    border-radius: 8px 8px 8px 2px;
+    padding: 8px 10px 9px;
+    max-width: min(68%, 560px);
     min-height: 16px;
     position: relative;
-    box-shadow: 0 8px 18px rgba(33, 54, 78, 0.06);
+    box-shadow: 0 1px 1px rgba(11, 20, 26, 0.14);
     display: inline-flex;
     align-items: baseline;
     gap: 1px;
-    color: #506174;
+    color: #667781;
     font-size: 11px;
     line-height: 1.25;
     white-space: nowrap;
@@ -31,7 +30,7 @@
 .awaiting-dots{
     display: inline-flex;
     min-width: 12px;
-    color: #0a84ff;
+    color: #00a884;
     font-weight: 400;
     letter-spacing: 0;
 }
@@ -79,15 +78,14 @@
     left: -3px;
     aspect-ratio: 1;
     width: 10px;
-    border-radius: 50%;
-    background-color: #f1f5f9;
-    clip-path: polygon(0% 100%, 100% 0%, 100% 100%);
+    background-color: #ffffff;
+    clip-path: polygon(100% 0, 0 100%, 100% 100%);
 }
 
 @media screen and (max-width: 450px){
     .AwaitingMessage > div{
-        padding: 10px 8px; 
-        max-width: calc(70% - 36px);
+        padding: 7px 9px 8px;
+        max-width: 82%;
         font-size: 9px;
         white-space: normal;
     }

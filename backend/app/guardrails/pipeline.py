@@ -277,14 +277,17 @@ def run_layer_06_judge(
 
     _log_section("Guardrail Policy")
     log.info(
-        "Layer 06 chose %s: relevance %.2f, epistemic %.2f, %s knowledge, %s factuality, %s length.",
+        "Layer 06 chose %s: relevance %.2f, epistemic %.2f, %s knowledge, %s factuality, %s topic, %s length, %s post-processing.",
         policy.action,
         policy.relevance_score,
         policy.epistemic_score,
         policy.knowledge_level,
         policy.factuality_level,
+        policy.topic_policy_category,
         policy.response_length_target,
+        policy.postprocessing_mode,
     )
+    log.info("Topic policy category: %s", policy.topic_policy_category)
     log.info("Judge rationale: %s", policy.rationale)
     return policy
 

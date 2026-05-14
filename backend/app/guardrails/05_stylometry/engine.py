@@ -1,5 +1,6 @@
 """Stylometric profile generation and judge-guidance preparation."""
 
+from functools import lru_cache
 import json
 
 from app.guardrails.schemas import StylometricSignal
@@ -50,7 +51,8 @@ def generate_stylometric_profile(*, persona_biography: str, persona_details: dic
 
 def prepare_stylometric_signal(*, stylometric_profile: dict) -> StylometricSignal:
     """Build the stylometric instructions that will be injected into the judge prompt."""
-    judge_prompt = build_stylometry_judge_prompt(stylometric_profile=stylometric_profile)
+    profile_key = json.dumps(stylometric_profile, ensure_ascii=False, sort_keys=True)
+    judge_prompt = _cached_stylometry_judge_prompt(profile_key)
     return StylometricSignal(
         summary=stylometric_profile.get(
             "profile_summary",
@@ -58,3 +60,9 @@ def prepare_stylometric_signal(*, stylometric_profile: dict) -> StylometricSigna
         ),
         judge_prompt=judge_prompt,
     )
+
+
+@lru_cache(maxsize=512)
+def _cached_stylometry_judge_prompt(profile_key: str) -> str:
+    """Cache stable stylometry judge prompt rendering per profile."""
+    return build_stylometry_judge_prompt(stylometric_profile=json.loads(profile_key))

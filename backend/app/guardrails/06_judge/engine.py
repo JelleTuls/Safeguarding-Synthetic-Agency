@@ -4,12 +4,25 @@ import json
 
 from app.guardrails.schemas import GuardrailInput, GuardrailSignals, PolicyDecision
 from app.guardrails.session_trace import append_kv_block, append_named_block
+from app.guardrails.topic_policy import normalize_topic_policy_category
 from app.logging import get_logger
 from app.utils import build_chat_messages, run_chat_completion
 from .prompts import GUARDRAILED_JUDGE_SYS_PROMPT, build_judge_user_message
 
 
 log = get_logger(__name__)
+
+
+SMALLTALK_MESSAGES = {
+    "hi",
+    "hello",
+    "hey",
+    "good morning",
+    "good afternoon",
+    "good evening",
+    "how are you",
+    "how are you?",
+}
 
 
 def _safe_float(value, fallback: float) -> float:
@@ -60,6 +73,27 @@ def _normalize_response_length_target(value: str | None) -> str:
     if value in {"very_short", "short", "medium", "long"}:
         return value
     return "short"
+
+
+def _normalize_postprocessing_mode(value: str | None, *, payload: dict | None = None) -> str:
+    """Normalize post-generation validation cost mode."""
+    if value in {"full", "light"}:
+        return value
+    if isinstance(payload, dict):
+        action = _normalize_action(payload.get("action"))
+        topic = normalize_topic_policy_category(payload.get("topic_policy_category"))
+        length = _normalize_response_length_target(payload.get("response_length_target"))
+        authority = _normalize_authority_level(payload.get("authority_level"), "low")
+        factuality = _normalize_factuality_level(payload.get("factuality_level"), "subjective")
+        if (
+            action == "allow"
+            and topic == "everyday_conversation"
+            and length == "very_short"
+            and authority == "low"
+            and factuality in {"subjective", "anecdotal", "belief_affirmation"}
+        ):
+            return "light"
+    return "full"
 
 
 def _normalize_response_mode(value: str | None, fallback: str) -> str:
@@ -117,6 +151,37 @@ def _looks_like_policy_payload(payload: object) -> bool:
     )
 
 
+def _extract_json_object(raw_response: str) -> str | None:
+    """Extract the first balanced JSON object from a noisy judge response."""
+    start = raw_response.find("{")
+    if start == -1:
+        return None
+
+    depth = 0
+    in_string = False
+    escaped = False
+    for index, character in enumerate(raw_response[start:], start=start):
+        if in_string:
+            if escaped:
+                escaped = False
+            elif character == "\\":
+                escaped = True
+            elif character == '"':
+                in_string = False
+            continue
+
+        if character == '"':
+            in_string = True
+        elif character == "{":
+            depth += 1
+        elif character == "}":
+            depth -= 1
+            if depth == 0:
+                return raw_response[start : index + 1]
+
+    return None
+
+
 def _unwrap_policy_payload(payload: object) -> dict | None:
     """Recover the real policy payload from common wrapper shapes returned by the judge."""
     current = payload
@@ -157,67 +222,105 @@ def _unwrap_policy_payload(payload: object) -> dict | None:
     return None
 
 
-def _parse_judge_response(raw_response: str, signals: GuardrailSignals) -> PolicyDecision:
+def _is_smalltalk_message(user_message: str) -> bool:
+    """Return True for tiny greeting/social turns that should not become cautious limited answers."""
+    return user_message.strip().lower() in SMALLTALK_MESSAGES
+
+
+def _fallback_policy(*, signals: GuardrailSignals, user_message: str, reason: str) -> PolicyDecision:
+    """Return a safe policy when the judge output cannot be parsed."""
+    if _is_smalltalk_message(user_message):
+        return PolicyDecision(
+            action="allow",
+            rationale=f"{reason} The user message is simple smalltalk, so the fallback keeps the response warm, brief, and low-risk.",
+            response_guidance="Reply naturally to the greeting in fewer than 15 words. Do not introduce biography, politics, advice, or a concern.",
+            response_length_target="very_short",
+            detail_allowed=False,
+            expertise_basis="none",
+            hedging_style="low",
+            confidence_style="balanced",
+            register_style="everyday",
+            sentence_style="simple",
+            abstraction_level="concrete",
+            vocabulary_level="plain",
+            explanation_style="minimal",
+            response_mode="belief_affirmation",
+            factuality_level="belief_affirmation",
+            authority_level="low",
+            topic_policy_category="everyday_conversation",
+            postprocessing_mode="light",
+            lexical_score=1.0 if signals.lexical.triggered else 0.0,
+            relevance_score=0.95,
+            epistemic_score=0.95,
+            knowledge_level="very_limited",
+            language_level="plain",
+            tone_style="warm",
+            emotional_style="friendly",
+        )
+
+    return PolicyDecision(
+        action="limited_answer",
+        rationale=reason,
+        response_guidance="Answer gently and cautiously from the persona's perspective. Stay grounded in the biography, keep the language plain, and avoid overclaiming.",
+        response_length_target="short",
+        detail_allowed=False,
+        expertise_basis="none",
+        hedging_style="medium",
+        confidence_style="balanced",
+        register_style="everyday",
+        sentence_style="mixed",
+        abstraction_level="mixed",
+        vocabulary_level="moderate",
+        explanation_style="balanced",
+        response_mode=signals.authority.response_mode,
+        factuality_level=signals.authority.factuality_level,
+        authority_level=signals.authority.authority_level,
+        topic_policy_category="everyday_conversation",
+        postprocessing_mode="full",
+        lexical_score=1.0 if signals.lexical.triggered else 0.0,
+        relevance_score=0.5,
+        epistemic_score=0.5,
+        knowledge_level="limited",
+        language_level="plain",
+        tone_style="cautious",
+        emotional_style="neutral",
+    )
+
+
+def _parse_judge_response(raw_response: str, signals: GuardrailSignals, user_message: str) -> PolicyDecision:
     """Parse the judge JSON response with a safe fallback."""
     try:
         decoded = json.loads(raw_response)
     except json.JSONDecodeError:
-        log.info("Judge parsing fallback")
-        log.info("  Reason: invalid JSON returned by judge model")
-        return PolicyDecision(
-            action="limited_answer",
-            rationale="The judge response could not be parsed cleanly, so the system falls back to a cautious answer.",
-            response_guidance="Answer gently and cautiously from the persona's perspective. Stay grounded in the biography, keep the language plain, and avoid overclaiming.",
-            response_length_target="short",
-            detail_allowed=False,
-            expertise_basis="none",
-            hedging_style="medium",
-            confidence_style="balanced",
-            register_style="everyday",
-            sentence_style="mixed",
-            abstraction_level="mixed",
-            vocabulary_level="moderate",
-            explanation_style="balanced",
-            response_mode=signals.authority.response_mode,
-            factuality_level=signals.authority.factuality_level,
-            authority_level=signals.authority.authority_level,
-            lexical_score=1.0 if signals.lexical.triggered else 0.0,
-            relevance_score=0.5,
-            epistemic_score=0.5,
-            knowledge_level="limited",
-            language_level="plain",
-            tone_style="cautious",
-            emotional_style="neutral",
-        )
+        extracted = _extract_json_object(raw_response)
+        if extracted is None:
+            log.info("Judge parsing fallback")
+            log.info("  Reason: invalid JSON returned by judge model")
+            return _fallback_policy(
+                signals=signals,
+                user_message=user_message,
+                reason="The judge response could not be parsed cleanly, so the system falls back to a safe policy.",
+            )
+        try:
+            decoded = json.loads(extracted)
+            log.info("Judge JSON recovered from wrapped or noisy response.")
+        except json.JSONDecodeError:
+            log.info("Judge parsing fallback")
+            log.info("  Reason: extracted JSON object was still invalid")
+            return _fallback_policy(
+                signals=signals,
+                user_message=user_message,
+                reason="The extracted judge JSON object was still invalid, so the system falls back to a safe policy.",
+            )
 
     payload = _unwrap_policy_payload(decoded)
     if payload is None:
         log.info("Judge parsing fallback")
         log.info("  Reason: valid JSON returned, but no policy payload could be unwrapped")
-        return PolicyDecision(
-            action="limited_answer",
-            rationale="The judge response used an unexpected structure, so the system falls back to a cautious answer.",
-            response_guidance="Answer gently and cautiously from the persona's perspective. Stay grounded in the biography, keep the language plain, and avoid overclaiming.",
-            response_length_target="short",
-            detail_allowed=False,
-            expertise_basis="none",
-            hedging_style="medium",
-            confidence_style="balanced",
-            register_style="everyday",
-            sentence_style="mixed",
-            abstraction_level="mixed",
-            vocabulary_level="moderate",
-            explanation_style="balanced",
-            response_mode=signals.authority.response_mode,
-            factuality_level=signals.authority.factuality_level,
-            authority_level=signals.authority.authority_level,
-            lexical_score=1.0 if signals.lexical.triggered else 0.0,
-            relevance_score=0.5,
-            epistemic_score=0.5,
-            knowledge_level="limited",
-            language_level="plain",
-            tone_style="cautious",
-            emotional_style="neutral",
+        return _fallback_policy(
+            signals=signals,
+            user_message=user_message,
+            reason="The judge response used an unexpected structure, so the system falls back to a safe policy.",
         )
 
     return PolicyDecision(
@@ -248,6 +351,11 @@ def _parse_judge_response(raw_response: str, signals: GuardrailSignals) -> Polic
         authority_level=_normalize_authority_level(
             payload.get("authority_level"),
             signals.authority.authority_level,
+        ),
+        topic_policy_category=normalize_topic_policy_category(payload.get("topic_policy_category")),
+        postprocessing_mode=_normalize_postprocessing_mode(
+            payload.get("postprocessing_mode"),
+            payload=payload,
         ),
         lexical_score=_safe_float(payload.get("lexical_score"), 1.0 if signals.lexical.triggered else 0.0),
         relevance_score=_safe_float(payload.get("relevance_score"), 0.5),
@@ -304,14 +412,19 @@ def decide_policy(*, guardrail_input: GuardrailInput, signals: GuardrailSignals)
         content=raw_response,
         step_label="LAYER 06",
     )
-    decision = _parse_judge_response(raw_response, signals)
+    decision = _parse_judge_response(raw_response, signals, guardrail_input.user_message)
 
     log.info(
-        "Layer 06 parsed policy: %s action, %.2f relevance, %.2f epistemic, %s factuality.",
+        "Layer 06 parsed policy: %s action, %.2f relevance, %.2f epistemic, %s factuality, %s topic.",
         decision.action,
         decision.relevance_score,
         decision.epistemic_score,
         decision.factuality_level,
+        decision.topic_policy_category,
+    )
+    log.info(
+        "Layer 06 connected the user request to topic policy category: %s.",
+        decision.topic_policy_category,
     )
     append_kv_block(
         trace=guardrail_input.session_trace,
@@ -337,6 +450,8 @@ def decide_policy(*, guardrail_input: GuardrailInput, signals: GuardrailSignals)
             ("Response mode", decision.response_mode),
             ("Factuality level", decision.factuality_level),
             ("Authority level", decision.authority_level),
+            ("Topic policy category", decision.topic_policy_category),
+            ("Post-processing mode", decision.postprocessing_mode),
             ("Tone style", decision.tone_style),
             ("Emotional style", decision.emotional_style),
             ("Rationale", decision.rationale),

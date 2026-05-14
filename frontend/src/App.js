@@ -93,6 +93,7 @@ function App() {
 
       {activePersona && (
         <PersonaChat
+          personaProfile={activePersona}
           personaDetails={activePersona.details}
           personaCountry={activePersona.country}
           showChat={() => setActivePersona(null)}

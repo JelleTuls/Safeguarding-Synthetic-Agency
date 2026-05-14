@@ -69,8 +69,21 @@ def _split_paragraph(paragraph: str) -> list[str]:
 def typing_status_for_bubble(*, bubble: str, index: int) -> dict:
     """Return a varied status phrase and a duration based on upcoming bubble length."""
     word_count = len(bubble.split())
-    followup_pause_ms = min(index, 4) * 650
-    duration_ms = min(7200, max(1800, 900 + (word_count * 155) + followup_pause_ms))
+    if word_count <= 4:
+        base_ms = 220
+        per_word_ms = 55
+    elif word_count <= 12:
+        base_ms = 340
+        per_word_ms = 65
+    elif word_count <= 28:
+        base_ms = 520
+        per_word_ms = 75
+    else:
+        base_ms = 760
+        per_word_ms = 85
+
+    followup_pause_ms = min(index, 4) * 160
+    duration_ms = min(3600, max(350, base_ms + (word_count * per_word_ms) + followup_pause_ms))
     phrase = _STATUS_PHRASES[index % len(_STATUS_PHRASES)]
     return {
         "text": phrase,
