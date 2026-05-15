@@ -62,4 +62,4 @@ Set this environment variable for the main backend:
 SUBJECTIVITY_CLASSIFIER_URL=http://127.0.0.1:8001
 ```
 
-Layer 08 will call this service first. If the service is unavailable, it falls back to the local package path if present. If no classifier path is available, Layer 08 reports `classifier_unavailable` and skips classifier-based rewriting rather than using hardcoded marker scores.
+Layer 08 will call this service first. If the service is unavailable, it falls back to the local package path if present. If neither classifier path is available, Layer 08 uses the backend's deterministic subjectivity/objectivity fallback scorer. The fallback returns the same kind of score payload so the guardrail flow keeps working, but it is intended as a development/sharing fallback rather than a replacement for the sidecar's higher-fidelity model output.

@@ -219,6 +219,81 @@ def _package_subjectivity_sentences(text: str) -> tuple[list[str], list[str]] | 
     return objective, subjective
 
 
+def _heuristic_subjectivity_analysis(text: str, sentence_list: list[str]) -> SubjectivityAnalysis:
+    """Fallback scorer used when the Docker/classifier package is unavailable."""
+    subjective_markers = (
+        "i think", "i feel", "i believe", "i guess", "i worry", "i prefer",
+        "personally", "from my perspective", "from my point of view",
+        "in my experience", "to me", "my view", "my impression", "i tend",
+        "i'm not sure", "i am not sure", "it seems", "it feels", "i would",
+    )
+    objective_markers = (
+        "according to", "studies", "research", "data", "evidence", "is defined",
+        "means that", "shows that", "there are", "there is", "will", "must",
+        "should", "because", "therefore", "in general", "typically",
+    )
+
+    sentence_scores: list[dict] = []
+    objective_sentences: list[str] = []
+    subjective_sentences: list[str] = []
+    subjectivity_total = 0.0
+    objectivity_total = 0.0
+
+    for sentence in sentence_list:
+        lower = sentence.lower()
+        subjective_hits = sum(1 for marker in subjective_markers if marker in lower)
+        objective_hits = sum(1 for marker in objective_markers if marker in lower)
+        has_number = bool(re.search(r"\d", sentence))
+        has_first_person = bool(re.search(r"\b(i|me|my|mine|we|our|ours)\b", lower))
+
+        subjective_raw = subjective_hits * 0.18 + (0.22 if has_first_person else 0.0)
+        objective_raw = objective_hits * 0.14 + (0.16 if has_number else 0.0)
+
+        if subjective_raw == 0 and objective_raw == 0:
+            subjective_raw = 0.38 if has_first_person else 0.18
+            objective_raw = 0.32 if not has_first_person else 0.22
+
+        total = max(subjective_raw + objective_raw, 0.001)
+        subjective_probability = max(0.0, min(1.0, subjective_raw / total))
+        objective_probability = max(0.0, min(1.0, objective_raw / total))
+
+        if subjective_probability >= objective_probability:
+            subjective_sentences.append(sentence)
+            label = "subjective"
+        else:
+            objective_sentences.append(sentence)
+            label = "objective"
+
+        subjectivity_total += subjective_probability
+        objectivity_total += objective_probability
+        sentence_scores.append(
+            {
+                "sentence": sentence,
+                "label": label,
+                "subjective_probability": round(subjective_probability, 3),
+                "objective_probability": round(objective_probability, 3),
+            }
+        )
+
+    count = max(len(sentence_list), 1)
+    subjectivity = round(subjectivity_total / count, 3)
+    objectivity = round(objectivity_total / count, 3)
+    log.info(
+        "Layer 08 used deterministic subjectivity fallback: %.3f subjectivity, %.3f objectivity.",
+        subjectivity,
+        objectivity,
+    )
+    return SubjectivityAnalysis(
+        subjectivity=subjectivity,
+        objectivity=objectivity,
+        objective_sentences=objective_sentences,
+        subjective_sentences=subjective_sentences,
+        detector_source="deterministic_subjectivity_fallback",
+        scoring_mode="heuristic_probabilities",
+        sentence_scores=sentence_scores,
+    )
+
+
 def _subjectivity_analysis(text: str) -> SubjectivityAnalysis:
     """Return subjectivity/objectivity balance from the package."""
     sentence_list = _sentences(text)
@@ -232,11 +307,10 @@ def _subjectivity_analysis(text: str) -> SubjectivityAnalysis:
     detector_source = "subjectivity_classifier"
     classified = _package_subjectivity_sentences(text)
     if classified is None:
-        detector_source = "subjectivity_classifier"
         log.info(
-            "Layer 08 could not reach a subjectivity classifier; classifier-based correction is skipped."
+            "Layer 08 could not reach a subjectivity classifier; using deterministic fallback scorer."
         )
-        return SubjectivityAnalysis()
+        return _heuristic_subjectivity_analysis(text, sentence_list)
 
     objective_sentences, subjective_sentences = classified
     subjectivity = len(subjective_sentences) / len(sentence_list)

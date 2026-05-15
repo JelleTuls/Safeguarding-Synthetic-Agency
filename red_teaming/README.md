@@ -16,8 +16,14 @@ main backend.
 
 ## Run
 
-Start the normal backend first. In local development, the main frontend can now
-start this service for you through:
+The easiest path is to run the project from the repository root:
+
+```bash
+./start.sh
+```
+
+Start the normal backend first if you are running services manually. In local
+development, the main frontend can start this service for you through:
 
 ```text
 POST http://127.0.0.1:8000/api/red-team/service/start
