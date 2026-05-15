@@ -34,3 +34,7 @@ Use the `Full Stack: Frontend + Backend` debug compound or the `Start Frontend +
 - `backend/app/api/chat.py` serves persona profiles and streams chat responses.
 - `backend/app/` contains the API, biography generation, profile caching, provider configuration, data files, rate limits, and the guardrailed pipeline.
 - `frontend/src/` contains the lightweight chat-only React interface.
+
+## Documentation
+
+- [SSA Guardrail Flow](docs/README.md) shows the simplified thesis-facing flow from user message to final validated response.

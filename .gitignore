@@ -19,3 +19,7 @@ frontend/build/
 # large local classifier assets
 services/subjectivity_classifier/model/*
 !services/subjectivity_classifier/model/.gitkeep
+
+# red-team run outputs
+red_teaming/data/runs/*.json
+red_teaming/data/reports/*.json

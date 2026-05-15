@@ -7,7 +7,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware#
 
-from app.api import chat_router
+from app.api import chat_router, red_team_router
 from app.logging import get_logger
 from app.rate_limits import reset_ip_request_limits
 
@@ -67,3 +67,4 @@ app.add_middleware(
 
 
 app.include_router(chat_router, prefix="/api")
+app.include_router(red_team_router, prefix="/api")

@@ -1,0 +1,270 @@
+import { useMemo, useState } from 'react';
+
+import './redTeamPanel.css';
+
+function formatScore(value) {
+  if (value === undefined || value === null || Number.isNaN(Number(value))) {
+    return '0%';
+  }
+  return `${Math.round(Number(value) * 100)}%`;
+}
+
+function statusLabel(status) {
+  return String(status || 'unknown').replaceAll('_', ' ');
+}
+
+function ReviewCase({ item, onSubmitReview }) {
+  const existing = item.human_review || {};
+  const [score, setScore] = useState(existing.score ?? item.automated_score ?? 0.5);
+  const [notes, setNotes] = useState(existing.notes ?? '');
+  const [saving, setSaving] = useState(false);
+  const numericScore = Number(score);
+  const derivedResult = numericScore >= 0.5 ? 'Pass' : 'Fail';
+
+  async function submit(event) {
+    event.preventDefault();
+    setSaving(true);
+    try {
+      await onSubmitReview(item.case_id, {
+        score: Number(score),
+        notes,
+      });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <article className="red-team-review-case">
+      <div className="red-team-case-heading">
+        <div>
+          <span>{item.method_name}</span>
+          <strong>{item.prompt_id}</strong>
+        </div>
+        <b>{formatScore(item.automated_score)}</b>
+      </div>
+
+      <p className="red-team-prompt">{item.message}</p>
+      <p className="red-team-response">{item.response_text || 'No response text captured.'}</p>
+
+      <div className="red-team-case-meta">
+        <span>{item.attack_family}</span>
+        <span>{item.interaction_mode}</span>
+        <span>{item.target_guardrail}</span>
+      </div>
+
+      {Array.isArray(item.automated_reasons) && item.automated_reasons.length > 0 && (
+        <ul className="red-team-reasons">
+          {item.automated_reasons.map((reason) => (
+            <li key={reason}>{reason}</li>
+          ))}
+        </ul>
+      )}
+
+      <form className="red-team-review-form" onSubmit={submit}>
+        <label>
+          Score
+          <input
+            max="1"
+            min="0"
+            step="0.05"
+            type="number"
+            value={score}
+            onChange={(event) => setScore(event.target.value)}
+          />
+        </label>
+        <div className={`red-team-derived-result ${derivedResult === 'Pass' ? 'is-pass' : 'is-fail'}`}>
+          <span>Derived result</span>
+          <strong>{derivedResult}</strong>
+        </div>
+        <label className="red-team-notes">
+          Notes
+          <textarea value={notes} onChange={(event) => setNotes(event.target.value)} />
+        </label>
+        <button type="submit" disabled={saving}>
+          {saving ? 'Saving...' : existing.score !== undefined ? 'Update review' : 'Save review'}
+        </button>
+      </form>
+    </article>
+  );
+}
+
+function RedTeamPanel({
+  run,
+  reviewItems,
+  error,
+  onCancel,
+  onClose,
+  onRefresh,
+  onSaveFinalResults,
+  onSubmitReview,
+}) {
+  const [finalizeError, setFinalizeError] = useState(null);
+  const [finalizing, setFinalizing] = useState(false);
+  const status = run?.status || 'starting';
+  const isRunning = ['starting', 'created', 'running', 'cancelling'].includes(status);
+  const progress = run?.progress || {};
+  const scores = run?.final_scores || {};
+  const methodScores = scores.method_scores || {};
+  const completed = progress.completed_cases || 0;
+  const total = progress.total_cases || 60;
+  const progressRatio = total ? Math.min(1, completed / total) : 0;
+  const reviewCount = reviewItems?.length || 0;
+  const finalReport = run?.final_report || null;
+  const canFinalize = !isRunning && (scores.pending_human_reviews ?? 0) === 0 && status === 'completed';
+
+  const sortedReviewItems = useMemo(() => {
+    return [...(reviewItems || [])].sort((left, right) => {
+      if (left.method === right.method) {
+        return String(left.prompt_id).localeCompare(String(right.prompt_id));
+      }
+      return String(left.method).localeCompare(String(right.method));
+    });
+  }, [reviewItems]);
+
+  const groupedReviewItems = useMemo(() => {
+    return sortedReviewItems.reduce((groups, item) => {
+      const key = item.method || 'Other';
+      if (!groups[key]) {
+        groups[key] = {
+          method: key,
+          methodName: item.method_name || key,
+          items: [],
+        };
+      }
+      groups[key].items.push(item);
+      return groups;
+    }, {});
+  }, [sortedReviewItems]);
+
+  if (isRunning) {
+    return (
+      <div className="red-team-overlay" role="dialog" aria-modal="true">
+        <section className="red-team-progress-card">
+          <div className="red-team-progress-topline">
+            <span>{statusLabel(status)}</span>
+            <strong>{completed}/{total}</strong>
+          </div>
+          <h2>Red-teaming in progress</h2>
+          <p>{progress.current_step || 'Preparing run...'}</p>
+          <div className="red-team-progress-bar" aria-label="Red-team progress">
+            <span style={{ width: `${progressRatio * 100}%` }} />
+          </div>
+          {progress.current_method_name && (
+            <div className="red-team-current-step">
+              <b>{progress.current_method_name}</b>
+              <span>{progress.current_prompt_id}</span>
+              <p>{progress.current_message}</p>
+            </div>
+          )}
+          {error && <p className="red-team-error">{error}</p>}
+          <div className="red-team-progress-actions">
+            <button type="button" onClick={onRefresh}>Refresh</button>
+            <button type="button" className="red-team-cancel" onClick={onCancel}>
+              Cancel run
+            </button>
+          </div>
+        </section>
+      </div>
+    );
+  }
+
+  return (
+    <div className="red-team-overlay" role="dialog" aria-modal="true">
+      <section className="red-team-results-panel">
+        <header className="red-team-results-header">
+          <div>
+            <span>Red-team evaluation</span>
+            <h2>{statusLabel(status)}</h2>
+          </div>
+          <button type="button" onClick={onClose} aria-label="Close red-team results">x</button>
+        </header>
+
+        {error && <p className="red-team-error">{error}</p>}
+        {finalizeError && <p className="red-team-error">{finalizeError}</p>}
+
+        <div className="red-team-summary-grid">
+          <div>
+            <span>Overall score</span>
+            <strong>{formatScore(scores.overall_score)}</strong>
+          </div>
+          <div>
+            <span>Pending human review</span>
+            <strong>{scores.pending_human_reviews ?? 0}</strong>
+          </div>
+          <div>
+            <span>Completed review</span>
+            <strong>{scores.completed_human_reviews ?? 0}</strong>
+          </div>
+          <div>
+            <span>Profile tested</span>
+            <strong>{run?.profile?.label || 'Random profile'}</strong>
+          </div>
+          <div>
+            <span>Target mode</span>
+            <strong>{run?.target_mode === 'lightweight_no_guardrails' ? 'No guardrails' : 'Guardrailed'}</strong>
+          </div>
+        </div>
+
+        <div className="red-team-method-scores">
+          {Object.entries(methodScores).map(([method, value]) => (
+            <div key={method}>
+              <span>{method}</span>
+              <b>{formatScore(value)}</b>
+            </div>
+          ))}
+        </div>
+
+        <div className="red-team-final-actions">
+          <button
+            type="button"
+            disabled={!canFinalize || finalizing}
+            onClick={async () => {
+              setFinalizeError(null);
+              setFinalizing(true);
+              try {
+                await onSaveFinalResults();
+              } catch (err) {
+                setFinalizeError(err.message);
+              } finally {
+                setFinalizing(false);
+              }
+            }}
+          >
+            {finalizing ? 'Saving final results...' : finalReport ? 'Re-save final results' : 'Save final results'}
+          </button>
+          {finalReport?.download_url && (
+            <a href={`${process.env.REACT_APP_RED_TEAM_API_URL || 'http://127.0.0.1:8010'}${finalReport.download_url}`}>
+              Download JSON report
+            </a>
+          )}
+          {!canFinalize && status === 'completed' && (
+            <span>Complete all pending human reviews before saving the final report.</span>
+          )}
+        </div>
+
+        <div className="red-team-review-header">
+          <h3>Human mediation</h3>
+          <button type="button" onClick={onRefresh}>Refresh results</button>
+        </div>
+
+        {reviewCount === 0 ? (
+          <p className="red-team-empty">No human review items were flagged for this run.</p>
+        ) : (
+          <div className="red-team-review-list">
+            {Object.values(groupedReviewItems).map((group) => (
+              <section className="red-team-layer-group" key={group.method}>
+                <h4>{group.methodName}</h4>
+                {group.items.map((item) => (
+                  <ReviewCase key={item.case_id} item={item} onSubmitReview={onSubmitReview} />
+                ))}
+              </section>
+            ))}
+          </div>
+        )}
+      </section>
+    </div>
+  );
+}
+
+export default RedTeamPanel;

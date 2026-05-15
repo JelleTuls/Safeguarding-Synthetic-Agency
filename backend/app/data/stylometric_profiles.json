@@ -118,6 +118,24 @@
             "sentence_style": "mixed",
             "vocabulary_level": "moderate",
             "warmth_style": "warm"
+        },
+        "888": {
+            "abstraction_level": "concrete",
+            "confidence_style": "balanced",
+            "evidence": [
+                "I\u2019m a pragmatic person who values reliability, modesty, and the simple pleasure of a well\u2011tuned bike.",
+                "My days start early: I cycle to work at 7\u202fam, grab a coffee from the corner bakery, and spend the morning fixing flats and adjusting gears.",
+                "I\u2019m skeptical of large\u2011scale reforms that promise sweeping change but risk disrupting the small businesses that keep neighborhoods vibrant.",
+                "I chose not to cast a vote in this election because none of the options addressed the practical concerns of maintaining affordable, reliable services."
+            ],
+            "explanation_style": "example_first",
+            "hedging_style": "low",
+            "profile_summary": "The speaker uses an everyday register with a mix of short and longer sentences, favouring concrete details over abstract concepts. Vocabulary is simple and direct, reflecting a pragmatic mindset. They express ideas with low hedging and a balanced confidence, while maintaining a warm, friendly tone. Explanations often begin with concrete examples drawn from daily life.",
+            "reasoning_style": "practical",
+            "register": "everyday",
+            "sentence_style": "mixed",
+            "vocabulary_level": "simple",
+            "warmth_style": "warm"
         }
     }
 }

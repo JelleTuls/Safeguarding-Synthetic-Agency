@@ -44,6 +44,68 @@
   max-width: 760px;
 }
 
+.redTeamKickoff {
+  background: #25d366;
+  border: 0;
+  border-radius: 10px;
+  box-shadow: 0 12px 24px rgba(37, 211, 102, 0.22);
+  color: #ffffff;
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  margin-top: 18px;
+  padding: 11px 15px;
+}
+
+.redTeamKickoff:hover {
+  background: #1fb45a;
+}
+
+.redTeamKickoff:disabled {
+  background: #98a2b3;
+  box-shadow: none;
+  cursor: default;
+}
+
+.redTeamControls {
+  display: grid;
+  gap: 12px;
+  margin-top: 18px;
+  max-width: 920px;
+}
+
+.redTeamMethodControls,
+.redTeamModeControls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.redTeamMethodControls label,
+.redTeamModeControls label {
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid #dbe3ec;
+  border-radius: 999px;
+  color: #334155;
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 12px;
+  gap: 7px;
+  line-height: 1.2;
+  padding: 8px 10px;
+}
+
+.redTeamMethodControls input,
+.redTeamModeControls input {
+  accent-color: #25d366;
+  margin: 0;
+}
+
+.redTeamModeControls label {
+  background: #f8fafc;
+}
+
 .statusText {
   color: #53657a;
   font-size: 14px;

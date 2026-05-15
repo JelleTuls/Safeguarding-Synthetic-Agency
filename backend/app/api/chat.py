@@ -8,6 +8,7 @@ from pydantic import BaseModel
 
 from app.services.chat_flow import (
     generate_chat_response,
+    generate_lightweight_chat_response,
     handle_chat_command,
     resolve_biography,
 )
@@ -25,6 +26,7 @@ class ChatMessageRequest(BaseModel):
     persona_country: str
     chat_history: list
     client_session_id: str | None = None
+    disable_guardrails: bool = False
 
 
 @router.get("/chat/personas")
@@ -62,14 +64,27 @@ async def stream_chat_message(request: Request, request_body: ChatMessageRequest
 
     def stream_generator():
         try:
-            for chunk in generate_chat_response(
-                persona_biography=biography,
-                user_message=request_body.message,
-                chat_history=request_body.chat_history,
-                persona_details=persona_details,
-                persona_country=persona_country,
-                client_id=request_lock_key,
-            ):
+            red_team_bypass = (
+                request_body.disable_guardrails
+                and request.headers.get("x-red-team-mode") == "true"
+            )
+            if red_team_bypass:
+                chunks = generate_lightweight_chat_response(
+                    persona_biography=biography,
+                    user_message=request_body.message,
+                    chat_history=request_body.chat_history,
+                )
+            else:
+                chunks = generate_chat_response(
+                    persona_biography=biography,
+                    user_message=request_body.message,
+                    chat_history=request_body.chat_history,
+                    persona_details=persona_details,
+                    persona_country=persona_country,
+                    client_id=request_lock_key,
+                )
+
+            for chunk in chunks:
                 if isinstance(chunk, dict):
                     event = chunk.get("event", "message")
                     payload = {key: value for key, value in chunk.items() if key != "event"}

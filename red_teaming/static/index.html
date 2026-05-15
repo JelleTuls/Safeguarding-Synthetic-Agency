@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SSA Red Teaming Review</title>
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+  <main>
+    <header>
+      <div>
+        <p class="eyebrow">Standalone evaluation service</p>
+        <h1>SSA Red Teaming Review</h1>
+      </div>
+      <button id="refresh-runs">Refresh</button>
+    </header>
+
+    <section class="panel controls">
+      <label>
+        Backend URL
+        <input id="backend-url" value="http://127.0.0.1:8000" />
+      </label>
+      <label>
+        Country
+        <input id="country" value="netherlands" />
+      </label>
+      <label>
+        Seed
+        <input id="seed" type="number" placeholder="optional" />
+      </label>
+      <fieldset>
+        <legend>Methods</legend>
+        <label><input class="method-option" type="checkbox" value="PBAR" checked /> PBAR</label>
+        <label><input class="method-option" type="checkbox" value="TBAR" checked /> TBAR</label>
+        <label><input class="method-option" type="checkbox" value="EB" checked /> EB</label>
+        <label><input class="method-option" type="checkbox" value="SFAM" checked /> SFAM</label>
+        <label><input class="method-option" type="checkbox" value="SC" checked /> SC</label>
+        <label><input class="method-option" type="checkbox" value="PG" checked /> PG</label>
+      </fieldset>
+      <fieldset>
+        <legend>Target mode</legend>
+        <label><input name="target-mode" type="radio" value="guardrailed" checked /> Guardrailed</label>
+        <label><input name="target-mode" type="radio" value="lightweight_no_guardrails" /> Lightweight, no guardrails</label>
+      </fieldset>
+      <button id="start-run">Start red-team run</button>
+    </section>
+
+    <section class="layout">
+      <aside class="panel">
+        <h2>Runs</h2>
+        <div id="runs"></div>
+      </aside>
+
+      <section class="panel">
+        <div id="run-detail" class="empty">Select or start a run.</div>
+      </section>
+    </section>
+  </main>
+  <script src="/static/app.js"></script>
+</body>
+</html>
