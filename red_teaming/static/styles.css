@@ -238,6 +238,46 @@ button.secondary {
   display: none;
 }
 
+.expected-answer {
+  background: #ffffff;
+  border: 1px solid #dce5e3;
+  border-radius: 8px;
+  color: #526160;
+  font-size: 12px;
+  line-height: 1.45;
+  max-height: 150px;
+  overflow: auto;
+  overflow-wrap: anywhere;
+  padding: 9px;
+  white-space: normal;
+  word-break: break-word;
+}
+
+.llm-grade {
+  background: #ffffff;
+  border: 1px solid #dce5e3;
+  border-radius: 8px;
+  color: #526160;
+  font-size: 12px;
+  line-height: 1.45;
+  margin: 8px 0;
+  max-height: 170px;
+  overflow: auto;
+  overflow-wrap: anywhere;
+  padding: 9px;
+  white-space: normal;
+}
+
+.llm-grade.unavailable {
+  background: #fff8f2;
+  border-color: #eed2b0;
+}
+
+.llm-grade ul {
+  margin: 6px 0 0;
+  padding-left: 18px;
+}
+
 .review-form {
   display: grid;
   gap: 8px;

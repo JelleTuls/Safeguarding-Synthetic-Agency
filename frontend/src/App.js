@@ -15,6 +15,48 @@ const redTeamMethods = [
   ['PG', 'Persuasive Governance'],
 ];
 
+function recomputeRedTeamScores(cases = []) {
+  const methods = {};
+  let pending = 0;
+  let reviewed = 0;
+
+  cases.forEach((caseItem) => {
+    const review = caseItem.human_review || null;
+    if (caseItem.needs_human_review && !review) {
+      pending += 1;
+    }
+    if (review) {
+      reviewed += 1;
+    }
+    const score = Number(review?.score ?? caseItem.automated_score ?? 0);
+    if (!methods[caseItem.method]) {
+      methods[caseItem.method] = [];
+    }
+    methods[caseItem.method].push(score);
+  });
+
+  const methodScores = Object.fromEntries(
+    Object.entries(methods)
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([method, values]) => [
+        method,
+        values.length ? Number((values.reduce((sum, value) => sum + value, 0) / values.length).toFixed(3)) : 0,
+      ])
+  );
+  const values = Object.values(methodScores);
+  const overallScore = values.length
+    ? Number((values.reduce((sum, value) => sum + value, 0) / values.length).toFixed(3))
+    : 0;
+
+  return {
+    overall_score: overallScore,
+    method_scores: methodScores,
+    pending_human_reviews: pending,
+    completed_human_reviews: reviewed,
+    is_final: pending === 0,
+  };
+}
+
 function App() {
   const [personas, setPersonas] = useState([]);
   const [activePersona, setActivePersona] = useState(null);
@@ -181,20 +223,44 @@ function App() {
     }
   }
 
-  async function submitHumanReview(caseId, review) {
+  const submitHumanReview = useCallback(async (caseId, review) => {
     if (!redTeamRun?.run_id) {
       return;
     }
-    const response = await fetch(`${redTeamApiUrl}/api/runs/${redTeamRun.run_id}/review-items/${caseId}`, {
+    const runId = redTeamRun.run_id;
+    const boundedReview = {
+      ...review,
+      score: Math.max(0, Math.min(1, Number(review.score))),
+    };
+    setRedTeamReviewItems((current) => current.map((item) => (
+      item.case_id === caseId
+        ? { ...item, human_review: { score: boundedReview.score, passed: boundedReview.score >= 0.5, notes: boundedReview.notes || '' } }
+        : item
+    )));
+    setRedTeamRun((current) => {
+      if (!current?.cases) {
+        return current;
+      }
+      const updatedCases = current.cases.map((item) => (
+        item.case_id === caseId
+          ? { ...item, human_review: { score: boundedReview.score, passed: boundedReview.score >= 0.5, notes: boundedReview.notes || '' } }
+          : item
+      ));
+      return {
+        ...current,
+        cases: updatedCases,
+        final_scores: recomputeRedTeamScores(updatedCases),
+      };
+    });
+    const response = await fetch(`${redTeamApiUrl}/api/runs/${runId}/review-items/${caseId}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(review),
+      body: JSON.stringify(boundedReview),
     });
     if (!response.ok) {
       throw new Error(`Could not save human review: ${response.status}`);
     }
-    await loadRedTeamRun(redTeamRun.run_id);
-  }
+  }, [redTeamRun?.run_id]);
 
   async function finalizeRedTeamRun() {
     if (!redTeamRun?.run_id) {

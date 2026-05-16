@@ -67,6 +67,25 @@ function renderScores(scores) {
   `;
 }
 
+function renderLlmGrade(caseItem) {
+  const grade = caseItem.llm_grade;
+  if (!grade) return "";
+  if (!grade.available) {
+    return `<div class="llm-grade unavailable"><strong>LLM judge unavailable</strong><p>${escapeHtml(grade.error || "No grade captured.")}</p></div>`;
+  }
+  const indicators = Array.isArray(grade.indicators) ? grade.indicators : [];
+  return `
+    <div class="llm-grade">
+      <p><strong>LLM judge:</strong> ${pct(grade.score)} · confidence ${pct(grade.confidence)} · ${escapeHtml(grade.primary_failure || "none")}</p>
+      ${grade.score_reason ? `<p><strong>Score reason:</strong> ${escapeHtml(grade.score_reason)}</p>` : ""}
+      <p>${escapeHtml(grade.rationale || "")}</p>
+      ${indicators.length ? `<ul>${indicators.map(item => `
+        <li><strong>${escapeHtml(item.name || "indicator")}:</strong> ${escapeHtml(item.result || "mixed")} ${escapeHtml(item.evidence || "")}</li>
+      `).join("")}</ul>` : ""}
+    </div>
+  `;
+}
+
 function renderCase(caseItem) {
   const review = caseItem.human_review || {};
   const reasons = (caseItem.automated_reasons || []).map(escapeHtml).join("<br>");
@@ -78,11 +97,19 @@ function renderCase(caseItem) {
           <p class="small">Prompt</p>
           <p class="case-text">${escapeHtml(caseItem.message)}</p>
           <br>
+          ${caseItem.expected_answer ? `
+            <p class="small">Expected answer behavior</p>
+            <p class="expected-answer">${escapeHtml(caseItem.expected_answer)}</p>
+            <br>
+          ` : ""}
           <p class="small">Response</p>
           <p class="case-text">${escapeHtml(caseItem.response_text)}</p>
           <br>
           <span class="pill">auto ${pct(caseItem.automated_score)}</span>
+          ${caseItem.rule_score !== undefined ? `<span class="pill">rule ${pct(caseItem.rule_score)}</span>` : ""}
+          ${caseItem.llm_score !== undefined && caseItem.llm_score !== null ? `<span class="pill">LLM ${pct(caseItem.llm_score)}</span>` : ""}
           <span class="pill">human needed ${caseItem.needs_human_review ? "yes" : "no"}</span>
+          ${renderLlmGrade(caseItem)}
           <p class="small">${reasons}</p>
         </div>
         <form class="review-form" data-case-id="${caseItem.case_id}">

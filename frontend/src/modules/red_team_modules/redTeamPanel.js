@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import './redTeamPanel.css';
 
@@ -13,79 +13,170 @@ function statusLabel(status) {
   return String(status || 'unknown').replaceAll('_', ' ');
 }
 
+function renderJudgeResult(llmGrade) {
+  if (!llmGrade) {
+    return null;
+  }
+  if (!llmGrade.available) {
+    return (
+      <div className="red-team-llm-grade is-unavailable">
+        <strong>LLM judge unavailable</strong>
+        <p>{llmGrade.error || 'No LLM grading result was captured.'}</p>
+      </div>
+    );
+  }
+  return (
+    <div className="red-team-llm-grade">
+      <div className="red-team-llm-grade-header">
+        <strong>LLM judge</strong>
+        <span>{formatScore(llmGrade.score)}</span>
+        <span>confidence {formatScore(llmGrade.confidence)}</span>
+      </div>
+      {llmGrade.score_reason && (
+        <p>
+          <b>Score reason:</b> {llmGrade.score_reason}
+        </p>
+      )}
+      {llmGrade.rationale && <p>{llmGrade.rationale}</p>}
+      {Array.isArray(llmGrade.indicators) && llmGrade.indicators.length > 0 && (
+        <ul>
+          {llmGrade.indicators.map((indicator, index) => (
+            <li key={`${indicator.name || 'indicator'}-${index}`}>
+              <b>{indicator.name || 'indicator'}:</b> {indicator.result || 'mixed'}
+              {indicator.evidence ? ` - ${indicator.evidence}` : ''}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 function ReviewCase({ item, onSubmitReview }) {
   const existing = item.human_review || {};
   const [score, setScore] = useState(existing.score ?? item.automated_score ?? 0.5);
   const [notes, setNotes] = useState(existing.notes ?? '');
-  const [saving, setSaving] = useState(false);
+  const [saveState, setSaveState] = useState('idle');
+  const didMount = useRef(false);
   const numericScore = Number(score);
   const derivedResult = numericScore >= 0.5 ? 'Pass' : 'Fail';
 
-  async function submit(event) {
-    event.preventDefault();
-    setSaving(true);
-    try {
-      await onSubmitReview(item.case_id, {
-        score: Number(score),
-        notes,
-      });
-    } finally {
-      setSaving(false);
+  function updateScore(value) {
+    const numericValue = Number(value);
+    if (Number.isNaN(numericValue)) {
+      setScore(0);
+      return;
     }
+    setScore(Math.max(0, Math.min(1, numericValue)));
   }
 
+  useEffect(() => {
+    if (!didMount.current) {
+      didMount.current = true;
+      return undefined;
+    }
+
+    const timeoutId = window.setTimeout(async () => {
+      setSaveState('saving');
+      try {
+        await onSubmitReview(item.case_id, {
+          score: Math.max(0, Math.min(1, Number(score))),
+          notes,
+        });
+        setSaveState('saved');
+      } catch {
+        setSaveState('error');
+      }
+    }, 350);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [item.case_id, notes, onSubmitReview, score]);
+
   return (
-    <article className="red-team-review-case">
-      <div className="red-team-case-heading">
-        <div>
+    <details className="red-team-review-case">
+      <summary className="red-team-case-summary">
+        <span className={`red-team-live-score ${derivedResult === 'Pass' ? 'is-pass' : 'is-fail'}`}>
+          {formatScore(numericScore)}
+        </span>
+        <span className="red-team-summary-copy">
           <span>{item.method_name}</span>
           <strong>{item.prompt_id}</strong>
+          <p>{item.message}</p>
+        </span>
+        <span className="red-team-foldout-cue">Open</span>
+      </summary>
+
+      <div className="red-team-case-body">
+        <div className="red-team-case-heading">
+          <div>
+            <span>{item.method_name}</span>
+            <strong>{item.prompt_id}</strong>
+          </div>
+          <b>auto {formatScore(item.automated_score)}</b>
         </div>
-        <b>{formatScore(item.automated_score)}</b>
-      </div>
 
-      <p className="red-team-prompt">{item.message}</p>
-      <p className="red-team-response">{item.response_text || 'No response text captured.'}</p>
+        {(item.rule_score !== undefined || item.llm_score !== undefined) && (
+          <div className="red-team-score-breakdown">
+            {item.rule_score !== undefined && <span>rule {formatScore(item.rule_score)}</span>}
+            {item.llm_score !== undefined && item.llm_score !== null && <span>LLM {formatScore(item.llm_score)}</span>}
+            {item.score_source && <span>{String(item.score_source).replaceAll('_', ' ')}</span>}
+          </div>
+        )}
 
-      <div className="red-team-case-meta">
-        <span>{item.attack_family}</span>
-        <span>{item.interaction_mode}</span>
-        <span>{item.target_guardrail}</span>
-      </div>
+        <p className="red-team-prompt">{item.message}</p>
+        {item.expected_answer && (
+          <div className="red-team-expected-answer">
+            <strong>Expected answer behavior</strong>
+            <p>{item.expected_answer}</p>
+          </div>
+        )}
+        <p className="red-team-response">{item.response_text || 'No response text captured.'}</p>
 
-      {Array.isArray(item.automated_reasons) && item.automated_reasons.length > 0 && (
-        <ul className="red-team-reasons">
-          {item.automated_reasons.map((reason) => (
-            <li key={reason}>{reason}</li>
-          ))}
-        </ul>
-      )}
+        {renderJudgeResult(item.llm_grade)}
 
-      <form className="red-team-review-form" onSubmit={submit}>
-        <label>
-          Score
-          <input
-            max="1"
-            min="0"
-            step="0.05"
-            type="number"
-            value={score}
-            onChange={(event) => setScore(event.target.value)}
-          />
-        </label>
-        <div className={`red-team-derived-result ${derivedResult === 'Pass' ? 'is-pass' : 'is-fail'}`}>
-          <span>Derived result</span>
-          <strong>{derivedResult}</strong>
+        <div className="red-team-case-meta">
+          <span>{item.attack_family}</span>
+          <span>{item.interaction_mode}</span>
+          <span>{item.target_guardrail}</span>
         </div>
-        <label className="red-team-notes">
-          Notes
-          <textarea value={notes} onChange={(event) => setNotes(event.target.value)} />
-        </label>
-        <button type="submit" disabled={saving}>
-          {saving ? 'Saving...' : existing.score !== undefined ? 'Update review' : 'Save review'}
-        </button>
-      </form>
-    </article>
+
+        {Array.isArray(item.automated_reasons) && item.automated_reasons.length > 0 && (
+          <ul className="red-team-reasons">
+            {item.automated_reasons.map((reason) => (
+              <li key={reason}>{reason}</li>
+            ))}
+          </ul>
+        )}
+
+        <div className="red-team-review-form">
+          <label>
+            Score
+            <input
+              max="1"
+              min="0"
+              step="0.05"
+              type="number"
+              value={score}
+              onChange={(event) => updateScore(event.target.value)}
+            />
+          </label>
+          <div className={`red-team-derived-result ${derivedResult === 'Pass' ? 'is-pass' : 'is-fail'}`}>
+            <span>Derived result</span>
+            <strong>{derivedResult}</strong>
+          </div>
+          <label className="red-team-notes">
+            Notes
+            <textarea value={notes} onChange={(event) => setNotes(event.target.value)} />
+          </label>
+          <div className={`red-team-autosave-state is-${saveState}`}>
+            {saveState === 'saving' && 'Saving'}
+            {saveState === 'saved' && 'Saved'}
+            {saveState === 'error' && 'Save failed'}
+            {saveState === 'idle' && 'Auto-save'}
+          </div>
+        </div>
+      </div>
+    </details>
   );
 }
 

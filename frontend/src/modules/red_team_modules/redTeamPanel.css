@@ -278,10 +278,108 @@
 }
 
 .red-team-review-case {
+  background: #ffffff;
   border: 1px solid #e4e9ef;
-  border-radius: 14px;
+  border-radius: 10px;
   min-width: 0;
   overflow: hidden;
+}
+
+.red-team-case-summary {
+  align-items: center;
+  cursor: pointer;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 62px minmax(0, 1fr) auto;
+  list-style: none;
+  min-width: 0;
+  padding: 10px 12px;
+}
+
+.red-team-case-summary::-webkit-details-marker {
+  display: none;
+}
+
+.red-team-review-case[open] .red-team-case-summary {
+  border-bottom: 1px solid #e4e9ef;
+}
+
+.red-team-live-score {
+  align-items: center;
+  align-self: stretch;
+  background: #eef2f6;
+  border-radius: 8px;
+  color: #526171;
+  display: inline-flex;
+  font-size: 13px;
+  font-weight: 750;
+  justify-content: center;
+  min-height: 42px;
+  padding: 6px;
+}
+
+.red-team-live-score.is-pass {
+  background: #eaf7ee;
+  color: #157347;
+}
+
+.red-team-live-score.is-fail {
+  background: #fff1f0;
+  color: #b42318;
+}
+
+.red-team-summary-copy {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.red-team-summary-copy span {
+  color: #667085;
+  font-size: 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.red-team-summary-copy strong {
+  color: #17202a;
+  font-size: 13px;
+}
+
+.red-team-summary-copy p {
+  color: #334155;
+  font-size: 13px;
+  line-height: 1.35;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.red-team-foldout-cue {
+  color: #667085;
+  font-size: 12px;
+}
+
+.red-team-review-case[open] .red-team-foldout-cue {
+  color: #17202a;
+}
+
+.red-team-review-case[open] .red-team-foldout-cue::before {
+  content: "Close";
+}
+
+.red-team-review-case[open] .red-team-foldout-cue {
+  font-size: 0;
+}
+
+.red-team-review-case[open] .red-team-foldout-cue::before {
+  font-size: 12px;
+}
+
+.red-team-case-body {
   padding: 14px;
 }
 
@@ -317,6 +415,31 @@
   color: #16331f;
 }
 
+.red-team-expected-answer {
+  background: #f8fafc;
+  border: 1px solid #e4e9ef;
+  border-radius: 8px;
+  color: #526171;
+  font-size: 12px;
+  line-height: 1.5;
+  margin-top: 8px;
+  max-height: 130px;
+  overflow: auto;
+  overflow-wrap: anywhere;
+  padding: 9px 10px;
+  white-space: normal;
+}
+
+.red-team-expected-answer strong {
+  color: #17202a;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.red-team-expected-answer p {
+  margin: 0;
+}
+
 .red-team-response {
   background: #f7f8fa;
   color: #334155;
@@ -340,6 +463,65 @@
   font-size: 11px;
   overflow-wrap: anywhere;
   padding: 5px 8px;
+}
+
+.red-team-score-breakdown {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.red-team-score-breakdown span,
+.red-team-llm-grade-header span {
+  background: #f7f2e8;
+  border-radius: 999px;
+  color: #6f5422;
+  font-size: 11px;
+  overflow-wrap: anywhere;
+  padding: 5px 8px;
+}
+
+.red-team-llm-grade {
+  background: #fbfcfd;
+  border: 1px solid #e4e9ef;
+  border-radius: 8px;
+  color: #526171;
+  font-size: 12px;
+  line-height: 1.5;
+  margin-top: 10px;
+  max-height: 180px;
+  overflow: auto;
+  overflow-wrap: anywhere;
+  padding: 10px;
+  white-space: normal;
+}
+
+.red-team-llm-grade.is-unavailable {
+  background: #fff8f2;
+  border-color: #f1d4b6;
+}
+
+.red-team-llm-grade-header {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.red-team-llm-grade-header strong {
+  color: #17202a;
+  margin-right: 4px;
+}
+
+.red-team-llm-grade p,
+.red-team-llm-grade ul {
+  margin: 6px 0 0;
+}
+
+.red-team-llm-grade ul {
+  padding-left: 18px;
 }
 
 .red-team-reasons {
@@ -383,6 +565,35 @@
   resize: vertical;
 }
 
+.red-team-autosave-state {
+  align-items: center;
+  background: #eef2f6;
+  border-radius: 8px;
+  color: #526171;
+  display: inline-flex;
+  font-size: 12px;
+  font-weight: 650;
+  justify-content: center;
+  min-height: 38px;
+  padding: 9px 10px;
+  white-space: nowrap;
+}
+
+.red-team-autosave-state.is-saved {
+  background: #eaf7ee;
+  color: #157347;
+}
+
+.red-team-autosave-state.is-error {
+  background: #fff1f0;
+  color: #b42318;
+}
+
+.red-team-autosave-state.is-saving {
+  background: #fff8e6;
+  color: #8a5a00;
+}
+
 .red-team-derived-result {
   background: #f8fafc;
   border: 1px solid #e4e9ef;
@@ -409,16 +620,6 @@
 
 .red-team-derived-result.is-pass strong {
   color: #087762;
-}
-
-.red-team-review-form button {
-  background: #25d366;
-  color: #ffffff;
-}
-
-.red-team-review-form button:disabled {
-  cursor: default;
-  opacity: 0.65;
 }
 
 .red-team-error {

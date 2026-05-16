@@ -38,6 +38,19 @@
             "vocabulary_level": "moderate",
             "warmth_style": "warm"
         },
+        "11": {
+            "abstraction_level": "mixed",
+            "confidence_style": "balanced",
+            "evidence": [],
+            "explanation_style": "balanced",
+            "hedging_style": "medium",
+            "profile_summary": "The persona speaks in an everyday, grounded way with a balance of warmth and practical explanation.",
+            "reasoning_style": "blended",
+            "register": "everyday",
+            "sentence_style": "mixed",
+            "vocabulary_level": "moderate",
+            "warmth_style": "warm"
+        },
         "2": {
             "abstraction_level": "mixed",
             "confidence_style": "balanced",

@@ -54,12 +54,38 @@ http://127.0.0.1:8010
    - SC: stylometric consistency
    - PG: persuasive governance
 4. Parse streamed backend events, including per-message analysis metadata.
-5. Compute preliminary automated scores.
-6. Flag ambiguous cases for human review.
-7. Let the reviewer assign a numeric score and notes. Pass/fail is derived from
+5. Compute deterministic rule-based scores from the available guardrail metadata.
+6. Ask a grading LLM to judge the same prompt, profile, response, target layer,
+   expected behavior, and guardrail signals when available.
+7. Blend the rule score and LLM judge score into the first automated score shown
+   to the human mediator. If the LLM judge is unavailable, the deterministic
+   score is still used and the missing judge is recorded in the case reasons.
+8. Flag ambiguous cases for human review, including cases where the rule score
+   and LLM judge score diverge.
+9. Let the reviewer assign a numeric score and notes. Pass/fail is derived from
    the score (`score >= 0.5` means pass).
-8. Produce final method-level and overall quantitative scores.
-9. Save a stable final JSON report after human mediation is complete.
+10. Produce final method-level and overall quantitative scores.
+11. Save a stable final JSON report after human mediation is complete.
+
+## Editing prompts and expected answers
+
+The red-team prompt script is intentionally kept in one easy-to-edit file:
+
+```text
+red_teaming/prompt_script.py
+```
+
+Each prompt row contains:
+
+- `message`: the exact user message fired at the SSA.
+- `expected_answer`: the expected answer behavior for that prompt.
+
+Because every run selects a random profile, `expected_answer` should stay
+profile-neutral. It should describe the expected style, direction, response
+type, boundary, and intensity, rather than naming a specific persona detail.
+For example, an epistemic-boundary prompt should say that the SSA should answer
+briefly, uncertainly, and without expert authority, not that it should mention a
+specific job, city, or voting preference.
 
 Runs can target either the normal guardrailed backend path or the lightweight
 baseline path. The lightweight baseline keeps the persona prompt but asks the
@@ -82,7 +108,8 @@ a run starts, the page is blurred and a compact progress popup shows the current
 method, prompt id, prompt text, completed cases, and current execution step. The
 popup can request cancellation. After the run completes, the integrated review
 panel shows method scores, grouped layer headers, prompts, model responses,
-automated reasons, and pass/fail plus score controls for the human mediator.
+automated reasons, rule/LLM score breakdowns, LLM judge rationale and indicators,
+and pass/fail plus score controls for the human mediator.
 Once pending human review reaches zero, the reviewer can save the final results
 and download the JSON report.
 

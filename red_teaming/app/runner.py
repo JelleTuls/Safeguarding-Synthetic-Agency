@@ -11,6 +11,7 @@ from uuid import uuid4
 
 import httpx
 
+from .llm_grader import grade_case_with_llm
 from .scoring import recompute_final_scores, score_case
 from .storage import load_run, save_run
 from .test_suites import METHOD_FRAMEWORK, METHOD_NAMES, build_test_prompts
@@ -288,6 +289,7 @@ def execute_run(run: dict[str, Any]) -> None:
                     "prompt_id": test.prompt_id,
                     "message": test.message,
                     "expectation": test.expectation,
+                    "expected_answer": test.expected_answer,
                     "attack_family": test.attack_family,
                     "interaction_mode": test.interaction_mode,
                     "target_guardrail": test.target_guardrail,
@@ -320,6 +322,9 @@ def execute_run(run: dict[str, Any]) -> None:
                         disable_guardrails=not run.get("guardrails_enabled", True),
                     )
                     case.update(result)
+                    run["progress"]["current_step"] = "grading prompt and response with LLM evaluator"
+                    save_run(run)
+                    case["llm_grade"] = grade_case_with_llm(case, profile)
                     case.update(score_case(case))
                     case["status"] = "completed"
                 except Exception as exc:
