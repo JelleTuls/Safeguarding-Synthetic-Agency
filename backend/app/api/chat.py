@@ -37,7 +37,12 @@ def list_chat_personas(background_tasks: BackgroundTasks, country: str = "nether
         personas = get_cached_persona_profiles(country=country, limit=bounded_limit)
         is_complete = len(personas) >= bounded_limit
 
-        if not is_complete:
+        allow_background_generation = os.getenv(
+            "SSA_ALLOW_BACKGROUND_PROFILE_GENERATION",
+            "",
+        ).lower() in {"1", "true", "yes"}
+
+        if not is_complete and allow_background_generation:
             background_tasks.add_task(
                 fill_persona_profiles_in_background,
                 country=country,

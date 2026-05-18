@@ -18,7 +18,7 @@ if [ ! -f "backend/.env" ]; then
   exit 1
 fi
 
-if ! grep -Eq '^(OPENAI_API_KEY|GROQ_API_KEY|GROQ_API_KEY_2|AZURE_OPENAI_API_KEY)=.+$' backend/.env; then
+if ! grep -Eq '^(LLM_API_KEY|OPENAI_API_KEY|GROQ_API_KEY|GROQ_API_KEY_2|AZURE_OPENAI_API_KEY)=.+$' backend/.env; then
   echo "backend/.env does not appear to contain an LLM API key."
   echo "Add one provider key, then run ./start.sh again."
   exit 1
@@ -34,7 +34,7 @@ if [ ! -d "env" ]; then
   "$PYTHON_BIN" -m venv env
 fi
 
-echo "Installing Python dependencies when needed ..."
+echo "Installing Python dependencies from backend/requirements.txt and red_teaming/requirements.txt when needed ..."
 if [ ! -f "env/.ssa_deps_installed" ] || [ "backend/requirements.txt" -nt "env/.ssa_deps_installed" ] || [ "red_teaming/requirements.txt" -nt "env/.ssa_deps_installed" ]; then
   env/bin/python -m pip install --upgrade pip
   env/bin/python -m pip install -r backend/requirements.txt -r red_teaming/requirements.txt

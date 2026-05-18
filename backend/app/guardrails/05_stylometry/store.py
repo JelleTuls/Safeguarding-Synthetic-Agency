@@ -20,6 +20,60 @@ _STYLOMETRIC_PROFILES_CACHE: dict | None = None
 _STYLOMETRIC_PROFILES_LOCK = threading.Lock()
 
 
+def build_base_stylometric_profile(*, persona_details: dict, persona_biography: str = "") -> dict:
+    """Build a deterministic baseline style profile without an LLM call."""
+    education = str(persona_details.get("education") or "").lower()
+    age_group = str(persona_details.get("age_group") or "")
+    municipality = str(persona_details.get("municipality") or "their municipality")
+    vote = str(persona_details.get("vote_2030") or "their political preference")
+
+    higher_education = any(marker in education for marker in ("hbo", "wo", "bachelor", "master"))
+    vocational = any(marker in education for marker in ("mbo", "vmbo"))
+    older = age_group in {"55-65", "65+"}
+    younger = age_group in {"15-25", "25-35"}
+
+    register = "polished" if higher_education or older else "everyday"
+    vocabulary_level = "moderate" if higher_education else "plain"
+    abstraction_level = "mixed" if higher_education else "concrete"
+    sentence_style = "measured" if older else "mixed"
+    confidence_style = "measured" if older else "balanced"
+    hedging_style = "medium"
+    warmth_style = "warm"
+    explanation_style = "example_first" if vocational or not higher_education else "balanced"
+    reasoning_style = "practical"
+
+    evidence = [
+        f"demographic record: {age_group or 'unknown age group'}",
+        f"education record: {persona_details.get('education') or 'unknown education'}",
+        f"municipality record: {municipality}",
+        f"political profile marker: {vote}",
+    ]
+    if persona_biography:
+        first_sentence = persona_biography.replace("\n", " ").split(".")[0].strip()
+        if first_sentence:
+            evidence.append(first_sentence[:180])
+
+    return {
+        "register": register,
+        "sentence_style": sentence_style,
+        "abstraction_level": abstraction_level,
+        "vocabulary_level": vocabulary_level,
+        "hedging_style": hedging_style,
+        "confidence_style": confidence_style,
+        "warmth_style": warmth_style,
+        "explanation_style": explanation_style,
+        "reasoning_style": reasoning_style,
+        "profile_summary": (
+            "Precomputed deterministic base style profile. The persona should speak in a "
+            f"{register}, {warmth_style}, practical way, with {vocabulary_level} vocabulary, "
+            f"{hedging_style} hedging, and a focus on concrete examples from everyday life "
+            f"in or around {municipality}."
+        ),
+        "evidence": evidence,
+        "source": "precomputed_deterministic_base",
+    }
+
+
 def load_stylometric_profiles() -> dict:
     """Load cached stylometric profiles from disk."""
     global _STYLOMETRIC_PROFILES_CACHE
@@ -66,11 +120,17 @@ def get_or_create_stylometric_profile(
         if persona_index in data[country_key]:
             return data[country_key][persona_index]
 
-    profile = generate_stylometric_profile(
-        persona_biography=persona_biography,
-        persona_details=persona_details,
-        persona_country=persona_country,
-    )
+    if os.getenv("SSA_GENERATE_MISSING_STYLOMETRY", "").lower() in {"1", "true", "yes"}:
+        profile = generate_stylometric_profile(
+            persona_biography=persona_biography,
+            persona_details=persona_details,
+            persona_country=persona_country,
+        )
+    else:
+        profile = build_base_stylometric_profile(
+            persona_biography=persona_biography,
+            persona_details=persona_details,
+        )
     with _STYLOMETRIC_PROFILES_LOCK:
         data[country_key][persona_index] = profile
     save_stylometric_profiles(data)

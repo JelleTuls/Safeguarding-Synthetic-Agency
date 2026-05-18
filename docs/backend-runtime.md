@@ -24,12 +24,12 @@ If a stylometric profile is unexpectedly missing, the backend writes a
 deterministic base profile instead of calling the LLM, unless
 `SSA_GENERATE_MISSING_STYLOMETRY=true` is explicitly set.
 
-The older lightweight branch has been removed. The current route always uses:
+The normal user-facing chat route uses:
 
 ```text
 Frontend
   -> /api/chat/personas
-       returns the saved 30-persona profile set, generating missing biographies
+       returns the saved 30-persona profile set from cache
 
   -> /api/chat/chat_message
        resolves biography
@@ -37,6 +37,10 @@ Frontend
        runs app.guardrails.engine
        streams the guarded answer
 ```
+
+The red-teaming baseline can explicitly request a lightweight no-guardrail path
+with the `X-Red-Team-Mode: true` header. That baseline still uses the selected
+persona biography, but skips the guardrail pipeline for comparison.
 
 ## Main Files
 
@@ -51,30 +55,37 @@ Frontend
 
 ## Provider Config
 
-Dynamic primary model with optional Groq fallbacks:
+The backend accepts a single OpenAI-compatible endpoint, API key, and model. No
+Groq fallback is required.
+
+Recommended generic setup:
 
 ```env
-LLM_PROVIDER="auto"
-LLM_API_KEY="primary_api_key"
-LLM_MODEL="model_name"
-LLM_BASE_URL="https://provider.example/v1"
+LLM_PROVIDER="custom"
+LLM_API_KEY="your_api_key"
+LLM_MODEL="your_model_name"
+LLM_BASE_URL="https://your-provider.example/v1"
+```
 
-GROQ_API_KEY="first_groq_fallback"
-GROQ_API_KEY_2="second_groq_fallback"
-GROQ_MODEL="openai/gpt-oss-120b"
-GROQ_BASE_URL="https://api.groq.com/openai/v1"
+Named OpenAI setup:
+
+```env
+LLM_PROVIDER="openai"
+OPENAI_API_KEY="primary_openai_key"
+OPENAI_MODEL="gpt-4o-mini"
+OPENAI_BASE_URL="https://api.openai.com/v1"
 ```
 
 For Groq-only:
 
 ```env
-LLM_PROVIDER="auto"
+LLM_PROVIDER="groq"
 GROQ_API_KEY="primary_key"
 GROQ_API_KEY_2="fallback_key"
 GROQ_MODEL="openai/gpt-oss-120b"
 GROQ_BASE_URL="https://api.groq.com/openai/v1"
 ```
 
-With `LLM_PROVIDER=auto`, the backend uses the first complete primary model
-configuration it finds. Groq is used only when a Groq key is available; if two
-Groq keys are available, the second key becomes the next fallback attempt.
+`GROQ_API_KEY_2` is optional and only acts as a fallback when present. See
+[Model Provider Configuration](model-provider-configuration.md) for all
+supported patterns.

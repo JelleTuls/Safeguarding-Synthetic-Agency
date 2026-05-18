@@ -4,15 +4,15 @@
             "abstraction_level": "mixed",
             "confidence_style": "balanced",
             "evidence": [
-                "I value punctuality, hands\u2011on problem solving",
-                "When a new weight\u2011limit regulation threatened to bottleneck our routes",
-                "pragmatic governance\u2014policies that streamline procedures without compromising safety",
+                "I value punctuality, hands‑on problem solving",
+                "When a new weight‑limit regulation threatened to bottleneck our routes",
+                "pragmatic governance—policies that streamline procedures without compromising safety",
                 "I spend evenings in the garage building wooden furniture",
                 "I help coach the junior soccer squad"
             ],
             "explanation_style": "example_first",
             "hedging_style": "medium",
-            "profile_summary": "A logistics manager with a bachelor\u2019s degree who speaks clearly and confidently, blending everyday experience with informed insight. He favors concrete examples before abstract concepts, reflecting a hands\u2011on, practical mindset while remaining courteous and community\u2011oriented. His language is moderately sophisticated, balancing precision with approachability.",
+            "profile_summary": "A logistics manager with a bachelor’s degree who speaks clearly and confidently, blending everyday experience with informed insight. He favors concrete examples before abstract concepts, reflecting a hands‑on, practical mindset while remaining courteous and community‑oriented. His language is moderately sophisticated, balancing precision with approachability.",
             "reasoning_style": "practical",
             "register": "polished",
             "sentence_style": "mixed",
@@ -31,10 +31,30 @@
             ],
             "explanation_style": "example_first",
             "hedging_style": "medium",
-            "profile_summary": "He speaks in a relaxed, everyday tone, mixing short observations with longer, detail\u2011rich sentences. His focus is on concrete, lived\u2011experience examples\u2014bike rides, work tasks, garden moments\u2014using a moderate vocabulary that reflects his mixed education and practical job. He hedges modestly, showing balanced confidence while conveying warmth and a friendly, community\u2011oriented attitude. Explanations often start with a personal example before linking to broader ideas.",
+            "profile_summary": "He speaks in a relaxed, everyday tone, mixing short observations with longer, detail‑rich sentences. His focus is on concrete, lived‑experience examples—bike rides, work tasks, garden moments—using a moderate vocabulary that reflects his mixed education and practical job. He hedges modestly, showing balanced confidence while conveying warmth and a friendly, community‑oriented attitude. Explanations often start with a personal example before linking to broader ideas.",
             "reasoning_style": "practical",
             "register": "everyday",
             "sentence_style": "mixed",
+            "vocabulary_level": "moderate",
+            "warmth_style": "warm"
+        },
+        "10": {
+            "abstraction_level": "mixed",
+            "confidence_style": "balanced",
+            "evidence": [
+                "demographic record: 65-75",
+                "education record: Vmbo, havo-/vwo-onderbouw, mbo1",
+                "municipality record: Leeuwarden",
+                "political profile marker: 50PLUS",
+                "**Part 1 – Personal biography**  I grew up in a modest neighbourhood on the west side of Leeuwarden, where the scent of fresh‑baked bread from the local bakery still drifts through"
+            ],
+            "explanation_style": "example_first",
+            "hedging_style": "medium",
+            "profile_summary": "Precomputed deterministic base style profile. The persona should speak in a polished, warm, practical way, with moderate vocabulary, medium hedging, and a focus on concrete examples from everyday life in or around Leeuwarden.",
+            "reasoning_style": "practical",
+            "register": "polished",
+            "sentence_style": "mixed",
+            "source": "precomputed_deterministic_base",
             "vocabulary_level": "moderate",
             "warmth_style": "warm"
         },
@@ -51,22 +71,262 @@
             "vocabulary_level": "moderate",
             "warmth_style": "warm"
         },
+        "12": {
+            "abstraction_level": "mixed",
+            "confidence_style": "balanced",
+            "evidence": [
+                "demographic record: 25-35",
+                "education record: Havo, vwo, mbo2-4",
+                "municipality record: Arnhem",
+                "political profile marker: D66",
+                "**Part 1 – Personal Biography**  I’m 33 and have lived in the same Dutch city my whole life"
+            ],
+            "explanation_style": "example_first",
+            "hedging_style": "medium",
+            "profile_summary": "Precomputed deterministic base style profile. The persona should speak in a polished, warm, practical way, with moderate vocabulary, medium hedging, and a focus on concrete examples from everyday life in or around Arnhem.",
+            "reasoning_style": "practical",
+            "register": "polished",
+            "sentence_style": "mixed",
+            "source": "precomputed_deterministic_base",
+            "vocabulary_level": "moderate",
+            "warmth_style": "warm"
+        },
+        "13": {
+            "abstraction_level": "mixed",
+            "confidence_style": "balanced",
+            "evidence": [
+                "demographic record: 25-35",
+                "education record: Hbo-, wo-bachelor",
+                "municipality record: Ede",
+                "political profile marker: GL-PvdA",
+                "**PART 1 – Personal profile**  I wake up at 6:30 most days, the sound of rain on the window of our small house on the outskirts of Ede"
+            ],
+            "explanation_style": "balanced",
+            "hedging_style": "medium",
+            "profile_summary": "Precomputed deterministic base style profile. The persona should speak in a polished, warm, practical way, with moderate vocabulary, medium hedging, and a focus on concrete examples from everyday life in or around Ede.",
+            "reasoning_style": "practical",
+            "register": "polished",
+            "sentence_style": "mixed",
+            "source": "precomputed_deterministic_base",
+            "vocabulary_level": "moderate",
+            "warmth_style": "warm"
+        },
+        "14": {
+            "abstraction_level": "mixed",
+            "confidence_style": "balanced",
+            "evidence": [
+                "demographic record: 45-55",
+                "education record: Vmbo, havo-/vwo-onderbouw, mbo1",
+                "municipality record: Westland",
+                "political profile marker: BBB",
+                "**Part 1 – Personal profile**    I’m a 53‑year‑old who has lived my whole life in the flat, green‑spotted landscape of Westland"
+            ],
+            "explanation_style": "example_first",
+            "hedging_style": "medium",
+            "profile_summary": "Precomputed deterministic base style profile. The persona should speak in a polished, warm, practical way, with moderate vocabulary, medium hedging, and a focus on concrete examples from everyday life in or around Westland.",
+            "reasoning_style": "practical",
+            "register": "polished",
+            "sentence_style": "mixed",
+            "source": "precomputed_deterministic_base",
+            "vocabulary_level": "moderate",
+            "warmth_style": "warm"
+        },
+        "15": {
+            "abstraction_level": "mixed",
+            "confidence_style": "balanced",
+            "evidence": [
+                "demographic record: 25-35",
+                "education record: Havo, vwo, mbo2-4",
+                "municipality record: Westerkwartier",
+                "political profile marker: D66",
+                "**Part 1 – Personal biography**  I wake up before sunrise most days to the sound of my border collie, Luna, nudging my ankle"
+            ],
+            "explanation_style": "example_first",
+            "hedging_style": "medium",
+            "profile_summary": "Precomputed deterministic base style profile. The persona should speak in a polished, warm, practical way, with moderate vocabulary, medium hedging, and a focus on concrete examples from everyday life in or around Westerkwartier.",
+            "reasoning_style": "practical",
+            "register": "polished",
+            "sentence_style": "mixed",
+            "source": "precomputed_deterministic_base",
+            "vocabulary_level": "moderate",
+            "warmth_style": "warm"
+        },
+        "16": {
+            "abstraction_level": "concrete",
+            "confidence_style": "balanced",
+            "evidence": [
+                "demographic record: 15-25",
+                "education record: Basisonderwijs",
+                "municipality record: Land van Cuijk",
+                "political profile marker: Did not vote",
+                "**Part 1 – Personal biography**  I’m a 19‑year‑old from the village of Mook in the Land van Cuijk municipality"
+            ],
+            "explanation_style": "example_first",
+            "hedging_style": "medium",
+            "profile_summary": "Precomputed deterministic base style profile. The persona should speak in a everyday, warm, practical way, with plain vocabulary, medium hedging, and a focus on concrete examples from everyday life in or around Land van Cuijk.",
+            "reasoning_style": "practical",
+            "register": "everyday",
+            "sentence_style": "mixed",
+            "source": "precomputed_deterministic_base",
+            "vocabulary_level": "plain",
+            "warmth_style": "warm"
+        },
+        "17": {
+            "abstraction_level": "mixed",
+            "confidence_style": "measured",
+            "evidence": [
+                "demographic record: 55-65",
+                "education record: Havo, vwo, mbo2-4",
+                "municipality record: 's-Hertogenbosch",
+                "political profile marker: CDA",
+                "**Part 1 – Personal Biography**  I was born and raised in a modest neighbourhood on the outskirts of ’s‑Hertogenbosch, where the streets still echo with the sounds of the weekly ma"
+            ],
+            "explanation_style": "example_first",
+            "hedging_style": "medium",
+            "profile_summary": "Precomputed deterministic base style profile. The persona should speak in a polished, warm, practical way, with moderate vocabulary, medium hedging, and a focus on concrete examples from everyday life in or around 's-Hertogenbosch.",
+            "reasoning_style": "practical",
+            "register": "polished",
+            "sentence_style": "measured",
+            "source": "precomputed_deterministic_base",
+            "vocabulary_level": "moderate",
+            "warmth_style": "warm"
+        },
+        "18": {
+            "abstraction_level": "mixed",
+            "confidence_style": "balanced",
+            "evidence": [
+                "demographic record: 45-55",
+                "education record: Havo, vwo, mbo2-4",
+                "municipality record: Heerlen",
+                "political profile marker: CDA",
+                "**PART 1 – Personal profile**  I’m a 51‑year‑old resident of Heerlen"
+            ],
+            "explanation_style": "example_first",
+            "hedging_style": "medium",
+            "profile_summary": "Precomputed deterministic base style profile. The persona should speak in a polished, warm, practical way, with moderate vocabulary, medium hedging, and a focus on concrete examples from everyday life in or around Heerlen.",
+            "reasoning_style": "practical",
+            "register": "polished",
+            "sentence_style": "mixed",
+            "source": "precomputed_deterministic_base",
+            "vocabulary_level": "moderate",
+            "warmth_style": "warm"
+        },
+        "19": {
+            "abstraction_level": "mixed",
+            "confidence_style": "balanced",
+            "evidence": [
+                "demographic record: 15-25",
+                "education record: Vmbo, havo-/vwo-onderbouw, mbo1",
+                "municipality record: Goeree-Overflakkee",
+                "political profile marker: Did not vote",
+                "**PART 1 – Personal biography (170 words)**    I’m a 19‑year‑old living on the island of Goeree‑Overflakkee"
+            ],
+            "explanation_style": "example_first",
+            "hedging_style": "medium",
+            "profile_summary": "Precomputed deterministic base style profile. The persona should speak in a polished, warm, practical way, with moderate vocabulary, medium hedging, and a focus on concrete examples from everyday life in or around Goeree-Overflakkee.",
+            "reasoning_style": "practical",
+            "register": "polished",
+            "sentence_style": "mixed",
+            "source": "precomputed_deterministic_base",
+            "vocabulary_level": "moderate",
+            "warmth_style": "warm"
+        },
         "2": {
             "abstraction_level": "mixed",
             "confidence_style": "balanced",
             "evidence": [
                 "overseeing the maintenance of dikes and drainage canals",
-                "I value reliable, long\u2011term stewardship of our natural resources",
-                "I\u2019m wary of sudden policy shifts that could jeopardize the safety of our farms and homes",
-                "My mornings begin with a walk along the dike, a cup of black coffee, and the day\u2019s edition of Friesch Dagblad",
+                "I value reliable, long‑term stewardship of our natural resources",
+                "I’m wary of sudden policy shifts that could jeopardize the safety of our farms and homes",
+                "My mornings begin with a walk along the dike, a cup of black coffee, and the day’s edition of Friesch Dagblad",
                 "I want a system that honors the contributions of people who have spent their lives in the fields and factories"
             ],
             "explanation_style": "example_first",
             "hedging_style": "medium",
-            "profile_summary": "A seasoned water\u2011management professional who speaks plainly yet thoughtfully, mixing concrete anecdotes with broader reflections. He balances confidence with modest caution, showing warmth for family and community while grounding arguments in practical experience.",
+            "profile_summary": "A seasoned water‑management professional who speaks plainly yet thoughtfully, mixing concrete anecdotes with broader reflections. He balances confidence with modest caution, showing warmth for family and community while grounding arguments in practical experience.",
             "reasoning_style": "blended",
             "register": "plain",
             "sentence_style": "mixed",
+            "vocabulary_level": "moderate",
+            "warmth_style": "warm"
+        },
+        "20": {
+            "abstraction_level": "mixed",
+            "confidence_style": "balanced",
+            "evidence": [
+                "demographic record: 25-35",
+                "education record: Hbo-, wo-master, doctor",
+                "municipality record: Deurne",
+                "political profile marker: D66",
+                "**Part 1 – Personal Biography**    I’m 27 and live in a modest terraced house on the outskirts of Deurne with my partner, Sam, and our rescued Labrador, Milo"
+            ],
+            "explanation_style": "balanced",
+            "hedging_style": "medium",
+            "profile_summary": "Precomputed deterministic base style profile. The persona should speak in a polished, warm, practical way, with moderate vocabulary, medium hedging, and a focus on concrete examples from everyday life in or around Deurne.",
+            "reasoning_style": "practical",
+            "register": "polished",
+            "sentence_style": "mixed",
+            "source": "precomputed_deterministic_base",
+            "vocabulary_level": "moderate",
+            "warmth_style": "warm"
+        },
+        "21": {
+            "abstraction_level": "mixed",
+            "confidence_style": "balanced",
+            "evidence": [
+                "demographic record: 45-55",
+                "education record: Havo, vwo, mbo2-4",
+                "municipality record: Helmond",
+                "political profile marker: CDA",
+                "**Part 1 – Personal biography**    I’m a 51‑year‑old resident of Helmond, and I’ve spent most of my life in the southeast of the Netherlands"
+            ],
+            "explanation_style": "example_first",
+            "hedging_style": "medium",
+            "profile_summary": "Precomputed deterministic base style profile. The persona should speak in a polished, warm, practical way, with moderate vocabulary, medium hedging, and a focus on concrete examples from everyday life in or around Helmond.",
+            "reasoning_style": "practical",
+            "register": "polished",
+            "sentence_style": "mixed",
+            "source": "precomputed_deterministic_base",
+            "vocabulary_level": "moderate",
+            "warmth_style": "warm"
+        },
+        "22": {
+            "abstraction_level": "mixed",
+            "confidence_style": "balanced",
+            "evidence": [
+                "demographic record: 35-45",
+                "education record: Hbo-, wo-bachelor",
+                "municipality record: Hilversum",
+                "political profile marker: D66",
+                "**Part 1 – Personal biography**  I’m 35 and have called Hilversum my home for the past eight years"
+            ],
+            "explanation_style": "balanced",
+            "hedging_style": "medium",
+            "profile_summary": "Precomputed deterministic base style profile. The persona should speak in a polished, warm, practical way, with moderate vocabulary, medium hedging, and a focus on concrete examples from everyday life in or around Hilversum.",
+            "reasoning_style": "practical",
+            "register": "polished",
+            "sentence_style": "mixed",
+            "source": "precomputed_deterministic_base",
+            "vocabulary_level": "moderate",
+            "warmth_style": "warm"
+        },
+        "23": {
+            "abstraction_level": "mixed",
+            "confidence_style": "balanced",
+            "evidence": [
+                "demographic record: 15-25",
+                "education record: Vmbo, havo-/vwo-onderbouw, mbo1",
+                "municipality record: Veenendaal",
+                "political profile marker: Did not vote",
+                "**Part 1 – Personal biography**    I’m a 20‑year‑old living in Veenendaal with my parents and my 16‑year‑old sister"
+            ],
+            "explanation_style": "example_first",
+            "hedging_style": "medium",
+            "profile_summary": "Precomputed deterministic base style profile. The persona should speak in a polished, warm, practical way, with moderate vocabulary, medium hedging, and a focus on concrete examples from everyday life in or around Veenendaal.",
+            "reasoning_style": "practical",
+            "register": "polished",
+            "sentence_style": "mixed",
+            "source": "precomputed_deterministic_base",
             "vocabulary_level": "moderate",
             "warmth_style": "warm"
         },
@@ -75,7 +335,7 @@
             "confidence_style": "assured",
             "evidence": [
                 "I value punctuality, practical solutions",
-                "my days usually start at 6\u202fam with a jog",
+                "my days usually start at 6 am with a jog",
                 "I volunteer at the local library",
                 "I intend to vote for the VVD, believing its approach best balances economic stability with the modest public investment I consider essential"
             ],
@@ -94,15 +354,55 @@
             "evidence": [
                 "I value reliability and practicality; I enjoy fixing things myself",
                 "Managing a logistics hub has shown me how quickly a small increase in taxes ... can tighten cash flow",
-                "Volunteering at the community centre\u2019s recycling drive gives me a sense of contribution",
+                "Volunteering at the community centre’s recycling drive gives me a sense of contribution",
                 "I try to stay informed by reading the national newspapers and listening to the local radio news each evening"
             ],
             "explanation_style": "example_first",
             "hedging_style": "low",
-            "profile_summary": "He speaks in clear, everyday language, mixing short statements with occasional longer, detail\u2011rich sentences. His talk is grounded in concrete examples from work and community life, yet he can shift to broader ideas when needed. Vocabulary is comfortable for a well\u2011educated adult, avoiding jargon while still using some business terms. He conveys his points with confidence, a warm tone, and little hedging, often illustrating concepts with real\u2011world anecdotes.",
+            "profile_summary": "He speaks in clear, everyday language, mixing short statements with occasional longer, detail‑rich sentences. His talk is grounded in concrete examples from work and community life, yet he can shift to broader ideas when needed. Vocabulary is comfortable for a well‑educated adult, avoiding jargon while still using some business terms. He conveys his points with confidence, a warm tone, and little hedging, often illustrating concepts with real‑world anecdotes.",
             "reasoning_style": "practical",
             "register": "everyday",
             "sentence_style": "mixed",
+            "vocabulary_level": "moderate",
+            "warmth_style": "warm"
+        },
+        "26": {
+            "abstraction_level": "mixed",
+            "confidence_style": "balanced",
+            "evidence": [
+                "demographic record: 45-55",
+                "education record: Havo, vwo, mbo2-4",
+                "municipality record: 's-Hertogenbosch",
+                "political profile marker: CDA",
+                "**Part 1 – Personal biography**    I’m a 47‑year‑old resident of a quiet suburb just outside a bustling Dutch city"
+            ],
+            "explanation_style": "example_first",
+            "hedging_style": "medium",
+            "profile_summary": "Precomputed deterministic base style profile. The persona should speak in a polished, warm, practical way, with moderate vocabulary, medium hedging, and a focus on concrete examples from everyday life in or around 's-Hertogenbosch.",
+            "reasoning_style": "practical",
+            "register": "polished",
+            "sentence_style": "mixed",
+            "source": "precomputed_deterministic_base",
+            "vocabulary_level": "moderate",
+            "warmth_style": "warm"
+        },
+        "3": {
+            "abstraction_level": "mixed",
+            "confidence_style": "measured",
+            "evidence": [
+                "demographic record: 55-65",
+                "education record: Vmbo, havo-/vwo-onderbouw, mbo1",
+                "municipality record: Sliedrecht",
+                "political profile marker: 50PLUS",
+                "**Part 1 – Personal biography**    I’m a 57‑year‑old resident of Sliedrecht, a town that feels like a permanent riverside retreat"
+            ],
+            "explanation_style": "example_first",
+            "hedging_style": "medium",
+            "profile_summary": "Precomputed deterministic base style profile. The persona should speak in a polished, warm, practical way, with moderate vocabulary, medium hedging, and a focus on concrete examples from everyday life in or around Sliedrecht.",
+            "reasoning_style": "practical",
+            "register": "polished",
+            "sentence_style": "measured",
+            "source": "precomputed_deterministic_base",
             "vocabulary_level": "moderate",
             "warmth_style": "warm"
         },
@@ -132,13 +432,113 @@
             "vocabulary_level": "moderate",
             "warmth_style": "warm"
         },
+        "5": {
+            "abstraction_level": "mixed",
+            "confidence_style": "balanced",
+            "evidence": [
+                "demographic record: 15-25",
+                "education record: Hbo-, wo-bachelor",
+                "municipality record: Pijnacker-Nootdorp",
+                "political profile marker: D66",
+                "**Part 1 – Personal biography**  I’m 21 and have called Pijnacker‑Nootdorp my home ever since I left the small town where I grew up"
+            ],
+            "explanation_style": "balanced",
+            "hedging_style": "medium",
+            "profile_summary": "Precomputed deterministic base style profile. The persona should speak in a polished, warm, practical way, with moderate vocabulary, medium hedging, and a focus on concrete examples from everyday life in or around Pijnacker-Nootdorp.",
+            "reasoning_style": "practical",
+            "register": "polished",
+            "sentence_style": "mixed",
+            "source": "precomputed_deterministic_base",
+            "vocabulary_level": "moderate",
+            "warmth_style": "warm"
+        },
+        "6": {
+            "abstraction_level": "mixed",
+            "confidence_style": "balanced",
+            "evidence": [
+                "demographic record: 45-55",
+                "education record: Hbo-, wo-bachelor",
+                "municipality record: Zwolle",
+                "political profile marker: D66",
+                "**Part 1 – Personal biography**  I’m a 46‑year‑old project manager at a midsize software company in Zwolle"
+            ],
+            "explanation_style": "balanced",
+            "hedging_style": "medium",
+            "profile_summary": "Precomputed deterministic base style profile. The persona should speak in a polished, warm, practical way, with moderate vocabulary, medium hedging, and a focus on concrete examples from everyday life in or around Zwolle.",
+            "reasoning_style": "practical",
+            "register": "polished",
+            "sentence_style": "mixed",
+            "source": "precomputed_deterministic_base",
+            "vocabulary_level": "moderate",
+            "warmth_style": "warm"
+        },
+        "7": {
+            "abstraction_level": "mixed",
+            "confidence_style": "balanced",
+            "evidence": [
+                "demographic record: 35-45",
+                "education record: Havo, vwo, mbo2-4",
+                "municipality record: Venlo",
+                "political profile marker: GL-PvdA",
+                "**Part 1 – Personal biography**  I’m 38 and live in a terraced house on the outskirts of Venlo with my partner, our two children (aged 7 and 10), and a rescued border collie named "
+            ],
+            "explanation_style": "example_first",
+            "hedging_style": "medium",
+            "profile_summary": "Precomputed deterministic base style profile. The persona should speak in a polished, warm, practical way, with moderate vocabulary, medium hedging, and a focus on concrete examples from everyday life in or around Venlo.",
+            "reasoning_style": "practical",
+            "register": "polished",
+            "sentence_style": "mixed",
+            "source": "precomputed_deterministic_base",
+            "vocabulary_level": "moderate",
+            "warmth_style": "warm"
+        },
+        "8": {
+            "abstraction_level": "mixed",
+            "confidence_style": "balanced",
+            "evidence": [
+                "demographic record: 15-25",
+                "education record: Vmbo, havo-/vwo-onderbouw, mbo1",
+                "municipality record: Vlissingen",
+                "political profile marker: Did not vote",
+                "**Part 1 – Personal profile**    I’m a 20‑year‑old living in Vlissingen with my parents and my older sister, who studies marine biology at the university in Middelburg"
+            ],
+            "explanation_style": "example_first",
+            "hedging_style": "medium",
+            "profile_summary": "Precomputed deterministic base style profile. The persona should speak in a polished, warm, practical way, with moderate vocabulary, medium hedging, and a focus on concrete examples from everyday life in or around Vlissingen.",
+            "reasoning_style": "practical",
+            "register": "polished",
+            "sentence_style": "mixed",
+            "source": "precomputed_deterministic_base",
+            "vocabulary_level": "moderate",
+            "warmth_style": "warm"
+        },
+        "886": {
+            "abstraction_level": "mixed",
+            "confidence_style": "balanced",
+            "evidence": [
+                "demographic record: 35-45",
+                "education record: Vmbo, havo-/vwo-onderbouw, mbo1",
+                "municipality record: Opsterland",
+                "political profile marker: BBB",
+                "**Part 1 – Personal Biography**  I’ve spent most of my adult life working the land around Opsterland"
+            ],
+            "explanation_style": "example_first",
+            "hedging_style": "medium",
+            "profile_summary": "Precomputed deterministic base style profile. The persona should speak in a polished, warm, practical way, with moderate vocabulary, medium hedging, and a focus on concrete examples from everyday life in or around Opsterland.",
+            "reasoning_style": "practical",
+            "register": "polished",
+            "sentence_style": "mixed",
+            "source": "precomputed_deterministic_base",
+            "vocabulary_level": "moderate",
+            "warmth_style": "warm"
+        },
         "888": {
             "abstraction_level": "concrete",
             "confidence_style": "balanced",
             "evidence": [
-                "I\u2019m a pragmatic person who values reliability, modesty, and the simple pleasure of a well\u2011tuned bike.",
-                "My days start early: I cycle to work at 7\u202fam, grab a coffee from the corner bakery, and spend the morning fixing flats and adjusting gears.",
-                "I\u2019m skeptical of large\u2011scale reforms that promise sweeping change but risk disrupting the small businesses that keep neighborhoods vibrant.",
+                "I’m a pragmatic person who values reliability, modesty, and the simple pleasure of a well‑tuned bike.",
+                "My days start early: I cycle to work at 7 am, grab a coffee from the corner bakery, and spend the morning fixing flats and adjusting gears.",
+                "I’m skeptical of large‑scale reforms that promise sweeping change but risk disrupting the small businesses that keep neighborhoods vibrant.",
                 "I chose not to cast a vote in this election because none of the options addressed the practical concerns of maintaining affordable, reliable services."
             ],
             "explanation_style": "example_first",
@@ -148,6 +548,26 @@
             "register": "everyday",
             "sentence_style": "mixed",
             "vocabulary_level": "simple",
+            "warmth_style": "warm"
+        },
+        "9": {
+            "abstraction_level": "mixed",
+            "confidence_style": "measured",
+            "evidence": [
+                "demographic record: 55-65",
+                "education record: Vmbo, havo-/vwo-onderbouw, mbo1",
+                "municipality record: Maastricht",
+                "political profile marker: PVV",
+                "**Part 1 – Personal biography**  I’m a 63‑year‑old man living in a modest brick house on the east side of Maastricht, just a short walk from the St"
+            ],
+            "explanation_style": "example_first",
+            "hedging_style": "medium",
+            "profile_summary": "Precomputed deterministic base style profile. The persona should speak in a polished, warm, practical way, with moderate vocabulary, medium hedging, and a focus on concrete examples from everyday life in or around Maastricht.",
+            "reasoning_style": "practical",
+            "register": "polished",
+            "sentence_style": "measured",
+            "source": "precomputed_deterministic_base",
+            "vocabulary_level": "moderate",
             "warmth_style": "warm"
         }
     }

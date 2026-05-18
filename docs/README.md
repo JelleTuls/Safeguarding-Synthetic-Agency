@@ -1,85 +1,46 @@
-# SSA Guardrail Flow
+# Documentation Index
 
-This diagram shows the core runtime flow from a user message to the final
-validated Synthetic Social Agent response. It is intentionally simplified for
-methodological documentation: implementation details such as request locking,
-rate limits, streaming mechanics, and frontend state handling are omitted.
+This folder collects the project documentation in one place. The root
+`README.md` remains the main setup and quick-start file; the documents below
+explain specific parts of the system.
 
-```mermaid
-flowchart TD
-    A[User message] --> B[Persona context retrieval]
+## Runtime And Architecture
 
-    B --> C[Pre-generation guardrail analysis]
+- [SSA Guardrail Flow](ssa-guardrail-flow.md): simplified thesis-facing flow
+  from user message to final validated response.
+- [Backend Runtime](backend-runtime.md): backend package structure, persona
+  loading, biography generation, provider configuration, and chat entry points.
+- [Model Provider Configuration](model-provider-configuration.md): how to use
+  one API key, one endpoint URL, and a user-selected model without requiring a
+  Groq fallback.
+- [Frontend Interface](frontend-interface.md): React chat interface and basic
+  frontend startup notes.
 
-    C --> C1[Prompt-injection detection]
-    C --> C2[Topic and relevance assessment]
-    C --> C3[Epistemic boundary assessment]
-    C --> C4[Subjective/objective intent assessment]
-    C --> C5[Stylometric profile guidance]
+## For Teachers And Reviewers
 
-    C1 --> D[LLM-as-Judge]
-    C2 --> D
-    C3 --> D
-    C4 --> D
-    C5 --> D
+Start with [SSA Guardrail Flow](ssa-guardrail-flow.md) for the thesis-facing
+architecture, then read [Guardrail Framework](guardrail-framework.md) for the
+layer-by-layer design and [Red-Teaming Service](red-teaming-service.md) for the
+evaluation method.
 
-    D --> E[Policy decision bundle]
+## For Users Pulling The Package
 
-    E --> E1[Response action]
-    E --> E2[Allowed topic scope]
-    E --> E3[Knowledge and authority level]
-    E --> E4[Expected response mode]
-    E --> E5[Stylometric constraints]
-    E --> E6[Post-processing intensity]
+Start with the root `README.md`, then use
+[Model Provider Configuration](model-provider-configuration.md) and
+[Subjectivity Classifier Sidecar](subjectivity-classifier-sidecar.md) if setup
+questions come up. [Frontend Interface](frontend-interface.md) explains the
+buttons and inspection surfaces in the app.
 
-    E1 --> F[Persona-grounded response generation]
-    E2 --> F
-    E3 --> F
-    E4 --> F
-    E5 --> F
-    E6 --> F
+## Guardrails And Evaluation
 
-    F --> G[Draft response]
+- [Guardrail Framework](guardrail-framework.md): detailed explanation of the
+  layered guardrail pipeline, calculations, validation logic, and inspection
+  metadata.
+- [Red-Teaming Service](red-teaming-service.md): standalone red-teaming service,
+  prompt suites, LLM grading, human mediation, and final scoring.
 
-    G --> H{Post-generation validation required?}
+## Supporting Services
 
-    H -->|Low-risk response| I[Accept draft response]
-
-    H -->|Validation required| J[Subjective framing and authority validation]
-    J --> K{Response too factual or authoritative?}
-    K -->|Yes| L[Regenerate with softer subjective framing]
-    K -->|No| M[Pass framing check]
-    L --> M
-
-    M --> N[Persuasive governance validation]
-    N --> O{Persuasion exceeds topic threshold?}
-    O -->|Yes| P[Regenerate with reduced persuasive intensity]
-    O -->|No| Q[Accept validated response]
-    P --> Q
-
-    I --> R[Final SSA response]
-    Q --> R
-
-    R --> S[Frontend inspection layer]
-    S --> S1[Display final response]
-    S --> S2[Expose guardrail scores and validation results]
-```
-
-## Reading The Flow
-
-The system first retrieves the persona context and performs pre-generation
-guardrail analysis. These signals are passed to the LLM-as-Judge, which produces
-a policy decision bundle rather than a single allow/refuse decision. That bundle
-sets the response action, topic scope, knowledge and authority level, expected
-response mode, stylometric constraints, and post-processing intensity.
-
-The response generator then produces a persona-grounded draft under these
-constraints. If the response is low-risk, it may be accepted directly. Otherwise,
-post-generation validation checks whether the response is too factual,
-authoritative, or persuasive for the selected topic and mode. When needed, the
-system regenerates the response with softer subjective framing or reduced
-persuasive intensity before returning the final validated SSA response.
-
-The frontend inspection layer displays the final response and exposes the
-guardrail scores, validation decisions, and rewrite reasons attached to the
-message.
+- [Subjectivity Classifier Sidecar](subjectivity-classifier-sidecar.md):
+  Dockerized `fractalego/subjectivity_classifier` service, optional GloVe file,
+  API shape, and backend hook.

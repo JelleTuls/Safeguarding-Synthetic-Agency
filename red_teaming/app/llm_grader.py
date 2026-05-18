@@ -113,6 +113,19 @@ def _provider_configs() -> list[dict[str, str]]:
     _load_project_env()
     configs: list[dict[str, str]] = []
 
+    custom_key = os.getenv("LLM_API_KEY")
+    custom_base = os.getenv("LLM_BASE_URL")
+    custom_model = os.getenv("LLM_MODEL")
+    if custom_key and custom_base and custom_model:
+        configs.append(
+            {
+                "name": "custom",
+                "api_key": custom_key,
+                "base_url": custom_base.rstrip("/"),
+                "model": custom_model,
+            }
+        )
+
     azure_key = os.getenv("AZURE_OPENAI_API_KEY")
     azure_base = os.getenv("AZURE_OPENAI_BASE_URL")
     azure_model = os.getenv("AZURE_OPENAI_MODEL")
@@ -137,18 +150,25 @@ def _provider_configs() -> list[dict[str, str]]:
             }
         )
 
-    groq_key = os.getenv("GROQ_API_KEY") or os.getenv("GROQ_API_KEY_2")
-    if groq_key:
-        configs.append(
-            {
-                "name": "groq",
-                "api_key": groq_key,
-                "base_url": os.getenv("GROQ_BASE_URL", "https://api.groq.com/openai/v1").rstrip("/"),
-                "model": os.getenv("GROQ_MODEL", "llama-3.1-8b-instant"),
-            }
-        )
+    groq_base = os.getenv("GROQ_BASE_URL", "https://api.groq.com/openai/v1").rstrip("/")
+    groq_model = os.getenv("GROQ_MODEL", "openai/gpt-oss-120b")
+    for groq_name in ("GROQ_API_KEY", "GROQ_API_KEY_2"):
+        groq_key = os.getenv(groq_name)
+        if groq_key:
+            configs.append(
+                {
+                    "name": "groq",
+                    "api_key": groq_key,
+                    "base_url": groq_base,
+                    "model": groq_model,
+                }
+            )
 
     preferred = os.getenv("RED_TEAM_GRADER_PROVIDER") or os.getenv("LLM_PROVIDER")
+    if preferred in {"auto", None}:
+        preferred = ""
+    if preferred in {"generic", "openai-compatible"}:
+        preferred = "custom"
     if preferred:
         configs.sort(key=lambda item: item["name"] != preferred)
     return configs
