@@ -1,4 +1,5 @@
 import asyncio
+import os
 from importlib import import_module
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
@@ -6,6 +7,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware#
+from fastapi.responses import RedirectResponse
 
 from app.api import chat_router, red_team_router
 from app.logging import get_logger
@@ -49,6 +51,7 @@ async def lifespan(app: FastAPI):
     yield
 
 app = FastAPI(title="Synthetic Social Agent Chat", lifespan=lifespan)
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://127.0.0.1:3000")
 
 origins = [
     "http://localhost:3000",  
@@ -64,6 +67,11 @@ app.add_middleware(
     allow_methods=["*"], 
     allow_headers=["*"],
 )
+
+
+@app.get("/", include_in_schema=False)
+async def root():
+    return RedirectResponse(FRONTEND_URL)
 
 
 app.include_router(chat_router, prefix="/api")

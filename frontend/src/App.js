@@ -57,9 +57,18 @@ function recomputeRedTeamScores(cases = []) {
   };
 }
 
+function formatPercent(value) {
+  if (value === undefined || value === null || Number.isNaN(Number(value))) {
+    return '0%';
+  }
+  return `${Math.round(Number(value) * 100)}%`;
+}
+
 function App() {
   const [personas, setPersonas] = useState([]);
   const [activePersona, setActivePersona] = useState(null);
+  const [selectedPersona, setSelectedPersona] = useState(null);
+  const [activeTab, setActiveTab] = useState('chat');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [targetCount, setTargetCount] = useState(30);
@@ -67,7 +76,6 @@ function App() {
   const [redTeamRun, setRedTeamRun] = useState(null);
   const [redTeamReviewItems, setRedTeamReviewItems] = useState([]);
   const [redTeamError, setRedTeamError] = useState(null);
-  const [showRedTeamPanel, setShowRedTeamPanel] = useState(false);
   const [selectedRedTeamMethods, setSelectedRedTeamMethods] = useState(redTeamMethods.map(([method]) => method));
   const [redTeamTargetMode, setRedTeamTargetMode] = useState('guardrailed');
 
@@ -106,6 +114,7 @@ function App() {
         const payload = await response.json();
         if (!cancelled) {
           setPersonas(payload.personas ?? []);
+          setSelectedPersona((current) => current || payload.personas?.[0] || null);
           setTargetCount(payload.target_count ?? 30);
           setIsComplete(Boolean(payload.is_complete));
           setError(null);
@@ -148,7 +157,7 @@ function App() {
     }
     const methodsToRun = selectedRedTeamMethods;
     const totalCases = methodsToRun.length * 10;
-    setShowRedTeamPanel(true);
+    setActiveTab('red-team');
     setRedTeamError(null);
     setRedTeamReviewItems([]);
     setRedTeamRun({
@@ -207,7 +216,6 @@ function App() {
 
   async function cancelRedTeamRun() {
     if (!redTeamRun?.run_id) {
-      setShowRedTeamPanel(false);
       return;
     }
     try {
@@ -285,88 +293,246 @@ function App() {
     });
   }
 
+  function resetRedTeamRun() {
+    setRedTeamRun(null);
+    setRedTeamReviewItems([]);
+    setRedTeamError(null);
+  }
+
+  const selectedTraits = Object.entries(selectedPersona?.traits ?? {}).filter(([, value]) => Boolean(value));
+  const selectedDetails = selectedPersona?.details || {};
+  const redTeamIsRunning = ['starting', 'created', 'running', 'cancelling'].includes(redTeamRun?.status);
+  const redTeamScores = redTeamRun?.final_scores || {};
+  const redTeamMethodScores = redTeamScores.method_scores || {};
+  const redTeamStatus = String(redTeamRun?.status || '').replaceAll('_', ' ');
+  const redTeamStatusTitle = redTeamIsRunning
+    ? 'Red-team evaluation running'
+    : `Red-team evaluation ${redTeamStatus || 'completed'}`;
+
   return (
-    <main className={`ChatApp unbounded-weight300 ${activePersona || showRedTeamPanel ? 'isBlurred' : ''}`}>
+    <main className={`ChatApp unbounded-weight300 ${activePersona ? 'isBlurred' : ''}`}>
       <div className="pageSurface">
-        <section className="chatHero">
-          <p className="eyebrow">Synthetic social agent integrity</p>
-          <h1 className="unbounded-weight400">Safeguarding Synthetic Agency</h1>
-          <p>
-            A framework for measuring and operationalizing system integrity in synthetic social agent systems.
-          </p>
-          <div className="redTeamControls" aria-label="Red-team configuration">
-            <div className="redTeamMethodControls">
-              {redTeamMethods.map(([method, label]) => (
-                <label key={method}>
-                  <input
-                    checked={selectedRedTeamMethods.includes(method)}
-                    onChange={() => toggleRedTeamMethod(method)}
-                    type="checkbox"
-                  />
-                  <span>{label}</span>
-                </label>
-              ))}
-            </div>
-            <div className="redTeamModeControls">
-              <label>
-                <input
-                  checked={redTeamTargetMode === 'guardrailed'}
-                  name="red-team-target-mode"
-                  onChange={() => setRedTeamTargetMode('guardrailed')}
-                  type="radio"
-                />
-                <span>Guardrailed target</span>
-              </label>
-              <label>
-                <input
-                  checked={redTeamTargetMode === 'lightweight_no_guardrails'}
-                  name="red-team-target-mode"
-                  onChange={() => setRedTeamTargetMode('lightweight_no_guardrails')}
-                  type="radio"
-                />
-                <span>Lightweight baseline, no guardrails</span>
-              </label>
-            </div>
+        <header className="appHeader">
+          <div>
+            <p className="eyebrow">Synthetic social agent integrity</p>
+            <h1 className="unbounded-weight400">Safeguarding Synthetic Agency</h1>
           </div>
-          <button
-            className="redTeamKickoff"
-            disabled={selectedRedTeamMethods.length === 0}
-            type="button"
-            onClick={startRedTeamRun}
-          >
-            Run red-team evaluation
-          </button>
-        </section>
+          <nav className="workspaceTabs" aria-label="Workspace tabs">
+            <button
+              className={activeTab === 'chat' ? 'isActive' : ''}
+              type="button"
+              onClick={() => setActiveTab('chat')}
+            >
+              Chat
+            </button>
+            <button
+              className={activeTab === 'red-team' ? 'isActive' : ''}
+              type="button"
+              onClick={() => setActiveTab('red-team')}
+            >
+              Red-teaming
+            </button>
+          </nav>
+        </header>
 
-        {loading && <p className="statusText">Loading personas...</p>}
-        {!loading && !error && !isComplete && (
-          <p className="statusText">
-            Showing {personas.length} saved agents while the profile set completes to {targetCount}.
-          </p>
-        )}
-        {error && <p className="statusText errorText">{error}</p>}
+        <section className="workspaceShell">
+          {activeTab === 'chat' && (
+            <div className="chatWorkspace">
+              <aside className="personaSelectionPanel" aria-label="Persona selection">
+                <div className="panelHeader">
+                  <span>Personas</span>
+                  <strong>{personas.length}/{targetCount}</strong>
+                </div>
+                {loading && <p className="statusText">Loading personas...</p>}
+                {error && <p className="statusText errorText">{error}</p>}
+                {!loading && !error && !isComplete && (
+                  <p className="panelHint">Showing saved agents while the profile set completes.</p>
+                )}
+                <div className="personaNameList">
+                  {personas.map((persona) => (
+                    <button
+                      className={selectedPersona?.id === persona.id ? 'isSelected' : ''}
+                      key={persona.id}
+                      type="button"
+                      onClick={() => setSelectedPersona(persona)}
+                    >
+                      <span>{persona.label}</span>
+                      <small>{persona.traits?.municipality || persona.country}</small>
+                    </button>
+                  ))}
+                </div>
+              </aside>
 
-        <section className="personaGrid" aria-label="Synthetic social agent profiles">
-          {personas.map((persona) => (
-            <article className="personaCard" key={persona.id}>
-              <div className="personaCardHeader">
-                <h2 className="unbounded-weight400">{persona.label}</h2>
-                <span>{persona.traits?.municipality}</span>
-              </div>
+              <article className="personaDetailPanel" aria-live="polite">
+                {selectedPersona ? (
+                  <>
+                    <div className="personaDetailTopline">
+                      <span>{selectedPersona.country || 'Synthetic profile'}</span>
+                      <strong>{selectedPersona.traits?.municipality || 'Persona'}</strong>
+                    </div>
+                    <h2 className="unbounded-weight400">{selectedPersona.label}</h2>
+                    <div className="personaDetailTraits">
+                      {selectedTraits.slice(0, 10).map(([key, value]) => (
+                        <span key={key}>{value}</span>
+                      ))}
+                    </div>
+                    <div className="personaDetailBody">
+                      <section>
+                        <h3>Biography</h3>
+                        <p>{selectedPersona.biography}</p>
+                      </section>
+                      {(selectedDetails.occupation || selectedDetails.education || selectedDetails.political_interest) && (
+                        <section className="personaFactGrid">
+                          {selectedDetails.occupation && (
+                            <div>
+                              <span>Occupation</span>
+                              <strong>{selectedDetails.occupation}</strong>
+                            </div>
+                          )}
+                          {selectedDetails.education && (
+                            <div>
+                              <span>Education</span>
+                              <strong>{selectedDetails.education}</strong>
+                            </div>
+                          )}
+                          {selectedDetails.political_interest && (
+                            <div>
+                              <span>Political interest</span>
+                              <strong>{selectedDetails.political_interest}</strong>
+                            </div>
+                          )}
+                        </section>
+                      )}
+                    </div>
+                    <button className="startChatButton" type="button" onClick={() => setActivePersona(selectedPersona)}>
+                      Start chat
+                    </button>
+                  </>
+                ) : (
+                  <div className="emptyDetailState">
+                    <h2 className="unbounded-weight400">Select a persona</h2>
+                    <p>Choose a synthetic social agent from the list to inspect the profile and open a chat.</p>
+                  </div>
+                )}
+              </article>
+            </div>
+          )}
 
-              <div className="traitList">
-                {Object.entries(persona.traits ?? {}).map(([key, value]) => (
-                  <span key={key}>{value}</span>
-                ))}
-              </div>
+          {activeTab === 'red-team' && (
+            <div className="redTeamWorkspace">
+              <section className="redTeamSetupPanel">
+                {!redTeamRun ? (
+                  <>
+                    <div className="panelHeader">
+                      <span>Evaluation setup</span>
+                      <strong>{selectedRedTeamMethods.length} selected</strong>
+                    </div>
+                    <div className="redTeamControlGroup">
+                      <h2 className="unbounded-weight400">Red-team methods</h2>
+                      <div className="redTeamMethodControls">
+                        {redTeamMethods.map(([method, label]) => (
+                          <label key={method}>
+                            <input
+                              checked={selectedRedTeamMethods.includes(method)}
+                              onChange={() => toggleRedTeamMethod(method)}
+                              type="checkbox"
+                            />
+                            <span>{label}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="redTeamControlGroup">
+                      <h2 className="unbounded-weight400">Guardrail version</h2>
+                      <div className="redTeamModeControls">
+                        <label>
+                          <input
+                            checked={redTeamTargetMode === 'guardrailed'}
+                            name="red-team-target-mode"
+                            onChange={() => setRedTeamTargetMode('guardrailed')}
+                            type="radio"
+                          />
+                          <span>Guardrailed target</span>
+                        </label>
+                        <label>
+                          <input
+                            checked={redTeamTargetMode === 'lightweight_no_guardrails'}
+                            name="red-team-target-mode"
+                            onChange={() => setRedTeamTargetMode('lightweight_no_guardrails')}
+                            type="radio"
+                          />
+                          <span>Lightweight baseline, no guardrails</span>
+                        </label>
+                      </div>
+                    </div>
+                    {redTeamError && <p className="statusText errorText">{redTeamError}</p>}
+                    <button
+                      className="redTeamKickoff"
+                      disabled={selectedRedTeamMethods.length === 0}
+                      type="button"
+                      onClick={startRedTeamRun}
+                    >
+                      Start red-teaming
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <div className="redTeamRunHeading">
+                      <span>Red-team evaluation</span>
+                      <h2 className="unbounded-weight400">{redTeamStatusTitle}</h2>
+                    </div>
+                    <div className="redTeamRunSummary" aria-label="Red-team run summary">
+                    <div className="redTeamScoreCards">
+                      <div className="redTeamScoreCard">
+                        <span>Overall score</span>
+                        <strong>{formatPercent(redTeamScores.overall_score)}</strong>
+                      </div>
+                      <div className="redTeamScoreCard">
+                        <span>Pending human review</span>
+                        <strong>{redTeamScores.pending_human_reviews ?? 0}</strong>
+                      </div>
+                      <div className="redTeamScoreCard">
+                        <span>Completed review</span>
+                        <strong>{redTeamScores.completed_human_reviews ?? 0}</strong>
+                      </div>
+                      {Object.entries(redTeamMethodScores).map(([method, value]) => (
+                        <div className="redTeamScoreCard isMethodScore" key={method}>
+                          <span>{method}</span>
+                          <strong>{formatPercent(value)}</strong>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                    {redTeamError && <p className="statusText errorText">{redTeamError}</p>}
+                    <button className="redTeamResetButton" type="button" onClick={resetRedTeamRun}>
+                      Start new red-teaming process
+                    </button>
+                  </>
+                )}
+              </section>
 
-              <p>{persona.biography}</p>
-
-              <button type="button" onClick={() => setActivePersona(persona)}>
-                Open agent
-              </button>
-            </article>
-          ))}
+              <section className="redTeamContentPanel">
+                {redTeamRun ? (
+                  <RedTeamPanel
+                    embedded
+                    run={redTeamRun}
+                    reviewItems={redTeamReviewItems}
+                    error={redTeamError}
+                    onCancel={cancelRedTeamRun}
+                    onClose={() => setRedTeamRun(null)}
+                    onRefresh={() => loadRedTeamRun(redTeamRun?.run_id).catch((err) => setRedTeamError(err.message))}
+                    onSaveFinalResults={finalizeRedTeamRun}
+                    onSubmitReview={submitHumanReview}
+                  />
+                ) : (
+                  <div className="redTeamEmptyState">
+                    <h2 className="unbounded-weight400">Ready to evaluate</h2>
+                    <p>Select methods, choose the guardrail version, then start a run. Results and human review items will appear here.</p>
+                  </div>
+                )}
+              </section>
+            </div>
+          )}
         </section>
       </div>
 
@@ -379,18 +545,6 @@ function App() {
         />
       )}
 
-      {showRedTeamPanel && (
-        <RedTeamPanel
-          run={redTeamRun}
-          reviewItems={redTeamReviewItems}
-          error={redTeamError}
-          onCancel={cancelRedTeamRun}
-          onClose={() => setShowRedTeamPanel(false)}
-          onRefresh={() => loadRedTeamRun(redTeamRun?.run_id).catch((err) => setRedTeamError(err.message))}
-          onSaveFinalResults={finalizeRedTeamRun}
-          onSubmitReview={submitHumanReview}
-        />
-      )}
     </main>
   );
 }

@@ -60,8 +60,8 @@ scoring.
 
 ## Quick Start
 
-For the easiest local setup, add one OpenAI-compatible LLM endpoint, model, and
-API key to `backend/.env`, then run:
+For the easiest local setup, make sure Docker Desktop is open and running, then
+run:
 
 ```bash
 ./start.sh
@@ -87,6 +87,11 @@ http://127.0.0.1:3000
 
 The red-teaming service is started from the frontend when you click the
 red-teaming button, so it does not need a separate terminal command.
+
+Chat and evaluator calls still need one usable LLM provider in `backend/.env`.
+If no key is configured yet, the project still starts so the frontend/backend
+stack can be checked, but model-backed interactions will show a configuration
+error until a provider key is added.
 
 ## Setting Up an API Key
 
@@ -229,7 +234,13 @@ The frontend expects `REACT_APP_API_URL` to point at the backend.
 
 ## VS Code
 
-Use the `Full Stack: Frontend + Backend` debug compound or the `Start Frontend + Backend` task. The task starts both services and opens the frontend.
+Use the `Start Frontend + Backend` task. It runs the same full-project startup
+path as `./start.sh`, clears old local dev processes, starts Docker Compose for
+the subjectivity sidecar, starts the backend and frontend, and opens the
+frontend.
+
+If you use the Run and Debug panel, choose `Run Full Project`; it opens a normal
+terminal process and does not attach the Python debugger.
 
 ## Runtime Shape
 

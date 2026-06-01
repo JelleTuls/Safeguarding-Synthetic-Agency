@@ -2,12 +2,23 @@
   "version": "2.0.0",
   "tasks": [
     {
+      "label": "Setup Project Dependencies",
+      "dependsOrder": "sequence",
+      "dependsOn": [
+        "Create Python Env",
+        "Install Python Dependencies",
+        "Install Frontend Dependencies"
+      ],
+      "problemMatcher": []
+    },
+    {
       "label": "Create Python Env",
       "type": "shell",
-      "command": "python3.13 -m venv ${workspaceFolder}/env",
+      "command": "test -d ${workspaceFolder}/env || python3 -m venv ${workspaceFolder}/env",
       "options": {
         "cwd": "${workspaceFolder}"
       },
+      "problemMatcher": [],
       "presentation": {
         "reveal": "always",
         "panel": "dedicated",
@@ -15,12 +26,13 @@
       }
     },
     {
-      "label": "Install Backend Dependencies",
+      "label": "Install Python Dependencies",
       "type": "shell",
-      "command": "${workspaceFolder}/env/bin/python -m pip install -r requirements.txt",
+      "command": "${workspaceFolder}/env/bin/python -m pip install -r backend/requirements.txt -r red_teaming/requirements.txt",
       "options": {
-        "cwd": "${workspaceFolder}/backend"
+        "cwd": "${workspaceFolder}"
       },
+      "problemMatcher": [],
       "presentation": {
         "reveal": "always",
         "panel": "dedicated",
@@ -34,6 +46,7 @@
       "options": {
         "cwd": "${workspaceFolder}/frontend"
       },
+      "problemMatcher": [],
       "presentation": {
         "reveal": "always",
         "panel": "dedicated",
@@ -41,49 +54,9 @@
       }
     },
     {
-      "label": "Setup Project Dependencies",
-      "dependsOrder": "sequence",
-      "dependsOn": [
-        "Create Python Env",
-        "Install Backend Dependencies",
-        "Install Frontend Dependencies"
-      ]
-    },
-    {
-      "label": "Start Backend",
+      "label": "Start Full Project",
       "type": "shell",
-      "command": "SUBJECTIVITY_CLASSIFIER_URL=http://127.0.0.1:8001 ${workspaceFolder}/env/bin/python -m uvicorn main:app --reload",
-      "options": {
-        "cwd": "${workspaceFolder}/backend"
-      },
-      "isBackground": true,
-      "problemMatcher": [
-        {
-          "pattern": [
-            {
-              "regexp": ".",
-              "file": 1,
-              "location": 2,
-              "message": 3
-            }
-          ],
-          "background": {
-            "activeOnStart": true,
-            "beginsPattern": ".",
-            "endsPattern": "Uvicorn running on"
-          }
-        }
-      ],
-      "presentation": {
-        "reveal": "always",
-        "panel": "dedicated",
-        "group": "servers"
-      }
-    },
-    {
-      "label": "Start Subjectivity Classifier",
-      "type": "shell",
-      "command": "docker compose up --build subjectivity-classifier",
+      "command": "./start.sh",
       "options": {
         "cwd": "${workspaceFolder}"
       },
@@ -92,16 +65,14 @@
         {
           "pattern": [
             {
-              "regexp": ".",
-              "file": 1,
-              "location": 2,
-              "message": 3
+              "regexp": "^(.*)$",
+              "message": 1
             }
           ],
           "background": {
             "activeOnStart": true,
-            "beginsPattern": ".",
-            "endsPattern": "Subjectivity classifier model loaded"
+            "beginsPattern": "== Safeguarding Synthetic Agency ==",
+            "endsPattern": "Open the app at http://127.0.0.1:3000"
           }
         }
       ],
@@ -110,60 +81,25 @@
         "panel": "dedicated",
         "group": "servers"
       }
-    },
-    {
-      "label": "Start Frontend",
-      "type": "shell",
-      "command": "BROWSER=none PORT=3000 npm start",
-      "options": {
-        "cwd": "${workspaceFolder}/frontend"
-      },
-      "isBackground": true,
-      "problemMatcher": [
-        {
-          "pattern": [
-            {
-              "regexp": ".",
-              "file": 1,
-              "location": 2,
-              "message": 3
-            }
-          ],
-          "background": {
-            "activeOnStart": true,
-            "beginsPattern": ".",
-            "endsPattern": "webpack compiled|Compiled successfully"
-          }
-        }
-      ],
-      "presentation": {
-        "reveal": "always",
-        "panel": "dedicated",
-        "group": "servers"
-      }
-    },
-    {
-      "label": "Start Servers",
-      "dependsOrder": "sequence",
-      "dependsOn": [
-        "Start Subjectivity Classifier",
-        "Start Backend",
-        "Start Frontend"
-      ]
     },
     {
       "label": "Start Frontend + Backend",
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
       "dependsOrder": "sequence",
       "dependsOn": [
         "Stop Dev Environment",
-        "Start Servers",
+        "Start Full Project",
         "Open Frontend"
-      ]
+      ],
+      "problemMatcher": []
     },
     {
       "label": "Stop Dev Ports",
       "type": "shell",
-      "command": "python3 -c \"import os, signal, subprocess;\\nports=(3000, 8000);\\nfor port in ports:\\n    result=subprocess.run(['lsof','-ti', f'tcp:{port}'], capture_output=True, text=True);\\n    for pid_text in result.stdout.split():\\n        try:\\n            os.kill(int(pid_text), signal.SIGTERM)\\n            print(f'Stopped process {pid_text} on port {port}')\\n        except ProcessLookupError:\\n            pass\"",
+      "command": "for port in 3000 8000 8010; do pids=$(lsof -ti tcp:$port 2>/dev/null); if [ -n \"$pids\" ]; then kill $pids 2>/dev/null || true; echo \"Stopped processes on port $port\"; fi; done; true",
       "problemMatcher": [],
       "presentation": {
         "reveal": "always",
@@ -197,7 +133,7 @@
     {
       "label": "Open Frontend",
       "type": "shell",
-      "command": "python3 -c \"import socket, subprocess, time;\\ndeadline=time.time()+45\\nwhile time.time()<deadline:\\n    sock=socket.socket(); sock.settimeout(1)\\n    try:\\n        sock.connect(('127.0.0.1', 3000)); break\\n    except OSError:\\n        time.sleep(1)\\n    finally:\\n        sock.close()\\nsubprocess.run(['open', 'http://localhost:3000'])\"",
+      "command": "for i in {1..45}; do nc -z 127.0.0.1 3000 && break; sleep 1; done; open http://localhost:3000",
       "problemMatcher": [],
       "presentation": {
         "reveal": "never",

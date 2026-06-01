@@ -99,17 +99,15 @@ function ReviewCase({ item, onSubmitReview }) {
           {formatScore(numericScore)}
         </span>
         <span className="red-team-summary-copy">
-          <span>{item.method_name}</span>
           <strong>{item.prompt_id}</strong>
           <p>{item.message}</p>
         </span>
-        <span className="red-team-foldout-cue">Open</span>
+        <span className="red-team-foldout-cue" aria-hidden="true" />
       </summary>
 
       <div className="red-team-case-body">
         <div className="red-team-case-heading">
           <div>
-            <span>{item.method_name}</span>
             <strong>{item.prompt_id}</strong>
           </div>
           <b>auto {formatScore(item.automated_score)}</b>
@@ -175,12 +173,27 @@ function ReviewCase({ item, onSubmitReview }) {
             {saveState === 'idle' && 'Auto-save'}
           </div>
         </div>
+        <button
+          aria-label="Collapse review case"
+          className="red-team-collapse-bar"
+          type="button"
+          onClick={(event) => {
+            const reviewCase = event.currentTarget.closest('details');
+            if (reviewCase) {
+              reviewCase.open = false;
+              reviewCase.scrollIntoView({ block: 'nearest' });
+            }
+          }}
+        >
+          <span aria-hidden="true" />
+        </button>
       </div>
     </details>
   );
 }
 
 function RedTeamPanel({
+  embedded = false,
   run,
   reviewItems,
   error,
@@ -230,7 +243,7 @@ function RedTeamPanel({
 
   if (isRunning) {
     return (
-      <div className="red-team-overlay" role="dialog" aria-modal="true">
+      <div className={embedded ? 'red-team-embedded' : 'red-team-overlay'} role={embedded ? 'status' : 'dialog'} aria-modal={embedded ? undefined : 'true'}>
         <section className="red-team-progress-card">
           <div className="red-team-progress-topline">
             <span>{statusLabel(status)}</span>
@@ -261,78 +274,88 @@ function RedTeamPanel({
   }
 
   return (
-    <div className="red-team-overlay" role="dialog" aria-modal="true">
+    <div className={embedded ? 'red-team-embedded' : 'red-team-overlay'} role={embedded ? undefined : 'dialog'} aria-modal={embedded ? undefined : 'true'}>
       <section className="red-team-results-panel">
-        <header className="red-team-results-header">
-          <div>
-            <span>Red-team evaluation</span>
-            <h2>{statusLabel(status)}</h2>
-          </div>
-          <button type="button" onClick={onClose} aria-label="Close red-team results">x</button>
-        </header>
+        {!embedded && (
+          <header className="red-team-results-header">
+            <div>
+              <span>Red-team evaluation</span>
+              <h2>{statusLabel(status)}</h2>
+            </div>
+            <button type="button" onClick={onClose} aria-label="Close red-team results">x</button>
+          </header>
+        )}
 
         {error && <p className="red-team-error">{error}</p>}
         {finalizeError && <p className="red-team-error">{finalizeError}</p>}
 
-        <div className="red-team-summary-grid">
-          <div>
-            <span>Overall score</span>
-            <strong>{formatScore(scores.overall_score)}</strong>
-          </div>
-          <div>
-            <span>Pending human review</span>
-            <strong>{scores.pending_human_reviews ?? 0}</strong>
-          </div>
-          <div>
-            <span>Completed review</span>
-            <strong>{scores.completed_human_reviews ?? 0}</strong>
-          </div>
-          <div>
-            <span>Profile tested</span>
-            <strong>{run?.profile?.label || 'Random profile'}</strong>
-          </div>
-          <div>
-            <span>Target mode</span>
-            <strong>{run?.target_mode === 'lightweight_no_guardrails' ? 'No guardrails' : 'Guardrailed'}</strong>
-          </div>
-        </div>
-
-        <div className="red-team-method-scores">
-          {Object.entries(methodScores).map(([method, value]) => (
-            <div key={method}>
-              <span>{method}</span>
-              <b>{formatScore(value)}</b>
+        {!embedded && (
+          <div className="red-team-summary-grid">
+            <div>
+              <span>Overall score</span>
+              <strong>{formatScore(scores.overall_score)}</strong>
             </div>
-          ))}
-        </div>
+            <div>
+              <span>Pending human review</span>
+              <strong>{scores.pending_human_reviews ?? 0}</strong>
+            </div>
+            <div>
+              <span>Completed review</span>
+              <strong>{scores.completed_human_reviews ?? 0}</strong>
+            </div>
+            <div>
+              <span>Profile tested</span>
+              <strong>{run?.profile?.label || 'Random profile'}</strong>
+            </div>
+            <div>
+              <span>Target mode</span>
+              <strong>{run?.target_mode === 'lightweight_no_guardrails' ? 'No guardrails' : 'Guardrailed'}</strong>
+            </div>
+          </div>
+        )}
 
-        <div className="red-team-final-actions">
-          <button
-            type="button"
-            disabled={!canFinalize || finalizing}
-            onClick={async () => {
-              setFinalizeError(null);
-              setFinalizing(true);
-              try {
-                await onSaveFinalResults();
-              } catch (err) {
-                setFinalizeError(err.message);
-              } finally {
-                setFinalizing(false);
-              }
-            }}
-          >
-            {finalizing ? 'Saving final results...' : finalReport ? 'Re-save final results' : 'Save final results'}
-          </button>
-          {finalReport?.download_url && (
-            <a href={`${process.env.REACT_APP_RED_TEAM_API_URL || 'http://127.0.0.1:8010'}${finalReport.download_url}`}>
-              Download JSON report
-            </a>
-          )}
-          {!canFinalize && status === 'completed' && (
-            <span>Complete all pending human reviews before saving the final report.</span>
-          )}
-        </div>
+        {!embedded && (
+          <div className="red-team-method-scores">
+            {Object.entries(methodScores).map(([method, value]) => (
+              <div key={method}>
+                <span>{method}</span>
+                <b>{formatScore(value)}</b>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {!embedded && (
+          <div className="red-team-final-actions">
+            <button
+              aria-label={finalReport ? 'Re-save final results' : 'Save final results'}
+              className="red-team-save-final"
+              type="button"
+              disabled={!canFinalize || finalizing}
+              onClick={async () => {
+                setFinalizeError(null);
+                setFinalizing(true);
+                try {
+                  await onSaveFinalResults();
+                } catch (err) {
+                  setFinalizeError(err.message);
+                } finally {
+                  setFinalizing(false);
+                }
+              }}
+            >
+              <span aria-hidden="true" />
+            </button>
+            {finalReport?.download_url && (
+              <a href={`${process.env.REACT_APP_RED_TEAM_API_URL || 'http://127.0.0.1:8010'}${finalReport.download_url}`}>
+                Download JSON report
+              </a>
+            )}
+            {!canFinalize && status === 'completed' && (
+              <span>Complete all pending human reviews before saving the final report.</span>
+            )}
+          </div>
+        )}
 
         <div className="red-team-review-header">
           <h3>Human mediation</h3>

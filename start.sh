@@ -14,14 +14,11 @@ echo "== Safeguarding Synthetic Agency =="
 if [ ! -f "backend/.env" ]; then
   cp "backend/.env.example" "backend/.env"
   echo "Created backend/.env from backend/.env.example."
-  echo "Add at least one LLM API key to backend/.env, then run ./start.sh again."
-  exit 1
 fi
 
 if ! grep -Eq '^(LLM_API_KEY|OPENAI_API_KEY|GROQ_API_KEY|GROQ_API_KEY_2|AZURE_OPENAI_API_KEY)=.+$' backend/.env; then
   echo "backend/.env does not appear to contain an LLM API key."
-  echo "Add one provider key, then run ./start.sh again."
-  exit 1
+  echo "The app will still start, but chat/evaluator calls need one provider key."
 fi
 
 if [ ! -f "frontend/.env" ]; then
@@ -83,4 +80,4 @@ echo ""
 echo "Open the app at http://127.0.0.1:${FRONTEND_PORT}"
 echo "Press Ctrl+C to stop backend and frontend."
 
-wait -n
+wait

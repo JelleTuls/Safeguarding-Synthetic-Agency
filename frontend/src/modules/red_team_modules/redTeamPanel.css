@@ -9,10 +9,55 @@
   z-index: 40;
 }
 
+.red-team-embedded {
+  height: 100%;
+  min-height: 0;
+}
+
+.red-team-embedded .red-team-progress-card,
+.red-team-embedded .red-team-results-panel {
+  box-shadow: none;
+  height: 100%;
+  max-height: none;
+  max-width: none;
+  width: 100%;
+}
+
+.red-team-embedded .red-team-progress-card {
+  display: block;
+}
+
+.red-team-embedded .red-team-results-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.red-team-embedded .red-team-method-scores,
+.red-team-embedded .red-team-final-actions,
+.red-team-embedded .red-team-review-header {
+  flex: 0 0 auto;
+}
+
+.red-team-embedded .red-team-final-actions {
+  background: transparent;
+  border: 0;
+  justify-content: flex-end;
+  margin-bottom: 10px;
+  padding: 0;
+}
+
+.red-team-embedded .red-team-review-list {
+  flex: 1 1 auto;
+  max-height: none;
+  min-height: 0;
+}
+
 .red-team-progress-card,
 .red-team-results-panel {
   background: #ffffff;
   border: 1px solid rgba(145, 158, 171, 0.32);
+  box-sizing: border-box;
   box-shadow: 0 24px 70px rgba(15, 23, 42, 0.18);
   color: #17202a;
 }
@@ -120,7 +165,7 @@
   max-width: 1040px;
   overflow: auto;
   overflow-x: hidden;
-  padding: 22px;
+  padding: 22px 22px 34px;
   scrollbar-width: none;
   width: min(1040px, 100%);
 }
@@ -215,6 +260,25 @@
   padding: 12px;
 }
 
+.red-team-final-actions .red-team-save-final {
+  align-items: center;
+  border-radius: 8px;
+  display: inline-flex;
+  height: 34px;
+  justify-content: center;
+  padding: 0;
+  width: 34px;
+}
+
+.red-team-final-actions .red-team-save-final span {
+  border-bottom: 2px solid #ffffff;
+  border-right: 2px solid #ffffff;
+  display: block;
+  height: 14px;
+  transform: rotate(45deg) translate(-1px, -2px);
+  width: 7px;
+}
+
 .red-team-final-actions button,
 .red-team-final-actions a {
   border-radius: 10px;
@@ -233,6 +297,13 @@
 .red-team-final-actions button:disabled {
   background: #98a2b3;
   cursor: default;
+}
+
+.red-team-final-actions button.red-team-save-final {
+  border-radius: 8px;
+  height: 34px;
+  padding: 0;
+  width: 34px;
 }
 
 .red-team-final-actions a {
@@ -260,6 +331,7 @@
   gap: 16px;
   max-height: 560px;
   overflow: auto;
+  padding-bottom: 22px;
   scrollbar-width: none;
 }
 
@@ -330,22 +402,13 @@
 
 .red-team-summary-copy {
   display: grid;
-  gap: 2px;
+  gap: 4px;
   min-width: 0;
-}
-
-.red-team-summary-copy span {
-  color: #667085;
-  font-size: 11px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  text-transform: uppercase;
-  white-space: nowrap;
 }
 
 .red-team-summary-copy strong {
   color: #17202a;
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .red-team-summary-copy p {
@@ -359,28 +422,25 @@
 }
 
 .red-team-foldout-cue {
-  color: #667085;
-  font-size: 12px;
+  border-bottom: 2px solid #667085;
+  border-right: 2px solid #667085;
+  display: block;
+  height: 9px;
+  justify-self: center;
+  transform: rotate(45deg) translate(-2px, -2px);
+  width: 9px;
 }
 
 .red-team-review-case[open] .red-team-foldout-cue {
-  color: #17202a;
-}
-
-.red-team-review-case[open] .red-team-foldout-cue::before {
-  content: "Close";
-}
-
-.red-team-review-case[open] .red-team-foldout-cue {
-  font-size: 0;
-}
-
-.red-team-review-case[open] .red-team-foldout-cue::before {
-  font-size: 12px;
+  border-bottom: 0;
+  border-right: 0;
+  border-left: 2px solid #17202a;
+  border-top: 2px solid #17202a;
+  transform: rotate(45deg) translate(2px, 2px);
 }
 
 .red-team-case-body {
-  padding: 14px;
+  padding: 14px 14px 0;
 }
 
 .red-team-case-heading div {
@@ -388,14 +448,35 @@
   gap: 4px;
 }
 
-.red-team-case-heading span {
-  color: #667085;
-  font-size: 12px;
-}
-
 .red-team-case-heading strong,
 .red-team-case-heading b {
   font-size: 14px;
+}
+
+.red-team-collapse-bar {
+  align-items: center;
+  background: #f2f5f8;
+  border: 0;
+  border-top: 1px solid #e4e9ef;
+  cursor: pointer;
+  display: flex;
+  height: 34px;
+  justify-content: center;
+  margin: 14px -14px 0;
+  width: calc(100% + 28px);
+}
+
+.red-team-collapse-bar:hover {
+  background: #e9eef4;
+}
+
+.red-team-collapse-bar span {
+  border-left: 2px solid #667085;
+  border-top: 2px solid #667085;
+  display: block;
+  height: 10px;
+  transform: rotate(45deg) translate(2px, 2px);
+  width: 10px;
 }
 
 .red-team-prompt,

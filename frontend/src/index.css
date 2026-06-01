@@ -9,6 +9,12 @@ body {
 
 /* Below styling is a habit i have for projects, if you wish to change let me (brendan) know */
 
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
 *{
   margin: 0;
   padding: 0;

@@ -2,48 +2,25 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Backend: FastAPI",
-      "type": "debugpy",
-      "request": "launch",
-      "python": "${workspaceFolder}/env/bin/python",
-      "module": "uvicorn",
-      "cwd": "${workspaceFolder}/backend",
-      "envFile": "${workspaceFolder}/backend/.env",
-      "env": {
-        "SUBJECTIVITY_CLASSIFIER_URL": "http://127.0.0.1:8001"
-      },
-      "preLaunchTask": "Start Subjectivity Classifier",
-      "postDebugTask": "Stop Subjectivity Classifier",
-      "args": [
-        "main:app",
-        "--reload",
-        "--host",
-        "127.0.0.1",
-        "--port",
-        "8000"
-      ],
-      "jinja": true,
-      "console": "integratedTerminal"
-    },
-    {
-      "name": "Frontend: React",
+      "name": "Run Full Project",
       "type": "node-terminal",
       "request": "launch",
-      "command": "python3 -c \"import os, signal, subprocess; result=subprocess.run(['lsof','-ti','tcp:3000'], capture_output=True, text=True); [os.kill(int(pid), signal.SIGTERM) for pid in result.stdout.split()]\"; BROWSER=none PORT=3000 npm start",
+      "command": "./start.sh",
+      "cwd": "${workspaceFolder}",
+      "preLaunchTask": "Stop Dev Environment"
+    },
+    {
+      "name": "Frontend Only: React",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "BROWSER=none PORT=3000 npm start",
       "cwd": "${workspaceFolder}/frontend"
     },
     {
       "name": "Open Frontend",
       "type": "node-terminal",
       "request": "launch",
-      "command": "python3 -c \"import socket, subprocess, time; deadline=time.time()+45\nwhile time.time()<deadline:\n    sock=socket.socket(); sock.settimeout(1)\n    try:\n        sock.connect(('127.0.0.1', 3000)); break\n    except OSError:\n        time.sleep(1)\n    finally:\n        sock.close()\nsubprocess.run(['open', 'http://localhost:3000'])\"",
-      "cwd": "${workspaceFolder}"
-    },
-    {
-      "name": "Subjectivity Classifier: Docker",
-      "type": "node-terminal",
-      "request": "launch",
-      "command": "docker compose up --build subjectivity-classifier",
+      "command": "for i in {1..45}; do nc -z 127.0.0.1 3000 && break; sleep 1; done; open http://localhost:3000",
       "cwd": "${workspaceFolder}"
     }
   ],
@@ -51,8 +28,7 @@
     {
       "name": "Full Stack: Frontend + Backend",
       "configurations": [
-        "Backend: FastAPI",
-        "Frontend: React",
+        "Run Full Project",
         "Open Frontend"
       ],
       "stopAll": true
