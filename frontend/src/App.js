@@ -3,6 +3,8 @@ import { useCallback, useEffect, useState } from 'react';
 import './App.css';
 import PersonaChat from './modules/persona_chat_modules/personaChat';
 import RedTeamPanel from './modules/red_team_modules/redTeamPanel';
+import arrowBackIcon from './assets/images/Icon_ArrowBack.png';
+import settingsIcon from './assets/images/Icon_Settings.png';
 
 const backendApiUrl = (process.env.REACT_APP_API_URL || 'http://127.0.0.1:8000').replace(/\/$/, '');
 const redTeamApiUrl = (process.env.REACT_APP_RED_TEAM_API_URL || 'http://127.0.0.1:8010').replace(/\/$/, '');
@@ -14,6 +16,14 @@ const redTeamMethods = [
   ['SC', 'Stylometric Consistency'],
   ['PG', 'Persuasive Governance'],
 ];
+
+function normalizePromptSettings(prompts = []) {
+  return prompts.map((prompt) => ({
+    ...prompt,
+    original_expected_answer: prompt.expected_answer || '',
+    expected_answer: prompt.expected_answer || '',
+  }));
+}
 
 function recomputeRedTeamScores(cases = []) {
   const methods = {};
@@ -78,6 +88,10 @@ function App() {
   const [redTeamError, setRedTeamError] = useState(null);
   const [selectedRedTeamMethods, setSelectedRedTeamMethods] = useState(redTeamMethods.map(([method]) => method));
   const [redTeamTargetMode, setRedTeamTargetMode] = useState('guardrailed');
+  const [redTeamPromptSettings, setRedTeamPromptSettings] = useState([]);
+  const [redTeamPromptSettingsStatus, setRedTeamPromptSettingsStatus] = useState('idle');
+  const [selectedPromptId, setSelectedPromptId] = useState(null);
+  const [redTeamSettingsOpen, setRedTeamSettingsOpen] = useState(false);
 
   const loadRedTeamRun = useCallback(async (runId) => {
     if (!runId) {
@@ -150,13 +164,64 @@ function App() {
     return () => window.clearInterval(intervalId);
   }, [loadRedTeamRun, redTeamRun?.run_id, redTeamRun?.status]);
 
+  const ensureRedTeamService = useCallback(async () => {
+    const serviceResponse = await fetch(`${backendApiUrl}/api/red-team/service/start`, {
+      method: 'POST',
+    });
+    if (!serviceResponse.ok) {
+      throw new Error(`Could not start red-team service: ${serviceResponse.status}`);
+    }
+    const servicePayload = await serviceResponse.json();
+    if (!servicePayload.ready) {
+      throw new Error('Red-team service did not become ready.');
+    }
+    return servicePayload;
+  }, []);
+
+  const loadRedTeamPromptSettings = useCallback(async () => {
+    try {
+      setRedTeamPromptSettingsStatus('loading');
+      setRedTeamError(null);
+      await ensureRedTeamService();
+      const response = await fetch(`${redTeamApiUrl}/api/prompt-settings`);
+      if (!response.ok) {
+        throw new Error(`Could not load red-team prompt settings: ${response.status}`);
+      }
+      const payload = await response.json();
+      const prompts = normalizePromptSettings(payload.prompts || []);
+      setRedTeamPromptSettings(prompts);
+      setSelectedPromptId((current) => current || prompts[0]?.prompt_id || null);
+      setRedTeamPromptSettingsStatus('ready');
+      return prompts;
+    } catch (err) {
+      setRedTeamPromptSettingsStatus('error');
+      setRedTeamError(err.message);
+      return [];
+    }
+  }, [ensureRedTeamService]);
+
+  useEffect(() => {
+    if (activeTab === 'red-team' && redTeamPromptSettingsStatus === 'idle') {
+      loadRedTeamPromptSettings();
+    }
+  }, [activeTab, loadRedTeamPromptSettings, redTeamPromptSettingsStatus]);
+
   async function startRedTeamRun() {
     if (selectedRedTeamMethods.length === 0) {
       setRedTeamError('Select at least one red-team method.');
       return;
     }
+    const promptSettingsForRun = redTeamPromptSettingsStatus === 'ready'
+      ? redTeamPromptSettings
+      : await loadRedTeamPromptSettings();
     const methodsToRun = selectedRedTeamMethods;
     const totalCases = methodsToRun.length * 10;
+    const expectedAnswerOverrides = Object.fromEntries(
+      promptSettingsForRun
+        .filter((prompt) => methodsToRun.includes(prompt.method))
+        .filter((prompt) => prompt.expected_answer.trim() !== prompt.original_expected_answer.trim())
+        .map((prompt) => [prompt.prompt_id, prompt.expected_answer.trim()])
+    );
     setActiveTab('red-team');
     setRedTeamError(null);
     setRedTeamReviewItems([]);
@@ -170,16 +235,7 @@ function App() {
       },
     });
     try {
-      const serviceResponse = await fetch(`${backendApiUrl}/api/red-team/service/start`, {
-        method: 'POST',
-      });
-      if (!serviceResponse.ok) {
-        throw new Error(`Could not start red-team service: ${serviceResponse.status}`);
-      }
-      const servicePayload = await serviceResponse.json();
-      if (!servicePayload.ready) {
-        throw new Error('Red-team service did not become ready.');
-      }
+      await ensureRedTeamService();
 
       const response = await fetch(`${redTeamApiUrl}/api/runs`, {
         method: 'POST',
@@ -189,6 +245,7 @@ function App() {
           country: 'netherlands',
           selected_methods: methodsToRun,
           target_mode: redTeamTargetMode,
+          expected_answer_overrides: expectedAnswerOverrides,
         }),
       });
       if (!response.ok) {
@@ -293,6 +350,20 @@ function App() {
     });
   }
 
+  function updatePromptExpectedAnswer(promptId, value) {
+    setRedTeamPromptSettings((current) => current.map((prompt) => (
+      prompt.prompt_id === promptId ? { ...prompt, expected_answer: value } : prompt
+    )));
+  }
+
+  function resetPromptExpectedAnswer(promptId) {
+    setRedTeamPromptSettings((current) => current.map((prompt) => (
+      prompt.prompt_id === promptId
+        ? { ...prompt, expected_answer: prompt.original_expected_answer }
+        : prompt
+    )));
+  }
+
   function resetRedTeamRun() {
     setRedTeamRun(null);
     setRedTeamReviewItems([]);
@@ -308,6 +379,106 @@ function App() {
   const redTeamStatusTitle = redTeamIsRunning
     ? 'Red-team evaluation running'
     : `Red-team evaluation ${redTeamStatus || 'completed'}`;
+  const visiblePromptSettings = redTeamPromptSettings.filter((prompt) => selectedRedTeamMethods.includes(prompt.method));
+  const selectedPromptSetting = visiblePromptSettings.find((prompt) => prompt.prompt_id === selectedPromptId) || visiblePromptSettings[0] || null;
+  const editedPromptCount = redTeamPromptSettings.filter((prompt) => (
+    prompt.expected_answer.trim() !== prompt.original_expected_answer.trim()
+  )).length;
+  const redTeamSettingsView = (
+    <div className="redTeamSettingsPage">
+      <div className="redTeamSettingsHeader">
+        <div className="redTeamSettingsTitleCluster">
+          <button
+            aria-label="Back to evaluation"
+            className="redTeamBackButton"
+            title="Back to evaluation"
+            type="button"
+            onClick={() => setRedTeamSettingsOpen(false)}
+          >
+            <img alt="" src={arrowBackIcon} />
+          </button>
+          <div>
+            <span>Question settings</span>
+            <h2 className="unbounded-weight400">Expected direction and vibe</h2>
+          </div>
+        </div>
+        <div className="redTeamSettingsHeaderActions">
+          <div className="redTeamSettingsMeta">
+            <span>{visiblePromptSettings.length} questions</span>
+            <span>{editedPromptCount} edited</span>
+          </div>
+          <button
+            className="redTeamSecondaryButton"
+            disabled={redTeamPromptSettingsStatus === 'loading'}
+            type="button"
+            onClick={loadRedTeamPromptSettings}
+          >
+            Refresh settings
+          </button>
+        </div>
+      </div>
+      {redTeamPromptSettingsStatus === 'loading' && (
+        <p className="statusText">Loading red-team question settings...</p>
+      )}
+      {redTeamPromptSettingsStatus === 'error' && (
+        <div className="redTeamSettingsFallback">
+          <p className="statusText errorText">Question settings are unavailable.</p>
+          <button className="redTeamSecondaryButton" type="button" onClick={loadRedTeamPromptSettings}>
+            Try again
+          </button>
+        </div>
+      )}
+      {redTeamPromptSettingsStatus === 'ready' && selectedPromptSetting && (
+        <div className="redTeamSettingsGrid">
+          <div className="redTeamQuestionList" aria-label="Red-team questions">
+            {visiblePromptSettings.map((prompt) => {
+              const isEdited = prompt.expected_answer.trim() !== prompt.original_expected_answer.trim();
+              return (
+                <button
+                  className={prompt.prompt_id === selectedPromptSetting.prompt_id ? 'isSelected' : ''}
+                  key={prompt.prompt_id}
+                  type="button"
+                  onClick={() => setSelectedPromptId(prompt.prompt_id)}
+                >
+                  <span>{prompt.prompt_id}</span>
+                  <strong>{prompt.method_name}</strong>
+                  <p>{prompt.message}</p>
+                  {isEdited && <b>edited</b>}
+                </button>
+              );
+            })}
+          </div>
+          <section className="redTeamPromptEditor" aria-label="Expected answer editor">
+            <div className="redTeamPromptEditorTopline">
+              <span>{selectedPromptSetting.prompt_id}</span>
+              <strong>{selectedPromptSetting.target_guardrail}</strong>
+            </div>
+            <p className="redTeamPromptMessage">{selectedPromptSetting.message}</p>
+            <label>
+              Expected answer behavior
+              <textarea
+                value={selectedPromptSetting.expected_answer}
+                onChange={(event) => updatePromptExpectedAnswer(selectedPromptSetting.prompt_id, event.target.value)}
+              />
+            </label>
+            <button
+              className="redTeamSecondaryButton"
+              type="button"
+              onClick={() => resetPromptExpectedAnswer(selectedPromptSetting.prompt_id)}
+            >
+              Reset this expectation
+            </button>
+          </section>
+        </div>
+      )}
+      {redTeamPromptSettingsStatus === 'ready' && !selectedPromptSetting && (
+        <div className="redTeamEmptyState">
+          <h2 className="unbounded-weight400">No methods selected</h2>
+          <p>Select at least one method to edit its expected answer behavior.</p>
+        </div>
+      )}
+    </div>
+  );
 
   return (
     <main className={`ChatApp unbounded-weight300 ${activePersona ? 'isBlurred' : ''}`}>
@@ -418,14 +589,30 @@ function App() {
             </div>
           )}
 
-          {activeTab === 'red-team' && (
+          {activeTab === 'red-team' && redTeamSettingsOpen && (
+            <div className="redTeamSettingsFullWindow">
+              {redTeamSettingsView}
+            </div>
+          )}
+
+          {activeTab === 'red-team' && !redTeamSettingsOpen && (
             <div className="redTeamWorkspace">
               <section className="redTeamSetupPanel">
                 {!redTeamRun ? (
                   <>
                     <div className="panelHeader">
                       <span>Evaluation setup</span>
-                      <strong>{selectedRedTeamMethods.length} selected</strong>
+                      <div className="panelHeaderActions">
+                        <strong>{selectedRedTeamMethods.length} selected</strong>
+                        <button
+                          className="redTeamSettingsTextButton"
+                          aria-label="Open question settings"
+                          type="button"
+                          onClick={() => setRedTeamSettingsOpen(true)}
+                        >
+                          <img alt="" src={settingsIcon} />
+                        </button>
+                      </div>
                     </div>
                     <div className="redTeamControlGroup">
                       <h2 className="unbounded-weight400">Red-team methods</h2>
@@ -478,31 +665,41 @@ function App() {
                 ) : (
                   <>
                     <div className="redTeamRunHeading">
-                      <span>Red-team evaluation</span>
+                      <div className="redTeamRunHeadingTopline">
+                        <span>Red-team evaluation</span>
+                        <button
+                          className="redTeamSettingsTextButton"
+                          aria-label="Open question settings"
+                          type="button"
+                          onClick={() => setRedTeamSettingsOpen(true)}
+                        >
+                          <img alt="" src={settingsIcon} />
+                        </button>
+                      </div>
                       <h2 className="unbounded-weight400">{redTeamStatusTitle}</h2>
                     </div>
                     <div className="redTeamRunSummary" aria-label="Red-team run summary">
-                    <div className="redTeamScoreCards">
-                      <div className="redTeamScoreCard">
-                        <span>Overall score</span>
-                        <strong>{formatPercent(redTeamScores.overall_score)}</strong>
-                      </div>
-                      <div className="redTeamScoreCard">
-                        <span>Pending human review</span>
-                        <strong>{redTeamScores.pending_human_reviews ?? 0}</strong>
-                      </div>
-                      <div className="redTeamScoreCard">
-                        <span>Completed review</span>
-                        <strong>{redTeamScores.completed_human_reviews ?? 0}</strong>
-                      </div>
-                      {Object.entries(redTeamMethodScores).map(([method, value]) => (
-                        <div className="redTeamScoreCard isMethodScore" key={method}>
-                          <span>{method}</span>
-                          <strong>{formatPercent(value)}</strong>
+                      <div className="redTeamScoreCards">
+                        <div className="redTeamScoreCard">
+                          <span>Overall score</span>
+                          <strong>{formatPercent(redTeamScores.overall_score)}</strong>
                         </div>
-                      ))}
+                        <div className="redTeamScoreCard">
+                          <span>Pending human review</span>
+                          <strong>{redTeamScores.pending_human_reviews ?? 0}</strong>
+                        </div>
+                        <div className="redTeamScoreCard">
+                          <span>Completed review</span>
+                          <strong>{redTeamScores.completed_human_reviews ?? 0}</strong>
+                        </div>
+                        {Object.entries(redTeamMethodScores).map(([method, value]) => (
+                          <div className="redTeamScoreCard isMethodScore" key={method}>
+                            <span>{method}</span>
+                            <strong>{formatPercent(value)}</strong>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  </div>
                     {redTeamError && <p className="statusText errorText">{redTeamError}</p>}
                     <button className="redTeamResetButton" type="button" onClick={resetRedTeamRun}>
                       Start new red-teaming process

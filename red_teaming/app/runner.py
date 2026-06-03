@@ -48,11 +48,17 @@ def create_run(
     seed: int | None = None,
     selected_methods: list[str] | None = None,
     target_mode: str | None = None,
+    expected_answer_overrides: dict[str, str] | None = None,
 ) -> dict[str, Any]:
     """Create an empty run payload."""
     run_id = f"rt-{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')}-{uuid4().hex[:8]}"
     methods = _normalize_methods(selected_methods)
     mode = _normalize_target_mode(target_mode)
+    overrides = {
+        key: value.strip()
+        for key, value in (expected_answer_overrides or {}).items()
+        if isinstance(key, str) and isinstance(value, str) and value.strip()
+    }
     return {
         "run_id": run_id,
         "status": "created",
@@ -63,6 +69,7 @@ def create_run(
         "seed": seed,
         "target_mode": mode,
         "guardrails_enabled": mode != "lightweight_no_guardrails",
+        "expected_answer_overrides": overrides,
         "profile": None,
         "methods": METHOD_NAMES,
         "selected_methods": methods,
@@ -78,6 +85,7 @@ def create_run(
             "prompts_per_method": 10,
             "selected_methods": methods,
             "target_mode": mode,
+            "custom_expected_answers": len(overrides),
             "current_scope": "single-turn prompt and token attacks, boundary probes, framing probes, stylometric probes, and persuasion probes",
             "future_scope": "multi-turn and iterative adaptive attack generation can be added without changing the backend chat system",
         },
@@ -233,6 +241,7 @@ def execute_run(run: dict[str, Any]) -> None:
     tests = build_test_prompts(
         max_prompts_per_method=10,
         selected_methods=run.get("selected_methods"),
+        expected_answer_overrides=run.get("expected_answer_overrides"),
     )
     randomizer.shuffle(tests)
     session_id = f"red-team-{run['run_id']}"

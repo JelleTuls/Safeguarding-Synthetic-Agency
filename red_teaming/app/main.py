@@ -14,6 +14,7 @@ from pydantic import BaseModel, Field
 from .runner import create_run, execute_run
 from .scoring import recompute_final_scores
 from .storage import load_run, list_runs, report_path, save_final_report, save_run
+from .test_suites import list_prompt_settings
 
 
 APP_DIR = Path(__file__).resolve().parents[1]
@@ -41,6 +42,7 @@ class RunCreateRequest(BaseModel):
     seed: int | None = None
     selected_methods: list[str] | None = None
     target_mode: str = "guardrailed"
+    expected_answer_overrides: dict[str, str] = Field(default_factory=dict)
 
 
 class HumanReviewRequest(BaseModel):
@@ -65,6 +67,7 @@ def start_run(request: RunCreateRequest, background_tasks: BackgroundTasks):
         seed=request.seed,
         selected_methods=request.selected_methods,
         target_mode=request.target_mode,
+        expected_answer_overrides=request.expected_answer_overrides,
     )
     save_run(run)
     background_tasks.add_task(execute_run, run)
@@ -79,6 +82,12 @@ def start_run(request: RunCreateRequest, background_tasks: BackgroundTasks):
 def get_runs():
     """List red-team runs."""
     return {"runs": list_runs()}
+
+
+@app.get("/api/prompt-settings")
+def get_prompt_settings():
+    """Return red-team prompts and editable expected answer behavior."""
+    return {"prompts": list_prompt_settings()}
 
 
 @app.get("/api/runs/{run_id}")

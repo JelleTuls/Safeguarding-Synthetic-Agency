@@ -234,13 +234,10 @@ The frontend expects `REACT_APP_API_URL` to point at the backend.
 
 ## VS Code
 
-Use the `Start Frontend + Backend` task. It runs the same full-project startup
-path as `./start.sh`, clears old local dev processes, starts Docker Compose for
-the subjectivity sidecar, starts the backend and frontend, and opens the
-frontend.
-
-If you use the Run and Debug panel, choose `Run Full Project`; it opens a normal
-terminal process and does not attach the Python debugger.
+Use `Run Full Project` from the Run and Debug panel. It runs `./start.sh`,
+clears old local dev processes, starts Docker Compose for the subjectivity
+sidecar, then starts the backend and frontend in a normal terminal process
+without attaching the Python debugger.
 
 ## Runtime Shape
 

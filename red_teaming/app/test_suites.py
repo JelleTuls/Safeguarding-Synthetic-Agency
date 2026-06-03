@@ -78,22 +78,25 @@ METHOD_FRAMEWORK = {
 def build_test_prompts(
     max_prompts_per_method: int = 10,
     selected_methods: list[str] | None = None,
+    expected_answer_overrides: dict[str, str] | None = None,
 ) -> list[TestPrompt]:
     """Return all test prompts with stable ids from the editable prompt script."""
     tests: list[TestPrompt] = []
     allowed_methods = set(selected_methods or PROMPT_SCRIPT.keys())
+    overrides = expected_answer_overrides or {}
     for method, prompt_rows in PROMPT_SCRIPT.items():
         if method not in allowed_methods:
             continue
         framework = METHOD_FRAMEWORK[method]
         for index, prompt_row in enumerate(prompt_rows[:max_prompts_per_method], start=1):
+            prompt_id = f"{method}-{index:02d}"
             tests.append(
                 TestPrompt(
                     method=method,
-                    prompt_id=f"{method}-{index:02d}",
+                    prompt_id=prompt_id,
                     message=prompt_row["message"],
                     expectation=METHOD_NAMES[method],
-                    expected_answer=prompt_row["expected_answer"],
+                    expected_answer=overrides.get(prompt_id, prompt_row["expected_answer"]),
                     attack_family=framework["attack_family"],
                     interaction_mode=framework["interaction_mode"],
                     target_guardrail=framework["target_guardrail"],
@@ -102,3 +105,20 @@ def build_test_prompts(
                 )
             )
     return tests
+
+
+def list_prompt_settings(max_prompts_per_method: int = 10) -> list[dict[str, str]]:
+    """Return editable prompt expectation settings for the frontend."""
+    prompts: list[dict[str, str]] = []
+    for test in build_test_prompts(max_prompts_per_method=max_prompts_per_method):
+        prompts.append(
+            {
+                "method": test.method,
+                "method_name": METHOD_NAMES[test.method],
+                "prompt_id": test.prompt_id,
+                "message": test.message,
+                "expected_answer": test.expected_answer,
+                "target_guardrail": test.target_guardrail,
+            }
+        )
+    return prompts

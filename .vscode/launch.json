@@ -8,30 +8,6 @@
       "command": "./start.sh",
       "cwd": "${workspaceFolder}",
       "preLaunchTask": "Stop Dev Environment"
-    },
-    {
-      "name": "Frontend Only: React",
-      "type": "node-terminal",
-      "request": "launch",
-      "command": "BROWSER=none PORT=3000 npm start",
-      "cwd": "${workspaceFolder}/frontend"
-    },
-    {
-      "name": "Open Frontend",
-      "type": "node-terminal",
-      "request": "launch",
-      "command": "for i in {1..45}; do nc -z 127.0.0.1 3000 && break; sleep 1; done; open http://localhost:3000",
-      "cwd": "${workspaceFolder}"
-    }
-  ],
-  "compounds": [
-    {
-      "name": "Full Stack: Frontend + Backend",
-      "configurations": [
-        "Run Full Project",
-        "Open Frontend"
-      ],
-      "stopAll": true
     }
   ]
 }

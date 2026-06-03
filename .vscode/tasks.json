@@ -83,20 +83,6 @@
       }
     },
     {
-      "label": "Start Frontend + Backend",
-      "group": {
-        "kind": "build",
-        "isDefault": true
-      },
-      "dependsOrder": "sequence",
-      "dependsOn": [
-        "Stop Dev Environment",
-        "Start Full Project",
-        "Open Frontend"
-      ],
-      "problemMatcher": []
-    },
-    {
       "label": "Stop Dev Ports",
       "type": "shell",
       "command": "for port in 3000 8000 8010; do pids=$(lsof -ti tcp:$port 2>/dev/null); if [ -n \"$pids\" ]; then kill $pids 2>/dev/null || true; echo \"Stopped processes on port $port\"; fi; done; true",
@@ -129,17 +115,6 @@
         "Stop Subjectivity Classifier"
       ],
       "problemMatcher": []
-    },
-    {
-      "label": "Open Frontend",
-      "type": "shell",
-      "command": "for i in {1..45}; do nc -z 127.0.0.1 3000 && break; sleep 1; done; open http://localhost:3000",
-      "problemMatcher": [],
-      "presentation": {
-        "reveal": "never",
-        "panel": "shared",
-        "group": "servers"
-      }
     }
   ]
 }
