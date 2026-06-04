@@ -10,6 +10,8 @@ explain specific parts of the system.
   from user message to final validated response.
 - [Backend Runtime](backend-runtime.md): backend package structure, persona
   loading, biography generation, provider configuration, and chat entry points.
+- [Project Architecture](project-architecture.md): runtime boundaries, feature
+  folders, guardrail pipeline ownership, and the smoke-check workflow.
 - [Model Provider Configuration](model-provider-configuration.md): how to use
   one API key, one endpoint URL, and a user-selected model without requiring a
   Groq fallback.
