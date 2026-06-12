@@ -236,10 +236,26 @@
     flex: 0 0 54px;
     display: flex;
     align-items: center;
-    justify-content: flex-end;
+    justify-content: space-between;
     padding: 0 18px;
     background: #ffffff;
     border-bottom: 1px solid #d1d7db;
+}
+
+.chat-pipeline-badge {
+    border: 1px solid #cde8df;
+    border-radius: 999px;
+    color: #14745d;
+    font-size: 11px;
+    line-height: 1;
+    padding: 7px 10px;
+    background: #eefaf6;
+}
+
+.chat-pipeline-badge.is-lightweight {
+    border-color: #ffd7b5;
+    color: #8a4b11;
+    background: #fff7ed;
 }
 
 #persona-chat-panel::before {

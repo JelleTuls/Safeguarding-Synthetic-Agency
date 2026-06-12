@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+from typing import Literal
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Request
 from fastapi.responses import StreamingResponse
@@ -26,6 +27,7 @@ class ChatMessageRequest(BaseModel):
     persona_country: str
     chat_history: list
     client_session_id: str | None = None
+    pipeline_mode: Literal["guardrailed", "lightweight"] = "guardrailed"
     disable_guardrails: bool = False
 
 
@@ -69,11 +71,12 @@ async def stream_chat_message(request: Request, request_body: ChatMessageRequest
 
     def stream_generator():
         try:
+            use_lightweight_pipeline = request_body.pipeline_mode == "lightweight"
             red_team_bypass = (
                 request_body.disable_guardrails
                 and request.headers.get("x-red-team-mode") == "true"
             )
-            if red_team_bypass:
+            if use_lightweight_pipeline or red_team_bypass:
                 chunks = generate_lightweight_chat_response(
                     persona_biography=biography,
                     user_message=request_body.message,

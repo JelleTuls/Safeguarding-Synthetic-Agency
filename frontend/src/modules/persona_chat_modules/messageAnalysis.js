@@ -27,7 +27,7 @@ function MessageAnalysis({ analysis, align = "left" }) {
 
     function positionPopover() {
       const rect = triggerRef.current.getBoundingClientRect();
-      const width = Math.min(330, Math.max(286, window.innerWidth - 24));
+      const width = Math.min(390, Math.max(286, window.innerWidth - 24));
       const maxHeight = Math.min(360, window.innerHeight - 24);
       const preferredLeft = align === "right" ? rect.right - width : rect.left;
       const left = Math.min(

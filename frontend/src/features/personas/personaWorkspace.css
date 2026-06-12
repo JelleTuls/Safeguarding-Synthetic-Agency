@@ -175,3 +175,33 @@
 .startChatButton:hover {
   background: #14745d;
 }
+
+.pipelineModeSelector {
+  align-self: flex-start;
+  background: #eef3f8;
+  border: 1px solid #dce6ef;
+  border-radius: 10px;
+  display: flex;
+  gap: 4px;
+  margin-top: 18px;
+  padding: 4px;
+}
+
+.pipelineModeSelector button {
+  background: transparent;
+  border: 0;
+  border-radius: 7px;
+  color: #425066;
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  line-height: 1;
+  min-height: 34px;
+  padding: 0 12px;
+}
+
+.pipelineModeSelector button.isSelected {
+  background: #ffffff;
+  box-shadow: 0 6px 14px rgba(16, 24, 40, 0.08);
+  color: #17202a;
+}

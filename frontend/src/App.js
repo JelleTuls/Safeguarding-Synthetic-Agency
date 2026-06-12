@@ -12,6 +12,7 @@ import RedTeamPanel from './modules/red_team_modules/redTeamPanel';
 
 function App() {
   const [activeTab, setActiveTab] = useState('chat');
+  const [chatPipelineMode, setChatPipelineMode] = useState('guardrailed');
   const {
     activePersona,
     error,
@@ -92,7 +93,9 @@ function App() {
               loading={loading}
               personas={personas}
               selectedPersona={selectedPersona}
+              chatPipelineMode={chatPipelineMode}
               setActivePersona={setActivePersona}
+              setChatPipelineMode={setChatPipelineMode}
               setSelectedPersona={setSelectedPersona}
               targetCount={targetCount}
             />
@@ -161,6 +164,7 @@ function App() {
           personaProfile={activePersona}
           personaDetails={activePersona.details}
           personaCountry={activePersona.country}
+          pipelineMode={chatPipelineMode}
           showChat={() => setActivePersona(null)}
         />
       )}

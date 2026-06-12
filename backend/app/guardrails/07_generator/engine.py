@@ -337,6 +337,86 @@ def _format_reasons(reasons: list[str]) -> str:
     return "; ".join(reasons) if reasons else "none"
 
 
+STYLOMETRY_VALUE_SCORES = {
+    "register": {
+        "plain": 0.25,
+        "everyday": 0.5,
+        "polished": 0.75,
+        "articulate": 1.0,
+    },
+    "sentence_style": {
+        "short": 0.25,
+        "simple": 0.25,
+        "mixed": 0.5,
+        "measured": 0.65,
+        "long": 1.0,
+    },
+    "vocabulary": {
+        "plain": 0.25,
+        "simple": 0.25,
+        "moderate": 0.5,
+        "advanced": 1.0,
+    },
+    "abstraction": {
+        "concrete": 0.0,
+        "mixed": 0.5,
+        "abstract": 1.0,
+    },
+    "hedging": {
+        "low": 0.0,
+        "medium": 0.5,
+        "high": 1.0,
+    },
+    "confidence": {
+        "tentative": 0.0,
+        "balanced": 0.5,
+        "measured": 0.5,
+        "assured": 1.0,
+    },
+    "warmth": {
+        "reserved": 0.0,
+        "warm": 0.5,
+        "expressive": 1.0,
+    },
+    "reasoning": {
+        "practical": 0.25,
+        "reflective": 0.5,
+        "blended": 0.75,
+        "analytical": 1.0,
+    },
+    "explanation": {
+        "minimal": 0.0,
+        "example_first": 0.33,
+        "balanced": 0.66,
+        "concept_first": 1.0,
+    },
+}
+
+
+def _format_stylometry_value(*, dimension: str, value: str | None) -> str:
+    """Format a stylometry label together with its stable numeric encoding."""
+    normalized = value or "n/a"
+    score = STYLOMETRY_VALUE_SCORES.get(dimension, {}).get(normalized)
+    if score is None:
+        return normalized
+    return f"{normalized} ({score:.2f})"
+
+
+def _build_adapted_stylometry_rows(*, policy: PolicyDecision, stylometric_profile: dict) -> list[list[str]]:
+    """Build hover rows for the stylometry used by the response generator."""
+    return [
+        ["Register", _format_stylometry_value(dimension="register", value=policy.register_style)],
+        ["Sentence style", _format_stylometry_value(dimension="sentence_style", value=policy.sentence_style)],
+        ["Vocabulary", _format_stylometry_value(dimension="vocabulary", value=policy.vocabulary_level)],
+        ["Abstraction", _format_stylometry_value(dimension="abstraction", value=policy.abstraction_level)],
+        ["Hedging", _format_stylometry_value(dimension="hedging", value=policy.hedging_style)],
+        ["Confidence", _format_stylometry_value(dimension="confidence", value=policy.confidence_style)],
+        ["Warmth", _format_stylometry_value(dimension="warmth", value=stylometric_profile.get("warmth_style"))],
+        ["Reasoning", _format_stylometry_value(dimension="reasoning", value=stylometric_profile.get("reasoning_style"))],
+        ["Explanation", _format_stylometry_value(dimension="explanation", value=policy.explanation_style)],
+    ]
+
+
 def _subjectivity_interpretation(subjectivity: float, objectivity: float) -> str:
     """Return a plain-language interpretation of objective/subjective scores."""
     if objectivity >= subjectivity + 0.15:
@@ -401,6 +481,7 @@ def _build_response_analysis(
     subjective_result,
     persuasive_result,
     policy: PolicyDecision,
+    stylometric_profile: dict,
     skipped_expensive_postprocessing: bool,
     draft_response: str,
     response_before_persuasion: str,
@@ -476,6 +557,13 @@ def _build_response_analysis(
                 ["Epistemic score", _format_score(policy.epistemic_score)],
                 ["Post-processing", policy.postprocessing_mode],
             ],
+        },
+        {
+            "title": "Adapted Stylometry",
+            "rows": _build_adapted_stylometry_rows(
+                policy=policy,
+                stylometric_profile=stylometric_profile,
+            ),
         },
     ]
 
@@ -617,6 +705,7 @@ def _stream_with_logging(
         subjective_result=subjective_result,
         persuasive_result=persuasive_result,
         policy=policy,
+        stylometric_profile=guardrail_input.stylometric_profile,
         skipped_expensive_postprocessing=skipped_expensive_postprocessing,
         draft_response=draft_response,
         response_before_persuasion=subjective_result.final_response,

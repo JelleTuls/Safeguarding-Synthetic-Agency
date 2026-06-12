@@ -6,7 +6,7 @@ This package is the single source of truth for the current chat flow:
 - resolve or generate persona biographies
 - persist a 30-persona chat profile set
 - resolve or generate stylometric profiles
-- run every chat response through the guardrailed pipeline
+- route chat responses through either the guardrailed pipeline or the lightweight unrestricted pipeline
 - stream responses back to `/api/chat/chat_message`
 - write guardrailed session traces under `app/guardrails/log/`
 
@@ -24,7 +24,7 @@ If a stylometric profile is unexpectedly missing, the backend writes a
 deterministic base profile instead of calling the LLM, unless
 `SSA_GENERATE_MISSING_STYLOMETRY=true` is explicitly set.
 
-The older lightweight branch has been removed. The current route always uses:
+The chat route supports two runtime pipelines:
 
 ```text
 Frontend
@@ -34,8 +34,9 @@ Frontend
   -> /api/chat/chat_message
        resolves biography
        resolves stylometric profile
-       runs app.guardrails.engine
-       streams the guarded answer
+       if pipeline_mode="guardrailed": runs app.guardrails.engine
+       if pipeline_mode="lightweight": runs app.lightweight.engine
+       streams the selected pipeline's answer
 ```
 
 ## Main Files
@@ -46,6 +47,7 @@ Frontend
 - `guardrails/stylometry/store.py`: reads and writes cached speaking-style profiles.
 - `guardrails/engine.py`: entry point for the guardrailed response pipeline.
 - `guardrails/pipeline.py`: lexical, relevance, epistemic, stylometry, judge, and generator steps.
+- `lightweight/`: unrestricted response pipeline using only the copied base persona system prompt.
 - `utils.py`: OpenAI-compatible model helpers with primary/fallback key support.
 - `config.py`: provider configuration for OpenAI, Groq, or Azure-compatible model endpoints.
 

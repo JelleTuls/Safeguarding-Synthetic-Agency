@@ -1,10 +1,12 @@
 function PersonaWorkspace({
+  chatPipelineMode,
   error,
   isComplete,
   loading,
   personas,
   selectedPersona,
   setActivePersona,
+  setChatPipelineMode,
   setSelectedPersona,
   targetCount,
 }) {
@@ -78,6 +80,22 @@ function PersonaWorkspace({
                   )}
                 </section>
               )}
+            </div>
+            <div className="pipelineModeSelector" aria-label="Chat pipeline mode">
+              <button
+                className={chatPipelineMode === 'guardrailed' ? 'isSelected' : ''}
+                type="button"
+                onClick={() => setChatPipelineMode('guardrailed')}
+              >
+                Guardrailed
+              </button>
+              <button
+                className={chatPipelineMode === 'lightweight' ? 'isSelected' : ''}
+                type="button"
+                onClick={() => setChatPipelineMode('lightweight')}
+              >
+                Unrestricted
+              </button>
             </div>
             <button className="startChatButton" type="button" onClick={() => setActivePersona(selectedPersona)}>
               Start chat

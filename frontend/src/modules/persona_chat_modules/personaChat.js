@@ -8,13 +8,12 @@ import ReceivedMessage from "./receivedMessage";
 import UserMessage from "./userMessage";
 import AwaitingMessage from "./awaitingMessage";
 
-function PersonaChat({ personaProfile, personaDetails, personaCountry, showChat }) {
+function PersonaChat({ personaProfile, personaDetails, personaCountry, pipelineMode, showChat }) {
 
   // below code is for sending and retrieving messages
 
   const [error, setError] = useState(null);
   const [waitingForResponse, setWaitingForResponse] = useState(false);
-  const [agentState, setAgentState] = useState(null);
   const waitingForResponseRef = useRef(false);
   const chatSessionId = useRef(
     `chat-${Date.now()}-${Math.random().toString(36).slice(2)}`
@@ -36,7 +35,6 @@ function PersonaChat({ personaProfile, personaDetails, personaCountry, showChat 
   const stylometricProfile = {
     ...baselineStylometry,
     ...(personaProfile?.stylometric_profile || {}),
-    ...(agentState?.stylometry || {}),
   };
   function formatLabel(value) {
     if (value === null || value === undefined || value === "") return "Unknown";
@@ -163,6 +161,7 @@ function PersonaChat({ personaProfile, personaDetails, personaCountry, showChat 
           persona_country: country,
           chat_history: chatHistory,
           client_session_id: chatSessionId.current,
+          pipeline_mode: pipelineMode,
         })
       });
 
@@ -202,10 +201,7 @@ function PersonaChat({ personaProfile, personaDetails, personaCountry, showChat 
                 showStatusBubble(text);
                 await wait(parsed.duration_ms || 900);
               } else if (currentEvent === "agent_state") {
-                setAgentState({
-                  policy: parsed.policy || {},
-                  stylometry: parsed.stylometry || {},
-                });
+                // The left profile panel intentionally stays on baseline stylometry.
               } else if (currentEvent === "user_message_analysis") {
                 attachAnalysisToLatestMessage("user", parsed.analysis);
               } else if (currentEvent === "message_part") {
@@ -331,6 +327,9 @@ function PersonaChat({ personaProfile, personaDetails, personaCountry, showChat 
 
             <section id="persona-chat-panel">
               <div id="persona-chat-panel-header">
+                <div className={`chat-pipeline-badge ${pipelineMode === 'lightweight' ? 'is-lightweight' : ''}`}>
+                  {pipelineMode === 'lightweight' ? 'Unrestricted' : 'Guardrailed'}
+                </div>
                 <div id="chat-close" onClick={() => showChat(false)}>
                   <img id="chat-close-cross" src={closeCross} alt="Close chat"></img>
                 </div>

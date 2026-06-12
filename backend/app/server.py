@@ -14,6 +14,8 @@ FRONTEND_URL = os.getenv("FRONTEND_URL", "http://127.0.0.1:3000")
 ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
+    "http://localhost:3001",
+    "http://127.0.0.1:3001",
     "https://ai-pollster.vercel.app",
     "https://delightful-bay-00709f403.6.azurestaticapps.net",
 ]
