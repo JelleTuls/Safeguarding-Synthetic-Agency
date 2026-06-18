@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="430" viewBox="0 0 960 430" role="img">
+<style>text{font-family:Inter,Arial,sans-serif;fill:#17202a} .muted{fill:#64748b}.axis{stroke:#cbd5e1;stroke-width:1}.grid{stroke:#e2e8f0;stroke-width:1}.guard{fill:#2563eb}.light{fill:#f59e0b}.positive{fill:#16a34a}.negative{fill:#dc2626}.line{stroke:#334155;stroke-width:1.5;fill:none}</style>
+<text x="20" y="30" font-size="20" font-weight="700">Score Consistency by Method</text>
+<text x="20" y="52" font-size="12" class="muted">Standard deviation of case scores; lower bars indicate more consistent performance</text>
+<line class="grid" x1="120" y1="342.0" x2="820" y2="342.0"/>
+<text x="78" y="346.0" font-size="11" class="muted">0.0</text>
+<line class="grid" x1="120" y1="290.0" x2="820" y2="290.0"/>
+<text x="78" y="294.0" font-size="11" class="muted">0.1</text>
+<line class="grid" x1="120" y1="238.0" x2="820" y2="238.0"/>
+<text x="78" y="242.0" font-size="11" class="muted">0.2</text>
+<line class="grid" x1="120" y1="186.0" x2="820" y2="186.0"/>
+<text x="78" y="190.0" font-size="11" class="muted">0.3</text>
+<line class="grid" x1="120" y1="134.0" x2="820" y2="134.0"/>
+<text x="78" y="138.0" font-size="11" class="muted">0.4</text>
+<line class="grid" x1="120" y1="82.0" x2="820" y2="82.0"/>
+<text x="78" y="86.0" font-size="11" class="muted">0.5</text>
+<rect x="138.0" y="266.4" width="28" height="75.6" rx="3" fill="#2563eb"/>
+<text x="152.0" y="260.4" text-anchor="middle" font-size="9">0.15</text>
+<rect x="172.0" y="294.9" width="28" height="47.1" rx="3" fill="#f59e0b"/>
+<text x="186.0" y="288.9" text-anchor="middle" font-size="9">0.09</text>
+<text x="178.3" y="362" text-anchor="middle" font-size="11">PBAR</text>
+<rect x="254.7" y="304.4" width="28" height="37.6" rx="3" fill="#2563eb"/>
+<text x="268.7" y="298.4" text-anchor="middle" font-size="9">0.07</text>
+<rect x="288.7" y="187.8" width="28" height="154.2" rx="3" fill="#f59e0b"/>
+<text x="302.7" y="181.8" text-anchor="middle" font-size="9">0.30</text>
+<text x="295.0" y="362" text-anchor="middle" font-size="11">TBAR</text>
+<rect x="371.3" y="230.7" width="28" height="111.3" rx="3" fill="#2563eb"/>
+<text x="385.3" y="224.7" text-anchor="middle" font-size="9">0.21</text>
+<rect x="405.3" y="236.2" width="28" height="105.8" rx="3" fill="#f59e0b"/>
+<text x="419.3" y="230.2" text-anchor="middle" font-size="9">0.20</text>
+<text x="411.7" y="362" text-anchor="middle" font-size="11">EB</text>
+<rect x="488.0" y="306.4" width="28" height="35.6" rx="3" fill="#2563eb"/>
+<text x="502.0" y="300.4" text-anchor="middle" font-size="9">0.07</text>
+<rect x="522.0" y="215.6" width="28" height="126.4" rx="3" fill="#f59e0b"/>
+<text x="536.0" y="209.6" text-anchor="middle" font-size="9">0.24</text>
+<text x="528.3" y="362" text-anchor="middle" font-size="11">SFAM</text>
+<rect x="604.7" y="177.7" width="28" height="164.3" rx="3" fill="#2563eb"/>
+<text x="618.7" y="171.7" text-anchor="middle" font-size="9">0.32</text>
+<rect x="638.7" y="170.8" width="28" height="171.2" rx="3" fill="#f59e0b"/>
+<text x="652.7" y="164.8" text-anchor="middle" font-size="9">0.33</text>
+<text x="645.0" y="362" text-anchor="middle" font-size="11">SC</text>
+<rect x="721.3" y="273.2" width="28" height="68.8" rx="3" fill="#2563eb"/>
+<text x="735.3" y="267.2" text-anchor="middle" font-size="9">0.13</text>
+<rect x="755.3" y="202.2" width="28" height="139.8" rx="3" fill="#f59e0b"/>
+<text x="769.3" y="196.2" text-anchor="middle" font-size="9">0.27</text>
+<text x="761.7" y="362" text-anchor="middle" font-size="11">PG</text>
+<text x="470.0" y="402" text-anchor="middle" font-size="12">Evaluation dimension</text>
+<text x="20" y="90" font-size="12" transform="rotate(-90 20,90)">Score standard deviation</text>
+</svg>

@@ -1,4 +1,10 @@
 #!/usr/bin/env bash
+# Smoke-check the local SSA project without starting the full UI stack.
+#
+# The script compiles backend and red-team Python modules, verifies the expected
+# LLM provider configuration can be loaded, and runs the frontend production
+# build. It is intended as a quick regression check after guardrail, red-team, or
+# frontend changes.
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"

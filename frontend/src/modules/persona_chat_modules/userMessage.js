@@ -1,3 +1,8 @@
+// User message bubble.
+//
+// Displays the user's submitted text and any captured pre-generation analysis
+// metadata aligned to the right side of the chat transcript.
+
 import './userMessage.css';
 import MessageAnalysis from './messageAnalysis';
 

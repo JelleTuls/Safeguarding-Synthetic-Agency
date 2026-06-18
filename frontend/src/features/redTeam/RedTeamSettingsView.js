@@ -1,3 +1,8 @@
+// Prompt-expectation editor for red-team runs.
+//
+// This view lets the user inspect and edit expected-answer text before running
+// evaluations, which is especially useful for thesis-specific calibration.
+
 function RedTeamSettingsView({
   editedPromptCount,
   loadPromptSettings,

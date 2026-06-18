@@ -4,7 +4,10 @@
 
 Safeguarding Synthetic Agency: A Framework for Measuring and Operationalizing System Integrity in Synthetic Social Agent Systems
 
-The app serves 30 synthetic social agent profiles and opens each profile in a guardrailed chat flow.
+The app serves 30 synthetic social agent profiles and opens each profile in a
+chat flow. Users can run the full guardrailed pipeline or the lightweight
+baseline pipeline, and the red-teaming module can compare both modes across
+selected profiles.
 
 > [!IMPORTANT]
 > **Full guardrail fidelity requires Docker to be installed and running.**
@@ -243,8 +246,24 @@ without attaching the Python debugger.
 
 - `backend/main.py` exposes the chat API.
 - `backend/app/api/chat.py` serves persona profiles and streams chat responses.
-- `backend/app/` contains the API, biography generation, profile caching, provider configuration, data files, rate limits, and the guardrailed pipeline.
-- `frontend/src/` contains the lightweight chat-only React interface.
+- `backend/app/` contains the API, biography generation, profile caching, provider configuration, data files, rate limits, the guardrailed pipeline, and the lightweight direct-response pipeline.
+- `red_teaming/` contains the standalone black-box evaluation service, prompt suite, LLM judge, optional human review state, and JSON/PDF report generation.
+- `frontend/src/` contains the React persona browser, chat interface, pipeline selector, red-team setup view, and answer review panel.
+
+## Script Documentation
+
+All first-party Python, JavaScript, and shell scripts include a top-of-file
+description explaining their role in the system. The most important entry points
+are:
+
+- `start.sh`: prepares dependencies and starts the full local development stack.
+- `scripts/smoke_check.sh`: compiles backend/red-team Python and builds the frontend.
+- `backend/main.py`: ASGI entry point for the main FastAPI backend.
+- `backend/app/server.py`: backend application factory and lifecycle wiring.
+- `backend/app/services/chat_flow.py`: selects guardrailed or lightweight response generation.
+- `red_teaming/app/main.py`: standalone red-team FastAPI service.
+- `red_teaming/prompt_script.py`: editable red-team prompt and expectation script.
+- `frontend/src/App.js`: top-level React shell for chat and red-team modes.
 
 ## Documentation
 

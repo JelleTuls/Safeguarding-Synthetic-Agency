@@ -1,3 +1,8 @@
+// Persona browser and chat-launch workspace.
+//
+// The component renders the left persona list, the selected profile surface, and
+// the pre-chat pipeline selector that chooses guardrailed or lightweight mode.
+
 function PersonaWorkspace({
   chatPipelineMode,
   error,

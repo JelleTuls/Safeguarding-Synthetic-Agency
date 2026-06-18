@@ -1,3 +1,10 @@
+"""FastAPI application factory for the main SSA backend.
+
+The factory wires CORS, route modules, root redirects, and background lifecycle
+tasks. Tests and ASGI servers should import `create_app` rather than assembling
+the application manually.
+"""
+
 import asyncio
 import os
 from contextlib import asynccontextmanager

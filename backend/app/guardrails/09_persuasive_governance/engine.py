@@ -217,7 +217,10 @@ def warm_persuasion_detector() -> bool:
     return True
 
 
-def _persuasion_threshold_calculation(policy: PolicyDecision) -> tuple[float, float, list[str]]:
+def _persuasion_threshold_calculation(
+    policy: PolicyDecision,
+    signals: GuardrailSignals | None = None,
+) -> tuple[float, float, list[str]]:
     """Return base and effective topic-specific persuasion thresholds."""
     base_threshold = get_topic_persuasion_threshold(policy.topic_policy_category)
     threshold = base_threshold
@@ -230,18 +233,29 @@ def _persuasion_threshold_calculation(policy: PolicyDecision) -> tuple[float, fl
             f"relevance score {policy.relevance_score:.3f} < 0.700 tightens threshold to at most 0.340"
         )
         threshold = min(threshold, 0.34)
+    if signals is not None and signals.dynamic.persuasion_intent_score >= 0.8:
+        adjustments.append(
+            "dynamic persuasion intent "
+            f"{signals.dynamic.persuasion_intent_score:.3f} tightens threshold to at most 0.180"
+        )
+        threshold = min(threshold, 0.18)
     return round(base_threshold, 3), round(threshold, 3), adjustments
 
 
-def _effective_persuasion_threshold(policy: PolicyDecision) -> float:
+def _effective_persuasion_threshold(policy: PolicyDecision, signals: GuardrailSignals | None = None) -> float:
     """Return the topic-specific persuasion ceiling, tightened by constrained policies."""
-    _, threshold, _ = _persuasion_threshold_calculation(policy)
+    _, threshold, _ = _persuasion_threshold_calculation(policy, signals=signals)
     return threshold
 
 
-def _needs_persuasion_correction(*, policy: PolicyDecision, persuasion: float) -> bool:
+def _needs_persuasion_correction(
+    *,
+    policy: PolicyDecision,
+    signals: GuardrailSignals,
+    persuasion: float,
+) -> bool:
     """Return True when persuasive pressure exceeds the framework boundaries."""
-    return persuasion > _effective_persuasion_threshold(policy)
+    return persuasion > _effective_persuasion_threshold(policy, signals=signals)
 
 
 def apply_persuasive_governance(
@@ -252,11 +266,10 @@ def apply_persuasive_governance(
     policy: PolicyDecision,
 ) -> PersuasiveGovernanceResult:
     """Validate persuasive pressure and regenerate when influence is too strong."""
-    del signals
     analysis = _persuasion_analysis(response)
     persuasion = analysis.score
     base_topic_threshold, persuasion_threshold, threshold_adjustments = (
-        _persuasion_threshold_calculation(policy)
+        _persuasion_threshold_calculation(policy, signals=signals)
     )
     topic_policy_category = normalize_topic_policy_category(policy.topic_policy_category)
     threshold_check = {
@@ -290,11 +303,20 @@ def apply_persuasive_governance(
 
     if _needs_persuasion_correction(
         policy=policy,
+        signals=signals,
         persuasion=persuasion,
     ):
         reasons.append(
             "response exceeds persuasive intensity allowed for "
             f"{topic_policy_category} topic policy ({persuasion:.3f} > {persuasion_threshold:.3f})"
+        )
+    if (
+        signals.dynamic.persuasion_intent_score >= 0.8
+        and signals.dynamic.sensitive_decision_target == "political_vote"
+        and any(marker in response.lower() for marker in ("vote for", "not vote", "should vote", "must vote", "convince", "foolish"))
+    ):
+        reasons.append(
+            "response contains vote-influence language under a high-risk political persuasion request"
         )
 
     if not reasons:
@@ -319,6 +341,11 @@ def apply_persuasive_governance(
         response=response,
         user_message=guardrail_input.user_message,
         policy=policy,
+        dynamic_intent={
+            "persuasion_intent_score": signals.dynamic.persuasion_intent_score,
+            "persuasion_intent_type": signals.dynamic.persuasion_intent_type,
+            "sensitive_decision_target": signals.dynamic.sensitive_decision_target,
+        },
         reasons=reasons,
     )
     corrected = run_chat_completion(

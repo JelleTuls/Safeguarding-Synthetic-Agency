@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1040" height="540" viewBox="0 0 1040 540" role="img">
+<style>text{font-family:Inter,Arial,sans-serif;fill:#17202a} .muted{fill:#64748b}.axis{stroke:#cbd5e1;stroke-width:1}.grid{stroke:#e2e8f0;stroke-width:1}.guard{fill:#2563eb}.light{fill:#f59e0b}.positive{fill:#16a34a}.negative{fill:#dc2626}.line{stroke:#334155;stroke-width:1.5;fill:none}</style>
+<text x="20" y="30" font-size="20" font-weight="700">Performance-Stability Frontier</text>
+<text x="20" y="52" font-size="12" class="muted">Mean score versus score variability; ideal systems sit high and left</text>
+<defs><marker id="frontierArrow" markerWidth="7" markerHeight="7" refX="5.8" refY="3.5" orient="auto"><path d="M0,0 L0,7 L6,3.5 z" fill="#334155"/></marker></defs>
+<text x="20" y="84" font-size="11" font-weight="700">Legend</text>
+<rect x="78" y="74" width="18" height="12" fill="#2563eb" rx="2"/><text x="104" y="84" font-size="11">Guardrailed method mean</text>
+<rect x="278" y="74" width="18" height="12" fill="#f59e0b" rx="2"/><text x="304" y="84" font-size="11">Lightweight method mean</text>
+<line x1="470" y1="80" x2="512" y2="80" stroke="#334155" stroke-width="1.2" stroke-dasharray="4 4" marker-end="url(#frontierArrow)"/><text x="522" y="84" font-size="11">Movement from lightweight to guardrailed</text>
+<rect x="742" y="74" width="18" height="12" fill="#dcfce7" opacity="0.8"/><text x="768" y="84" font-size="11">Target zone</text>
+<rect x="120" y="150" width="360.0" height="75.0" fill="#dcfce7" opacity="0.55"/>
+<text x="132" y="172" font-size="11" fill="#166534">High score / low variance target zone</text>
+<line class="grid" x1="120" y1="450.0" x2="840" y2="450.0"/>
+<text x="80" y="454.0" font-size="10" class="muted">0%</text>
+<line class="grid" x1="120.0" y1="150" x2="120.0" y2="450"/>
+<text x="120.0" y="468" text-anchor="middle" font-size="10" class="muted">0.0</text>
+<line class="grid" x1="120" y1="390.0" x2="840" y2="390.0"/>
+<text x="80" y="394.0" font-size="10" class="muted">20%</text>
+<line class="grid" x1="408.0" y1="150" x2="408.0" y2="450"/>
+<text x="408.0" y="468" text-anchor="middle" font-size="10" class="muted">0.2</text>
+<line class="grid" x1="120" y1="330.0" x2="840" y2="330.0"/>
+<text x="80" y="334.0" font-size="10" class="muted">40%</text>
+<line class="grid" x1="696.0" y1="150" x2="696.0" y2="450"/>
+<text x="696.0" y="468" text-anchor="middle" font-size="10" class="muted">0.4</text>
+<line class="grid" x1="120" y1="270.0" x2="840" y2="270.0"/>
+<text x="80" y="274.0" font-size="10" class="muted">60%</text>
+<line class="grid" x1="120" y1="210.0" x2="840" y2="210.0"/>
+<text x="80" y="214.0" font-size="10" class="muted">80%</text>
+<line class="grid" x1="120" y1="150.0" x2="840" y2="150.0"/>
+<text x="80" y="154.0" font-size="10" class="muted">100%</text>
+<line x1="120" y1="225.0" x2="840" y2="225.0" stroke="#16a34a" stroke-dasharray="4 4"/>
+<text x="848" y="229.0" font-size="10" class="muted">75% pass threshold</text>
+<circle cx="316.6" cy="192.7" r="4.5" fill="#2563eb" opacity="0.9"/>
+<circle cx="182.1" cy="175.4" r="4.5" fill="#f59e0b" opacity="0.9"/>
+<line x1="182.1" y1="175.4" x2="316.6" y2="192.7" stroke="#334155" stroke-width="1.2" stroke-dasharray="4 4" opacity="0.58" marker-end="url(#frontierArrow)"/>
+<text x="282.6" y="214.7" font-size="10">PBAR</text>
+<circle cx="245.4" cy="184.4" r="4.5" fill="#2563eb" opacity="0.9"/>
+<circle cx="570.6" cy="224.5" r="4.5" fill="#f59e0b" opacity="0.9"/>
+<line x1="570.6" y1="224.5" x2="245.4" y2="184.4" stroke="#334155" stroke-width="1.2" stroke-dasharray="4 4" opacity="0.58" marker-end="url(#frontierArrow)"/>
+<text x="219.4" y="158.4" font-size="10">TBAR</text>
+<circle cx="284.6" cy="194.4" r="4.5" fill="#2563eb" opacity="0.9"/>
+<circle cx="418.9" cy="258.1" r="4.5" fill="#f59e0b" opacity="0.9"/>
+<line x1="418.9" y1="258.1" x2="284.6" y2="194.4" stroke="#334155" stroke-width="1.2" stroke-dasharray="4 4" opacity="0.58" marker-end="url(#frontierArrow)"/>
+<text x="294.6" y="168.4" font-size="10">EB</text>
+<circle cx="419.1" cy="194.2" r="4.5" fill="#2563eb" opacity="0.9"/>
+<circle cx="385.4" cy="202.5" r="4.5" fill="#f59e0b" opacity="0.9"/>
+<line x1="385.4" y1="202.5" x2="419.1" y2="194.2" stroke="#334155" stroke-width="1.2" stroke-dasharray="4 4" opacity="0.58" marker-end="url(#frontierArrow)"/>
+<text x="431.1" y="214.2" font-size="10">SFAM</text>
+<circle cx="541.8" cy="252.1" r="4.5" fill="#2563eb" opacity="0.9"/>
+<circle cx="597.6" cy="356.3" r="4.5" fill="#f59e0b" opacity="0.9"/>
+<line x1="597.6" y1="356.3" x2="541.8" y2="252.1" stroke="#334155" stroke-width="1.2" stroke-dasharray="4 4" opacity="0.58" marker-end="url(#frontierArrow)"/>
+<text x="553.8" y="286.1" font-size="10">SC</text>
+<circle cx="506.1" cy="235.7" r="4.5" fill="#2563eb" opacity="0.9"/>
+<circle cx="508.2" cy="379.9" r="4.5" fill="#f59e0b" opacity="0.9"/>
+<line x1="508.2" y1="379.9" x2="506.1" y2="235.7" stroke="#334155" stroke-width="1.2" stroke-dasharray="4 4" opacity="0.58" marker-end="url(#frontierArrow)"/>
+<text x="466.1" y="211.7" font-size="10">PG</text>
+<text x="480.0" y="515" text-anchor="middle" font-size="12">Score standard deviation (lower is more stable)</text>
+<text x="112" y="136" text-anchor="end" font-size="12">Mean score</text>
+</svg>

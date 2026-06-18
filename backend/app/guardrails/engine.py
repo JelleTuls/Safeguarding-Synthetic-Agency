@@ -3,6 +3,7 @@
 from app.guardrails.pipeline import (
     build_guardrail_signals,
     log_guardrailed_request,
+    run_layer_00b_dynamic_request,
     run_layer_01_lexical,
     run_layer_02_relevance,
     run_layer_03_epistemic,
@@ -43,6 +44,11 @@ def generate_response(persona_biography, user_message, chat_history, stylometric
     log_guardrailed_request(guardrail_input)
 
     # =============================================================================
+    # Layer 00b: Run Dynamic Request Intent Analysis
+    # =============================================================================
+    dynamic_signal = run_layer_00b_dynamic_request(guardrail_input)
+
+    # =============================================================================
     # Layer 01: Run Lexical Detection
     # =============================================================================
     lexical_signal = run_layer_01_lexical(guardrail_input)
@@ -72,6 +78,7 @@ def generate_response(persona_biography, user_message, chat_history, stylometric
     # =============================================================================
     signals = build_guardrail_signals(
         session_trace=session_trace,
+        dynamic_signal=dynamic_signal,
         lexical_signal=lexical_signal,
         relevance_signal=relevance_signal,
         epistemic_signal=epistemic_signal,

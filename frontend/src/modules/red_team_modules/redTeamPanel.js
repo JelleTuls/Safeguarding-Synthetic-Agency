@@ -1,6 +1,25 @@
+// Red-team answer review panel.
+//
+// This component renders paired lightweight/guardrailed answers for each prompt,
+// the expected behavior/style/metrics, LLM reasoning, pairwise comparison notes,
+// and optional human score overrides.
+
 import { useEffect, useMemo, useRef, useState } from 'react';
 
+import { analysisArtifactUrl, analysisZipUrl } from '../../features/redTeam/redTeamApi';
 import './redTeamPanel.css';
+
+const fallbackFigureGroups = {
+  thesis: [
+    'paired_delta_forest',
+    'pairwise_win_rate',
+    'failure_transition_matrix_plot',
+    'delta_ecdf_by_method',
+    'score_distributions_boxplot',
+    'stability_frontier',
+    'guardrail_delta_heatmap',
+  ],
+};
 
 function formatScore(value) {
   if (value === undefined || value === null || Number.isNaN(Number(value))) {
@@ -11,6 +30,39 @@ function formatScore(value) {
 
 function statusLabel(status) {
   return String(status || 'unknown').replaceAll('_', ' ');
+}
+
+function targetModeLabel(mode) {
+  if (mode === 'lightweight_no_guardrails') return 'Lightweight baseline';
+  if (mode === 'full_analysis_stack') return 'Full analysis stack';
+  return 'Guardrailed';
+}
+
+function figureLabel(key, analysis) {
+  return analysis?.figures?.[key]?.title || key.replaceAll('_', ' ');
+}
+
+function visibleFigureKeys(analysis) {
+  return Object.values(analysis?.figure_groups || fallbackFigureGroups).flat();
+}
+
+function renderExpectedMetrics(metrics) {
+  if (!metrics || typeof metrics !== 'object') {
+    return null;
+  }
+  return (
+    <div className="red-team-expected-answer">
+      <strong>Expected SSA metrics</strong>
+      <dl className="red-team-expected-metrics">
+        {Object.entries(metrics).map(([key, value]) => (
+          <div key={key}>
+            <dt>{String(key).replaceAll('_', ' ')}</dt>
+            <dd>{Array.isArray(value) ? value.join(', ') : String(value)}</dd>
+          </div>
+        ))}
+      </dl>
+    </div>
+  );
 }
 
 function renderJudgeResult(llmGrade) {
@@ -52,10 +104,9 @@ function renderJudgeResult(llmGrade) {
   );
 }
 
-function ReviewCase({ item, onSubmitReview }) {
+function AnswerScoreControl({ item, onSubmitReview }) {
   const existing = item.human_review || {};
   const [score, setScore] = useState(existing.score ?? item.automated_score ?? 0.5);
-  const [notes, setNotes] = useState(existing.notes ?? '');
   const [saveState, setSaveState] = useState('idle');
   const didMount = useRef(false);
   const numericScore = Number(score);
@@ -81,7 +132,7 @@ function ReviewCase({ item, onSubmitReview }) {
       try {
         await onSubmitReview(item.case_id, {
           score: Math.max(0, Math.min(1, Number(score))),
-          notes,
+          notes: '',
         });
         setSaveState('saved');
       } catch {
@@ -90,13 +141,134 @@ function ReviewCase({ item, onSubmitReview }) {
     }, 350);
 
     return () => window.clearTimeout(timeoutId);
-  }, [item.case_id, notes, onSubmitReview, score]);
+  }, [item.case_id, onSubmitReview, score]);
 
   return (
-    <details className="red-team-review-case">
-      <summary className="red-team-case-summary">
-        <span className={`red-team-live-score ${derivedResult === 'Pass' ? 'is-pass' : 'is-fail'}`}>
-          {formatScore(numericScore)}
+    <div className="red-team-answer-score">
+      <input
+        aria-label={`${targetModeLabel(item.target_mode)} score`}
+        max="1"
+        min="0"
+        step="0.05"
+        type="number"
+        value={score}
+        onChange={(event) => updateScore(event.target.value)}
+      />
+      <span className={`red-team-derived-result ${derivedResult === 'Pass' ? 'is-pass' : 'is-fail'}`}>
+        {derivedResult}
+      </span>
+      <span className={`red-team-autosave-state is-${saveState}`}>
+        {saveState === 'saving' && 'Saving'}
+        {saveState === 'saved' && 'Saved'}
+        {saveState === 'error' && 'Save failed'}
+        {saveState === 'idle' && 'Auto-save'}
+      </span>
+    </div>
+  );
+}
+
+function AnswerBlock({ item, onSubmitReview }) {
+  if (!item) {
+    return (
+      <section className="red-team-answer-block is-missing">
+        <h5>Missing answer</h5>
+        <p>No result was captured for this target mode.</p>
+      </section>
+    );
+  }
+
+  return (
+    <section className={`red-team-answer-block is-${item.target_mode === 'lightweight_no_guardrails' ? 'lightweight' : 'guardrailed'}`}>
+      <div className="red-team-answer-heading">
+        <div>
+          <h5>{targetModeLabel(item.target_mode)}</h5>
+          <span>Auto {item.automated_score === null || item.automated_score === undefined ? 'N/A' : formatScore(item.automated_score)}</span>
+        </div>
+        <AnswerScoreControl item={item} onSubmitReview={onSubmitReview} />
+      </div>
+
+      <p className="red-team-response">{item.response_text || 'No response text captured.'}</p>
+
+      <details className="red-team-answer-details">
+        <summary>
+          <span>Inspect reasoning</span>
+          <b>{item.llm_score !== undefined && item.llm_score !== null ? `LLM ${formatScore(item.llm_score)}` : 'No LLM score'}</b>
+        </summary>
+        {(item.llm_score !== undefined || item.score_source) && (
+          <div className="red-team-score-breakdown">
+            {item.llm_score !== undefined && item.llm_score !== null && <span>LLM {formatScore(item.llm_score)}</span>}
+            {item.score_source && <span>{String(item.score_source).replaceAll('_', ' ')}</span>}
+          </div>
+        )}
+        {renderJudgeResult(item.llm_grade)}
+        {item.comparison_grade?.available && (
+          <div className="red-team-llm-grade">
+            <div className="red-team-llm-grade-header">
+              <strong>Pairwise comparison</strong>
+              {item.comparison_score !== undefined && item.comparison_score !== null && (
+                <span>{formatScore(item.comparison_score)}</span>
+              )}
+              <span>{String(item.comparison_grade.preferred_mode || 'tie').replaceAll('_', ' ')}</span>
+            </div>
+            {item.comparison_grade.selected_mode_result?.reason && (
+              <p>{item.comparison_grade.selected_mode_result.reason}</p>
+            )}
+            {item.comparison_grade.selected_mode_result?.metrics && (
+              <div className="red-team-score-breakdown">
+                {Object.entries(item.comparison_grade.selected_mode_result.metrics).map(([key, value]) => (
+                  <span key={key}>
+                    {String(key).replaceAll('_', ' ')} {formatScore(value)}
+                  </span>
+                ))}
+              </div>
+            )}
+            {item.comparison_grade.comparison_reason && <p>{item.comparison_grade.comparison_reason}</p>}
+          </div>
+        )}
+        {Array.isArray(item.automated_reasons) && item.automated_reasons.length > 0 && (
+          <ul className="red-team-reasons">
+            {item.automated_reasons.map((reason) => (
+              <li key={reason}>{reason}</li>
+            ))}
+          </ul>
+        )}
+        <div className="red-team-case-meta">
+          <span>{item.profile_label}</span>
+          <span>{targetModeLabel(item.target_mode)}</span>
+          <span>{item.attack_family}</span>
+          <span>{item.interaction_mode}</span>
+          <span>{item.target_guardrail}</span>
+        </div>
+      </details>
+    </section>
+  );
+}
+
+function ReviewQuestion({ item, onSubmitReview }) {
+  const lightweight = item.answers.lightweight_no_guardrails;
+  const guardrailed = item.answers.guardrailed;
+  const lightweightScore = lightweight?.human_review?.score ?? lightweight?.automated_score;
+  const guardrailedScore = guardrailed?.human_review?.score ?? guardrailed?.automated_score;
+  const [isOpen, setIsOpen] = useState(false);
+  const summaryRef = useRef(null);
+
+  function collapseItem() {
+    setIsOpen(false);
+    window.requestAnimationFrame(() => {
+      summaryRef.current?.scrollIntoView({ block: 'nearest' });
+    });
+  }
+
+  return (
+    <details
+      className="red-team-review-case"
+      open={isOpen}
+      onToggle={(event) => setIsOpen(event.currentTarget.open)}
+    >
+      <summary className="red-team-case-summary" ref={summaryRef}>
+        <span className="red-team-score-pair-mini">
+          <b>L {lightweightScore === null || lightweightScore === undefined ? 'N/A' : formatScore(lightweightScore)}</b>
+          <b>G {guardrailedScore === null || guardrailedScore === undefined ? 'N/A' : formatScore(guardrailedScore)}</b>
         </span>
         <span className="red-team-summary-copy">
           <strong>{item.prompt_id}</strong>
@@ -106,21 +278,6 @@ function ReviewCase({ item, onSubmitReview }) {
       </summary>
 
       <div className="red-team-case-body">
-        <div className="red-team-case-heading">
-          <div>
-            <strong>{item.prompt_id}</strong>
-          </div>
-          <b>auto {formatScore(item.automated_score)}</b>
-        </div>
-
-        {(item.rule_score !== undefined || item.llm_score !== undefined) && (
-          <div className="red-team-score-breakdown">
-            {item.rule_score !== undefined && <span>rule {formatScore(item.rule_score)}</span>}
-            {item.llm_score !== undefined && item.llm_score !== null && <span>LLM {formatScore(item.llm_score)}</span>}
-            {item.score_source && <span>{String(item.score_source).replaceAll('_', ' ')}</span>}
-          </div>
-        )}
-
         <p className="red-team-prompt">{item.message}</p>
         {item.expected_answer && (
           <div className="red-team-expected-answer">
@@ -128,67 +285,106 @@ function ReviewCase({ item, onSubmitReview }) {
             <p>{item.expected_answer}</p>
           </div>
         )}
-        <p className="red-team-response">{item.response_text || 'No response text captured.'}</p>
-
-        {renderJudgeResult(item.llm_grade)}
-
-        <div className="red-team-case-meta">
-          <span>{item.attack_family}</span>
-          <span>{item.interaction_mode}</span>
-          <span>{item.target_guardrail}</span>
-        </div>
-
-        {Array.isArray(item.automated_reasons) && item.automated_reasons.length > 0 && (
-          <ul className="red-team-reasons">
-            {item.automated_reasons.map((reason) => (
-              <li key={reason}>{reason}</li>
-            ))}
-          </ul>
+        {item.expected_response_style && (
+          <div className="red-team-expected-answer">
+            <strong>Expected answer style</strong>
+            <p>{item.expected_response_style}</p>
+          </div>
         )}
-
-        <div className="red-team-review-form">
-          <label>
-            Score
-            <input
-              max="1"
-              min="0"
-              step="0.05"
-              type="number"
-              value={score}
-              onChange={(event) => updateScore(event.target.value)}
-            />
-          </label>
-          <div className={`red-team-derived-result ${derivedResult === 'Pass' ? 'is-pass' : 'is-fail'}`}>
-            <span>Derived result</span>
-            <strong>{derivedResult}</strong>
-          </div>
-          <label className="red-team-notes">
-            Notes
-            <textarea value={notes} onChange={(event) => setNotes(event.target.value)} />
-          </label>
-          <div className={`red-team-autosave-state is-${saveState}`}>
-            {saveState === 'saving' && 'Saving'}
-            {saveState === 'saved' && 'Saved'}
-            {saveState === 'error' && 'Save failed'}
-            {saveState === 'idle' && 'Auto-save'}
-          </div>
+        {renderExpectedMetrics(item.expected_metrics)}
+        <div className="red-team-answer-pair">
+          <AnswerBlock item={lightweight} onSubmitReview={onSubmitReview} />
+          <AnswerBlock item={guardrailed} onSubmitReview={onSubmitReview} />
         </div>
-        <button
-          aria-label="Collapse review case"
-          className="red-team-collapse-bar"
-          type="button"
-          onClick={(event) => {
-            const reviewCase = event.currentTarget.closest('details');
-            if (reviewCase) {
-              reviewCase.open = false;
-              reviewCase.scrollIntoView({ block: 'nearest' });
-            }
-          }}
-        >
-          <span aria-hidden="true" />
+        <button className="red-team-collapse-bar" type="button" aria-label="Fold item back up" onClick={collapseItem}>
+          <span className="red-team-collapse-cue" aria-hidden="true" />
         </button>
       </div>
     </details>
+  );
+}
+
+function ComputationalAnalysisView({ analysis, analysisStatus, onGenerateAnalysis, runId }) {
+  const [isGenerating, setIsGenerating] = useState(false);
+  const canDownload = Boolean(runId && analysis?.artifacts);
+  const figureKeys = Array.from(new Set(visibleFigureKeys(analysis)));
+
+  async function handleGenerate() {
+    setIsGenerating(true);
+    try {
+      await onGenerateAnalysis?.();
+    } finally {
+      setIsGenerating(false);
+    }
+  }
+
+  return (
+    <div className="red-team-analysis-view">
+      <div className="red-team-analysis-hero">
+        <div>
+          <h3>Computational analysis</h3>
+          <p>Generate reproducible CSV tables, thesis-ready SVG plots, a Markdown summary, and a downloadable artifact bundle from this red-team run.</p>
+        </div>
+        <button type="button" disabled={isGenerating || analysisStatus === 'loading'} onClick={handleGenerate}>
+          {isGenerating || analysisStatus === 'loading' ? 'Generating' : analysis ? 'Regenerate analysis' : 'Generate analysis'}
+        </button>
+      </div>
+
+      {analysis && (
+        <>
+          <div className="red-team-analysis-stats">
+            <div>
+              <span>Total cases</span>
+              <strong>{analysis.case_count ?? 'N/A'}</strong>
+            </div>
+            <div>
+              <span>Paired cases</span>
+              <strong>{analysis.paired_case_count ?? 'N/A'}</strong>
+            </div>
+            <div>
+              <span>EB pairs</span>
+              <strong>{analysis.eb_pair_count ?? 'N/A'}</strong>
+            </div>
+            <div>
+              <span>Mean delta</span>
+              <strong>{analysis.overall_mean_delta === null || analysis.overall_mean_delta === undefined ? 'N/A' : `${analysis.overall_mean_delta >= 0 ? '+' : ''}${Math.round(analysis.overall_mean_delta * 100)}%`}</strong>
+            </div>
+          </div>
+
+          <div className="red-team-analysis-downloads">
+            <a className={!canDownload ? 'isDisabled' : ''} href={canDownload ? analysisZipUrl(runId) : undefined}>
+              Download all artifacts
+            </a>
+          </div>
+
+          <div className="red-team-analysis-grid">
+            {figureKeys.map((key) => {
+              const figure = analysis?.figures?.[key] || {};
+              if (figure.skipped) {
+                return null;
+              }
+              const label = figureLabel(key, analysis);
+              return (
+              <figure className="red-team-analysis-figure" key={key}>
+                <figcaption>{label}</figcaption>
+                {canDownload ? (
+                  <a href={analysisArtifactUrl(runId, key)} target="_blank" rel="noreferrer">
+                    <img alt={label} src={analysisArtifactUrl(runId, key)} />
+                  </a>
+                ) : (
+                  <div className="red-team-analysis-placeholder">Generate analysis to preview this plot.</div>
+                )}
+              </figure>
+              );
+            })}
+          </div>
+        </>
+      )}
+
+      {!analysis && analysisStatus !== 'loading' && (
+        <p className="red-team-empty">No computational analysis has been generated for this run yet.</p>
+      )}
+    </div>
   );
 }
 
@@ -196,29 +392,35 @@ function RedTeamPanel({
   embedded = false,
   run,
   reviewItems,
+  selectedProfileId = 'all',
   error,
+  analysis,
+  analysisStatus = 'idle',
   onCancel,
   onClose,
+  onGenerateAnalysis,
   onRefresh,
-  onSaveFinalResults,
   onSubmitReview,
 }) {
-  const [finalizeError, setFinalizeError] = useState(null);
-  const [finalizing, setFinalizing] = useState(false);
+  const [activeResultsTab, setActiveResultsTab] = useState('review');
   const status = run?.status || 'starting';
   const isRunning = ['starting', 'created', 'running', 'cancelling'].includes(status);
   const progress = run?.progress || {};
-  const scores = run?.final_scores || {};
-  const methodScores = scores.method_scores || {};
   const completed = progress.completed_cases || 0;
   const total = progress.total_cases || 60;
-  const progressRatio = total ? Math.min(1, completed / total) : 0;
+  const comparisonTotal = progress.comparison_pairs_total || 0;
+  const comparisonCompleted = progress.comparison_pairs_completed || 0;
+  const isComparingPairs = comparisonTotal > 0 && completed >= total;
+  const displayCompleted = isComparingPairs ? comparisonCompleted : completed;
+  const displayTotal = isComparingPairs ? comparisonTotal : total;
+  const progressRatio = displayTotal ? Math.min(1, displayCompleted / displayTotal) : 0;
   const reviewCount = reviewItems?.length || 0;
-  const finalReport = run?.final_report || null;
-  const canFinalize = !isRunning && (scores.pending_human_reviews ?? 0) === 0 && status === 'completed';
 
   const sortedReviewItems = useMemo(() => {
     return [...(reviewItems || [])].sort((left, right) => {
+      if ((left.profile_label || '') !== (right.profile_label || '')) {
+        return String(left.profile_label || '').localeCompare(String(right.profile_label || ''));
+      }
       if (left.method === right.method) {
         return String(left.prompt_id).localeCompare(String(right.prompt_id));
       }
@@ -226,8 +428,33 @@ function RedTeamPanel({
     });
   }, [reviewItems]);
 
+  const visibleReviewItems = useMemo(() => {
+    if (selectedProfileId === 'all') return sortedReviewItems;
+    return sortedReviewItems.filter((item) => item.profile_id === selectedProfileId);
+  }, [selectedProfileId, sortedReviewItems]);
+
   const groupedReviewItems = useMemo(() => {
-    return sortedReviewItems.reduce((groups, item) => {
+    const pairedItems = Object.values(visibleReviewItems.reduce((pairs, item) => {
+      const pairKey = `${item.profile_id || 'profile'}::${item.prompt_id}`;
+      if (!pairs[pairKey]) {
+        pairs[pairKey] = {
+          pair_id: pairKey,
+          method: item.method || 'Other',
+          methodName: item.method_name || item.method || 'Other',
+          prompt_id: item.prompt_id,
+          message: item.message,
+          expected_answer: item.expected_answer,
+          expected_response_style: item.expected_response_style,
+          expected_metrics: item.expected_metrics,
+          profile_label: item.profile_label,
+          answers: {},
+        };
+      }
+      pairs[pairKey].answers[item.target_mode || 'guardrailed'] = item;
+      return pairs;
+    }, {}));
+
+    return pairedItems.reduce((groups, item) => {
       const key = item.method || 'Other';
       if (!groups[key]) {
         groups[key] = {
@@ -239,7 +466,10 @@ function RedTeamPanel({
       groups[key].items.push(item);
       return groups;
     }, {});
-  }, [sortedReviewItems]);
+  }, [visibleReviewItems]);
+  const visibleQuestionCount = useMemo(() => (
+    Object.values(groupedReviewItems).reduce((sum, group) => sum + group.items.length, 0)
+  ), [groupedReviewItems]);
 
   if (isRunning) {
     return (
@@ -247,15 +477,29 @@ function RedTeamPanel({
         <section className="red-team-progress-card">
           <div className="red-team-progress-topline">
             <span>{statusLabel(status)}</span>
-            <strong>{completed}/{total}</strong>
+            <strong>{displayCompleted}/{displayTotal}</strong>
           </div>
           <h2>Red-teaming in progress</h2>
           <p>{progress.current_step || 'Preparing run...'}</p>
+          {isComparingPairs && (
+            <p className="red-team-progress-substep">
+              Answer generation complete: {completed}/{total}. Pairwise evaluator comparisons are now running.
+            </p>
+          )}
           <div className="red-team-progress-bar" aria-label="Red-team progress">
             <span style={{ width: `${progressRatio * 100}%` }} />
           </div>
           {progress.current_method_name && (
             <div className="red-team-current-step">
+              {progress.current_profile_label && (
+                <b>
+                  {progress.current_profile_label}
+                  {progress.current_profile_index && progress.total_profiles
+                    ? ` · profile ${progress.current_profile_index}/${progress.total_profiles}`
+                    : ''}
+                </b>
+              )}
+              {progress.current_target_mode && <span>{targetModeLabel(progress.current_target_mode)}</span>}
               <b>{progress.current_method_name}</b>
               <span>{progress.current_prompt_id}</span>
               <p>{progress.current_message}</p>
@@ -287,95 +531,57 @@ function RedTeamPanel({
         )}
 
         {error && <p className="red-team-error">{error}</p>}
-        {finalizeError && <p className="red-team-error">{finalizeError}</p>}
 
-        {!embedded && (
-          <div className="red-team-summary-grid">
+        <main className="red-team-review-main">
+          <div className="red-team-review-header">
             <div>
-              <span>Overall score</span>
-              <strong>{formatScore(scores.overall_score)}</strong>
-            </div>
-            <div>
-              <span>Pending human review</span>
-              <strong>{scores.pending_human_reviews ?? 0}</strong>
-            </div>
-            <div>
-              <span>Completed review</span>
-              <strong>{scores.completed_human_reviews ?? 0}</strong>
-            </div>
-            <div>
-              <span>Profile tested</span>
-              <strong>{run?.profile?.label || 'Random profile'}</strong>
-            </div>
-            <div>
-              <span>Target mode</span>
-              <strong>{run?.target_mode === 'lightweight_no_guardrails' ? 'No guardrails' : 'Guardrailed'}</strong>
-            </div>
-          </div>
-        )}
-
-        {!embedded && (
-          <div className="red-team-method-scores">
-            {Object.entries(methodScores).map(([method, value]) => (
-              <div key={method}>
-                <span>{method}</span>
-                <b>{formatScore(value)}</b>
+              <div className="red-team-results-tabs" aria-label="Red-team result views">
+                <button
+                  className={activeResultsTab === 'review' ? 'isActive' : ''}
+                  type="button"
+                  onClick={() => setActiveResultsTab('review')}
+                >
+                  Answer review
+                </button>
+                <button
+                  className={activeResultsTab === 'analysis' ? 'isActive' : ''}
+                  type="button"
+                  onClick={() => setActiveResultsTab('analysis')}
+                >
+                  Computational analysis
+                </button>
               </div>
-            ))}
+              {activeResultsTab === 'review' ? (
+                <span>{visibleQuestionCount} questions · {visibleReviewItems.length}/{reviewCount} answers shown</span>
+              ) : (
+                <span>{analysis?.generated_at ? `Generated ${analysis.generated_at}` : 'Reproducible tables and plots'}</span>
+              )}
+            </div>
+            <button type="button" onClick={onRefresh}>Refresh</button>
           </div>
-        )}
 
-        {!embedded && (
-          <div className="red-team-final-actions">
-            <button
-              aria-label={finalReport ? 'Re-save final results' : 'Save final results'}
-              className="red-team-save-final"
-              type="button"
-              disabled={!canFinalize || finalizing}
-              onClick={async () => {
-                setFinalizeError(null);
-                setFinalizing(true);
-                try {
-                  await onSaveFinalResults();
-                } catch (err) {
-                  setFinalizeError(err.message);
-                } finally {
-                  setFinalizing(false);
-                }
-              }}
-            >
-              <span aria-hidden="true" />
-            </button>
-            {finalReport?.download_url && (
-              <a href={`${process.env.REACT_APP_RED_TEAM_API_URL || 'http://127.0.0.1:8010'}${finalReport.download_url}`}>
-                Download JSON report
-              </a>
-            )}
-            {!canFinalize && status === 'completed' && (
-              <span>Complete all pending human reviews before saving the final report.</span>
-            )}
-          </div>
-        )}
-
-        <div className="red-team-review-header">
-          <h3>Human mediation</h3>
-          <button type="button" onClick={onRefresh}>Refresh results</button>
-        </div>
-
-        {reviewCount === 0 ? (
-          <p className="red-team-empty">No human review items were flagged for this run.</p>
-        ) : (
-          <div className="red-team-review-list">
-            {Object.values(groupedReviewItems).map((group) => (
-              <section className="red-team-layer-group" key={group.method}>
-                <h4>{group.methodName}</h4>
-                {group.items.map((item) => (
-                  <ReviewCase key={item.case_id} item={item} onSubmitReview={onSubmitReview} />
-                ))}
-              </section>
-            ))}
-          </div>
-        )}
+          {activeResultsTab === 'analysis' ? (
+            <ComputationalAnalysisView
+              analysis={analysis}
+              analysisStatus={analysisStatus}
+              runId={run?.run_id}
+              onGenerateAnalysis={onGenerateAnalysis}
+            />
+          ) : reviewCount === 0 ? (
+            <p className="red-team-empty">No cases are available for this run yet.</p>
+          ) : (
+            <div className="red-team-review-list">
+              {Object.values(groupedReviewItems).map((group) => (
+                <section className="red-team-layer-group" key={group.method}>
+                  <h4>{group.methodName}</h4>
+                  {group.items.map((item) => (
+                    <ReviewQuestion key={item.pair_id} item={item} onSubmitReview={onSubmitReview} />
+                  ))}
+                </section>
+              ))}
+            </div>
+          )}
+        </main>
       </section>
     </div>
   );

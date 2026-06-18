@@ -68,6 +68,23 @@ class StylometricSignal:
 
 
 @dataclass(slots=True)
+class DynamicRequestSignal:
+    """Runtime intent signal extracted from the user's current request."""
+
+    persuasion_intent_score: float = 0.0
+    persuasion_intent_type: str = "none"
+    sensitive_decision_target: str = "none"
+    style_conflict_score: float = 0.0
+    requested_style: str = "none"
+    attack_type: str = "none"
+    reasoning_depth_score: float = 0.0
+    requested_depth: str = "ordinary"
+    high_stakes_domain: str = "none"
+    topic_profile_distance_hint: str = "unknown"
+    matched_markers: dict = field(default_factory=dict)
+
+
+@dataclass(slots=True)
 class AuthoritySignal:
     """Signal produced by subjective framing and authority modulation."""
 
@@ -84,6 +101,7 @@ class AuthoritySignal:
 class GuardrailSignals:
     """Bundle of all pre-judge checks passed into policy selection."""
 
+    dynamic: DynamicRequestSignal
     lexical: LexicalSignal
     relevance: RelevanceSignal
     epistemic: EpistemicSignal

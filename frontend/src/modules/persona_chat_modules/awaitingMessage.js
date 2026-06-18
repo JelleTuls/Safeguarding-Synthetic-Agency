@@ -1,3 +1,8 @@
+// Animated waiting bubble for streamed chat responses.
+//
+// Rotates short status phrases while the backend prepares guardrail analysis or
+// streams a lightweight response.
+
 import { useEffect, useRef, useState } from 'react';
 
 import './awaitingMessage.css';

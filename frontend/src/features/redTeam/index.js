@@ -1,3 +1,5 @@
+// Public exports for the red-team feature package.
+
 export { default as RedTeamSettingsView } from './RedTeamSettingsView';
 export { default as RedTeamSetupPanel } from './RedTeamSetupPanel';
 export {

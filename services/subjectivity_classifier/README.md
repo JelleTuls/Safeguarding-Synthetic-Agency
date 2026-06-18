@@ -21,6 +21,18 @@ services/subjectivity_classifier/model/glove.6B.50d.txt
 
 The sidecar now exposes the model's softmax probabilities before the package converts them into hard labels. This means Layer 08 can use grey-area scores such as `0.37` or `0.82`, rather than only sentence-count ratios like `0`, `0.5`, or `1`.
 
+## Main Scripts
+
+- `app.py`: Flask HTTP wrapper around `fractalego/subjectivity_classifier`.
+  It exposes `/health` and `/classify`, tokenizes text into sentences, and
+  returns sentence labels plus aggregate subjectivity/objectivity scores.
+- `create_dev_embeddings.py`: creates compact deterministic 50-dimensional
+  development embeddings so the sidecar can start when the full GloVe file is
+  not present.
+
+Both scripts include top-level descriptions because this sidecar is intentionally
+separate from the main backend and uses its own legacy dependency environment.
+
 ## Endpoints
 
 ```text

@@ -41,6 +41,10 @@ Frontend
 
 ## Main Files
 
+- `server.py`: FastAPI application factory, router mounting, CORS, and lifecycle tasks.
+- `api/chat.py`: persona listing plus streaming chat endpoint for both runtime pipelines.
+- `api/red_team.py`: development launcher/proxy for the standalone red-team service.
+- `services/chat_flow.py`: orchestration layer that resolves profile data and selects guardrailed or lightweight generation.
 - `profiles.py`: builds and persists the 30 chat personas in `data/persona_profiles.json`.
 - `biography/store.py`: reads and writes cached biographies in `data/biographies.json`.
 - `biography/engine.py`: generates missing biographies with the configured model.
@@ -48,8 +52,13 @@ Frontend
 - `guardrails/engine.py`: entry point for the guardrailed response pipeline.
 - `guardrails/pipeline.py`: lexical, relevance, epistemic, stylometry, judge, and generator steps.
 - `lightweight/`: unrestricted response pipeline using only the copied base persona system prompt.
+- `rate_limits.py`: file-backed daily IP and active-request counters.
 - `utils.py`: OpenAI-compatible model helpers with primary/fallback key support.
 - `config.py`: provider configuration for OpenAI, Groq, or Azure-compatible model endpoints.
+
+All first-party backend scripts include a top-level module docstring describing
+their runtime responsibility. Section comments are used only where they clarify a
+larger block, such as configuration, public entry points, or persistence logic.
 
 ## Provider Config
 

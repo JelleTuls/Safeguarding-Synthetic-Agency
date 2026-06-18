@@ -1,3 +1,10 @@
+"""FastAPI chat routes for personas, guardrailed chat, and lightweight chat.
+
+The route module exposes the profile list and the streaming chat endpoint used
+by the React frontend and red-team runner. It selects either the full guardrail
+pipeline or the lightweight direct-LLM pipeline based on the request payload.
+"""
+
 import json
 import logging
 import os

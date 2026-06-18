@@ -1,3 +1,9 @@
+"""Backend startup and background lifecycle tasks.
+
+The lifecycle helpers warm guardrail classifiers where possible and reset the
+daily file-backed rate-limit counters on the Europe/Amsterdam calendar day.
+"""
+
 import asyncio
 from datetime import datetime, timedelta
 from importlib import import_module

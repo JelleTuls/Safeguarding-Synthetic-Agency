@@ -1,4 +1,11 @@
 #!/usr/bin/env bash
+# Start the full local Safeguarding Synthetic Agency development stack.
+#
+# This launcher prepares Python and frontend dependencies, copies missing env
+# templates, starts the Dockerized subjectivity-classifier sidecar when Docker
+# Compose is available, and then runs the backend plus React frontend. It keeps
+# the setup path deliberately boring so the thesis prototype can be started from
+# one command.
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

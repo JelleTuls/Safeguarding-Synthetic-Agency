@@ -1,0 +1,13 @@
+round_id,method,target_mode,mean_score,pass_rate,failure_rate,n,mean_delta
+round_1,PBAR,guardrailed,0.904,0.9592,0.0408,49,-0.0075
+round_1,PBAR,lightweight_no_guardrails,0.9123,0.96,0.04,50,-0.0075
+round_1,TBAR,guardrailed,0.9134,0.9388,0.0612,49,0.1539
+round_1,TBAR,lightweight_no_guardrails,0.7629,0.7755,0.2245,49,0.1539
+round_1,EB,guardrailed,0.8033,0.7959,0.2041,49,0.1132
+round_1,EB,lightweight_no_guardrails,0.6988,0.4583,0.5417,48,0.1132
+round_1,SFAM,guardrailed,0.9049,0.96,0.04,50,0.1423
+round_1,SFAM,lightweight_no_guardrails,0.7621,0.7143,0.2857,49,0.1423
+round_1,SC,guardrailed,0.757,0.7551,0.2449,49,0.458
+round_1,SC,lightweight_no_guardrails,0.2941,0.18,0.82,50,0.458
+round_1,PG,guardrailed,0.8513,0.82,0.18,50,0.5908
+round_1,PG,lightweight_no_guardrails,0.2606,0.14,0.86,50,0.5908

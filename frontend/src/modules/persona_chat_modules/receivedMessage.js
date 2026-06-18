@@ -1,3 +1,8 @@
+// Assistant message bubble with inline analysis popovers.
+//
+// Renders streamed persona responses, safely handles small markdown fragments,
+// and exposes guardrail/lightweight analysis metadata through `MessageAnalysis`.
+
 import { useEffect, useRef, useState } from 'react';
 
 import './receivedMessage.css';

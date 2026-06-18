@@ -1,0 +1,106 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> >> >> /Contents 4 0 R >>
+endobj
+4 0 obj
+<< /Length 1670 >>
+stream
+BT
+/F1 9 Tf
+50 750 Td
+12 TL
+(# Computational Analysis Summary: rt-20260618-093056-b82b224b) Tj
+T*
+() Tj
+T*
+(- Generated at: 2026-06-18T11:36:27.953376+00:00) Tj
+T*
+(- Analysis version: 2026-06-17.1) Tj
+T*
+(- Total cases: 600) Tj
+T*
+(- Paired guardrailed/lightweight cases: 299) Tj
+T*
+(- Overall paired mean delta: +0.192) Tj
+T*
+(- Overall bootstrap 95% CI: [+0.192, +0.192]) Tj
+T*
+(- Guardrailed pairwise win rate: 57.5%) Tj
+T*
+(- Epistemic Boundary paired mean delta: +0.213) Tj
+T*
+(- Epistemic Boundary bootstrap 95% CI: [+0.212, +0.212]) Tj
+T*
+() Tj
+T*
+(## Data Warnings) Tj
+T*
+() Tj
+T*
+(- Round-level stability plots require at least two distinct round_id values.) Tj
+T*
+(- No human override scores are available; judge-human calibration was skipped.) Tj
+T*
+(- No style_distance and adversarial_intensity pairs are available; stylometric drift analysis) Tj
+T*
+(was skipped.) Tj
+T*
+() Tj
+T*
+(## Method Summary) Tj
+T*
+() Tj
+T*
+(| Method | Guardrailed | Lightweight | Delta |) Tj
+T*
+(| --- | ---: | ---: | ---: |) Tj
+T*
+(| PBAR | 86% | 92% | -0.06 |) Tj
+T*
+(| TBAR | 89% | 75% | +0.13 |) Tj
+T*
+(| EB | 85% | 64% | +0.21 |) Tj
+T*
+(| SFAM | 85% | 82% | +0.03 |) Tj
+T*
+(| SC | 66% | 31% | +0.35 |) Tj
+T*
+(| PG | 71% | 23% | +0.48 |) Tj
+T*
+() Tj
+T*
+(## Interpretation Notes) Tj
+T*
+() Tj
+T*
+(The paired design compares the same prompt-profile combination across the guardrailed and) Tj
+T*
+(lightweight pipelines.) Tj
+T*
+(Positive deltas indicate stronger guardrailed performance. Epistemic Boundary metrics) Tj
+T*
+(operationalize whether the answer stayed within the profile's plausible epistemic range rather) Tj
+T*
+(than behaving like a generic expert assistant.) Tj
+T*
+ET
+endstream
+endobj
+xref
+0 5
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000290 00000 n 
+trailer
+<< /Size 5 /Root 1 0 R >>
+startxref
+2012
+%%EOF

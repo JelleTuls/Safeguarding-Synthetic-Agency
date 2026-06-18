@@ -18,6 +18,15 @@ explain specific parts of the system.
 - [Frontend Interface](frontend-interface.md): React chat interface and basic
   frontend startup notes.
 
+## Source File Documentation
+
+The first-party source files in `backend/`, `frontend/src/`, `red_teaming/`,
+`services/subjectivity_classifier/`, and `scripts/` include top-of-file
+descriptions. Python modules use module docstrings, JavaScript files use compact
+file headers, and shell scripts document their purpose below the shebang. These
+headers are intended as quick orientation for reviewers reading the code beside
+the thesis diagrams.
+
 ## For Teachers And Reviewers
 
 Start with [SSA Guardrail Flow](ssa-guardrail-flow.md) for the thesis-facing
@@ -39,7 +48,8 @@ buttons and inspection surfaces in the app.
   layered guardrail pipeline, calculations, validation logic, and inspection
   metadata.
 - [Red-Teaming Service](red-teaming-service.md): standalone red-teaming service,
-  prompt suites, LLM grading, human mediation, and final scoring.
+  prompt suites, LLM grading, pairwise guardrailed-vs-lightweight comparison,
+  optional human mediation, and final scoring.
 
 ## Supporting Services
 

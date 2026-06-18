@@ -1,3 +1,8 @@
+// Persona chat popup.
+//
+// Manages the conversation transcript, streams backend responses, and sends the
+// selected pipeline mode so each chat can run as guardrailed or lightweight.
+
 import { useState, useEffect, useRef } from "react";
 
 import './personaChat.css';

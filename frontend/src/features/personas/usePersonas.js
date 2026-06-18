@@ -1,3 +1,9 @@
+// Persona loading and selection hook.
+//
+// This hook owns the frontend state for the cached 30-profile persona set,
+// including the active chat persona, loading/error state, and target profile
+// count shown in the sidebar.
+
 import { useEffect, useState } from 'react';
 
 import { fetchPersonas } from './personaApi';

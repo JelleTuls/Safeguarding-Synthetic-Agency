@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="520" height="460" viewBox="0 0 520 460" role="img">
+<style>text{font-family:Inter,Arial,sans-serif;fill:#17202a} .muted{fill:#64748b}.axis{stroke:#cbd5e1;stroke-width:1}.grid{stroke:#e2e8f0;stroke-width:1}.guard{fill:#2563eb}.light{fill:#f59e0b}.positive{fill:#16a34a}.negative{fill:#dc2626}.line{stroke:#334155;stroke-width:1.5;fill:none}</style>
+<text x="20" y="30" font-size="20" font-weight="700">Judge-Human Calibration</text>
+<text x="20" y="52" font-size="12" class="muted">Automated evaluator score versus human score</text>
+<line class="axis" x1="80" y1="362" x2="420" y2="362"/>
+<line class="axis" x1="80" y1="82" x2="80" y2="362"/>
+<line class="grid" x1="80.0" y1="82" x2="80.0" y2="362"/>
+<line class="grid" x1="80" y1="362.0" x2="420" y2="362.0"/>
+<text x="80.0" y="380" text-anchor="middle" font-size="10" class="muted">0%</text>
+<text x="42" y="366.0" font-size="10" class="muted">0%</text>
+<line class="grid" x1="165.0" y1="82" x2="165.0" y2="362"/>
+<line class="grid" x1="80" y1="292.0" x2="420" y2="292.0"/>
+<text x="165.0" y="380" text-anchor="middle" font-size="10" class="muted">25%</text>
+<text x="42" y="296.0" font-size="10" class="muted">25%</text>
+<line class="grid" x1="250.0" y1="82" x2="250.0" y2="362"/>
+<line class="grid" x1="80" y1="222.0" x2="420" y2="222.0"/>
+<text x="250.0" y="380" text-anchor="middle" font-size="10" class="muted">50%</text>
+<text x="42" y="226.0" font-size="10" class="muted">50%</text>
+<line class="grid" x1="335.0" y1="82" x2="335.0" y2="362"/>
+<line class="grid" x1="80" y1="152.0" x2="420" y2="152.0"/>
+<text x="335.0" y="380" text-anchor="middle" font-size="10" class="muted">75%</text>
+<text x="42" y="156.0" font-size="10" class="muted">75%</text>
+<line class="grid" x1="420.0" y1="82" x2="420.0" y2="362"/>
+<line class="grid" x1="80" y1="82.0" x2="420" y2="82.0"/>
+<text x="420.0" y="380" text-anchor="middle" font-size="10" class="muted">100%</text>
+<text x="42" y="86.0" font-size="10" class="muted">100%</text>
+<circle cx="309.5" cy="173.0" r="5" fill="#2563eb" opacity="0.75"/>
+<circle cx="309.5" cy="173.0" r="5" fill="#2563eb" opacity="0.75"/>
+<circle cx="420.0" cy="82.0" r="5" fill="#2563eb" opacity="0.75"/>
+<circle cx="420.0" cy="82.0" r="5" fill="#2563eb" opacity="0.75"/>
+<circle cx="309.5" cy="173.0" r="5" fill="#2563eb" opacity="0.75"/>
+<circle cx="309.5" cy="173.0" r="5" fill="#2563eb" opacity="0.75"/>
+<circle cx="216.0" cy="250.0" r="5" fill="#2563eb" opacity="0.75"/>
+<circle cx="309.5" cy="173.0" r="5" fill="#2563eb" opacity="0.75"/>
+<circle cx="420.0" cy="82.0" r="5" fill="#2563eb" opacity="0.75"/>
+<circle cx="335.0" cy="152.0" r="5" fill="#2563eb" opacity="0.75"/>
+<circle cx="267.0" cy="208.0" r="5" fill="#2563eb" opacity="0.75"/>
+<circle cx="309.5" cy="173.0" r="5" fill="#2563eb" opacity="0.75"/>
+<circle cx="199.0" cy="264.0" r="5" fill="#2563eb" opacity="0.75"/>
+<line x1="80" y1="362" x2="420" y2="82" stroke="#94a3b8" stroke-dasharray="4 4"/>
+<text x="250.0" y="432" text-anchor="middle" font-size="12">Automated evaluator score</text>
+<text x="20" y="90" font-size="12" transform="rotate(-90 20,90)">Human/final score</text>
+</svg>

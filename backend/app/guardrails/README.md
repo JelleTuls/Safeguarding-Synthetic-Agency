@@ -4,6 +4,25 @@ This document explains how a user message moves through the guardrail system bef
 
 The goal is not to silence the synthetic social agent, but to keep it responsible, profile-grounded, and bounded. The SSA can still express views, preferences, memories, and recommendations, but the system controls how factual, authoritative, persuasive, or emotionally forceful the final answer may become.
 
+## Source Layout
+
+Each guardrail module has a top-level description in its Python source file. The
+folder numbers match the thesis-facing pipeline order:
+
+- `01_lexical/`: hardcoded prompt-injection marker scan.
+- `02_relevance/`: topic-profile relevance guidance for the judge LLM.
+- `03_epistemic/`: epistemic range guidance for profile-level knowledge limits.
+- `04_authority/`: pre-generation factuality and authority modulation signals.
+- `05_stylometry/`: baseline speaking-style profile generation and guidance.
+- `06_judge/`: LLM policy decision over the collected guardrail signals.
+- `07_generator/`: guarded draft response generation and chat-bubble splitting.
+- `08_subjective_framing_authority/`: post-generation subjectivity and authority validation.
+- `09_persuasive_governance/`: post-generation persuasive-language validation.
+
+Shared files include `schemas.py` for typed signal containers, `pipeline.py` for
+layer orchestration, `engine.py` for the public guardrailed response entry point,
+and `session_trace.py` for local turn-by-turn inspection logs.
+
 ## Overview Diagram
 
 ```text

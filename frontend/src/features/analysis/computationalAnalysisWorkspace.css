@@ -1,0 +1,439 @@
+.analysisWorkspace {
+  background: #ffffff;
+  border: 1px solid #d8e1eb;
+  border-radius: 14px;
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  gap: 12px;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  padding: 16px;
+}
+
+.analysisTop {
+  max-width: 880px;
+}
+
+.analysisTop h2 {
+  font-size: 24px;
+  line-height: 1.15;
+  margin: 4px 0 7px;
+}
+
+.analysisTop p:last-child {
+  color: #526171;
+  font-size: 12px;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.analysisActionRow {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.analysisActionRow button {
+  border: 0;
+  border-radius: 8px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  padding: 9px 12px;
+}
+
+.analysisActionRow button.isPrimary {
+  background: #17202a;
+  color: #ffffff;
+}
+
+.analysisActionRow button.isPrimary:disabled {
+  background: #98a2b3;
+  cursor: not-allowed;
+}
+
+.analysisActionRow button.isSecondary {
+  background: #eef2f6;
+  color: #273444;
+}
+
+.analysisActionRow span {
+  color: #667085;
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.analysisPanelHeader {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.analysisPanelHeader span,
+.analysisEyebrow,
+.analysisScoreSet span,
+.analysisCaseSummary span {
+  color: #667085;
+  display: block;
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
+.analysisScrollableBody {
+  align-content: start;
+  align-items: start;
+  background: #f8fafc;
+  border: 1px solid #e4e9ef;
+  border-radius: 10px;
+  display: grid;
+  gap: 12px;
+  min-height: 0;
+  overflow: auto;
+  padding: 14px;
+  scrollbar-width: none;
+}
+
+.analysisScrollableBody::-webkit-scrollbar {
+  display: none;
+}
+
+.analysisReportButtons {
+  align-self: start;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  width: 100%;
+}
+
+.analysisReportButtons::-webkit-scrollbar {
+  display: none;
+}
+
+.analysisReportCard {
+  background: #ffffff;
+  border: 1px solid #d8e1eb;
+  border-radius: 8px;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding: 8px;
+}
+
+.analysisReportSelect {
+  background: transparent;
+  border: 0;
+  color: #17202a;
+  cursor: pointer;
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  padding: 2px;
+  text-align: left;
+}
+
+.analysisReportSelect:focus-visible,
+.analysisDeleteButton:focus-visible {
+  outline: 2px solid #17202a;
+  outline-offset: 2px;
+}
+
+.analysisDeleteButton {
+  align-self: start;
+  background: #fff1f0;
+  border: 1px solid #ffccc7;
+  border-radius: 7px;
+  color: #b42318;
+  cursor: pointer;
+  font: inherit;
+  font-size: 11px;
+  padding: 6px 8px;
+}
+
+.analysisDeleteButton:disabled {
+  cursor: wait;
+  opacity: 0.7;
+}
+
+.analysisReportSelect strong {
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.analysisReportSelect span,
+.analysisReportSelect small,
+.analysisMuted,
+.analysisEmpty,
+.analysisTop p {
+  color: #526171;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.analysisError {
+  background: #fff1f0;
+  border: 1px solid #ffccc7;
+  border-radius: 8px;
+  color: #b42318;
+  font-size: 12px;
+  margin: 0;
+  padding: 10px;
+}
+
+.analysisScoreSet {
+  display: grid;
+  gap: 8px;
+}
+
+.analysisScoreSet {
+  align-self: stretch;
+  background: #ffffff;
+  border: 1px solid #d8e1eb;
+  border-radius: 10px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  min-height: 82px;
+  overflow: hidden;
+  padding: 8px;
+  width: 100%;
+}
+
+.analysisScoreSet div {
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+  border-right: 1px solid #e4e9ef;
+  display: grid;
+  align-content: center;
+  min-width: 0;
+  padding: 12px;
+}
+
+.analysisScoreSet div:last-child {
+  border-right: 0;
+}
+
+.analysisCaseSummary {
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid #e4e9ef;
+  border-radius: 8px;
+  display: flex;
+  gap: 0;
+  justify-self: start;
+  min-width: 0;
+  padding: 10px;
+}
+
+.analysisCaseMetric {
+  min-width: 150px;
+  padding: 0 18px 0 8px;
+}
+
+.analysisCaseMetric + .analysisCaseMetric {
+  border-left: 1px solid #e4e9ef;
+  padding-left: 18px;
+}
+
+.analysisScoreSet strong,
+.analysisCaseSummary strong {
+  display: block;
+  font-size: 16px;
+  margin-top: 5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.analysisScoreSet strong {
+  font-size: 22px;
+  line-height: 1.1;
+}
+
+.analysisDownloads {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.analysisDownloads a {
+  background: #ffffff;
+  border: 1px solid #e4e9ef;
+  border-radius: 8px;
+  color: #273444;
+  font-size: 12px;
+  padding: 8px 10px;
+  text-decoration: none;
+}
+
+.analysisDownloads a:first-child {
+  border-color: #b7e4c8;
+  background: #e7f6ed;
+  color: #157347;
+}
+
+.analysisWarnings {
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  border-radius: 8px;
+  display: grid;
+  gap: 4px;
+  padding: 10px;
+}
+
+.analysisWarnings p {
+  color: #9a3412;
+  font-size: 12px;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.analysisSkipped {
+  align-items: start;
+  background: #f8fafc;
+  border: 1px solid #d8e1eb;
+  border-radius: 8px;
+  color: #526171;
+  display: grid;
+  gap: 5px;
+  padding: 10px;
+}
+
+.analysisSkipped strong {
+  color: #182230;
+  font-size: 12px;
+}
+
+.analysisSkipped span {
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.analysisFigureSection {
+  display: grid;
+  gap: 8px;
+}
+
+.analysisFigureSection h3 {
+  font-size: 14px;
+  margin: 4px 0 0;
+}
+
+.analysisFigureGrid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.analysisFigureGrid figure {
+  background: #ffffff;
+  border: 1px solid #e4e9ef;
+  border-radius: 8px;
+  margin: 0;
+  overflow: hidden;
+}
+
+.analysisFigureGrid figcaption {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 9px 10px 4px;
+}
+
+.analysisFigureGrid figcaption span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.analysisPlotDownload {
+  align-items: center;
+  display: flex;
+  flex: 0 0 auto;
+  gap: 5px;
+}
+
+.analysisPlotDownload select,
+.analysisPlotDownload a {
+  border: 1px solid #d8e1eb;
+  border-radius: 7px;
+  font: inherit;
+  font-size: 11px;
+  height: 28px;
+}
+
+.analysisPlotDownload select {
+  background: #ffffff;
+  color: #273444;
+  padding: 0 6px;
+}
+
+.analysisPlotDownload a {
+  align-items: center;
+  background: #17202a;
+  color: #ffffff;
+  cursor: pointer;
+  display: inline-flex;
+  line-height: 1;
+  padding: 0 8px;
+  text-decoration: none;
+}
+
+.analysisFigureGrid figure p {
+  border-bottom: 1px solid #e4e9ef;
+  color: #526171;
+  font-size: 11px;
+  line-height: 1.45;
+  margin: 0;
+  padding: 0 10px 9px;
+}
+
+.analysisFigureGrid img {
+  display: block;
+  max-height: 720px;
+  object-fit: contain;
+  width: 100%;
+}
+
+.analysisEmpty {
+  background: #ffffff;
+  border: 1px solid #e4e9ef;
+  border-radius: 8px;
+  margin: 0;
+  padding: 16px;
+}
+
+@media screen and (max-width: 920px) {
+  .analysisWorkspace {
+    padding: 12px;
+  }
+
+  .analysisScoreSet,
+  .analysisFigureGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .analysisScoreSet div {
+    border-bottom: 1px solid #e4e9ef;
+    border-right: 0;
+  }
+
+  .analysisScoreSet div:last-child {
+    border-bottom: 0;
+  }
+
+  .analysisCaseSummary {
+    justify-self: stretch;
+  }
+
+  .analysisReportButtons {
+    grid-template-columns: 1fr;
+  }
+}

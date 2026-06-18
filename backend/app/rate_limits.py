@@ -1,4 +1,12 @@
+"""File-backed request throttling helpers for the chat API.
+
+The prototype stores simple daily IP and active-request counters in JSON files
+under `app/runtime/`. This keeps local/deployment rate limiting lightweight and
+easy to inspect without adding a database.
+"""
+
 import json
+import os
 import time
 from pathlib import Path
 
@@ -12,7 +20,7 @@ RUNTIME_DIR.mkdir(exist_ok=True)
 
 ip_requests_path = RUNTIME_DIR / "day_ip_requests.json"
 active_request_users_path = RUNTIME_DIR / "users_request_active.json"
-ACTIVE_REQUEST_TTL_SECONDS = 20 * 60
+ACTIVE_REQUEST_TTL_SECONDS = int(os.getenv("SSA_ACTIVE_REQUEST_TTL_SECONDS", str(4 * 60)))
 
 def _load_json(path, default):
     if not path.exists():

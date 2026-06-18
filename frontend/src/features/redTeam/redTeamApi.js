@@ -1,3 +1,9 @@
+// Red-team API client helpers.
+//
+// The main backend can launch the standalone red-team service; once running,
+// these helpers talk to both APIs for run creation, polling, review submission,
+// and final report download links.
+
 import { backendApiUrl, redTeamApiUrl } from '../../config/api';
 
 
@@ -71,4 +77,71 @@ export async function finalizeRedTeamRun(runId) {
     throw new Error(`Could not save final results: ${response.status} ${message}`);
   }
   return response.json();
+}
+
+export async function generateRedTeamAnalysis(runId) {
+  const response = await fetch(`${backendApiUrl}/api/red-team/runs/${runId}/analysis`, {
+    method: 'POST',
+  });
+  return parseJsonResponse(response, 'Could not generate computational analysis');
+}
+
+export async function fetchRedTeamAnalysis(runId) {
+  const response = await fetch(`${backendApiUrl}/api/red-team/runs/${runId}/analysis`);
+  if (!response.ok) {
+    return null;
+  }
+  return response.json();
+}
+
+export async function fetchFinalReports() {
+  const response = await fetch(`${backendApiUrl}/api/red-team/final-reports`);
+  return parseJsonResponse(response, 'Could not load final report JSON files');
+}
+
+export async function fetchFinalReportDataset(runId) {
+  const response = await fetch(finalReportDatasetJsonUrl(runId));
+  return parseJsonResponse(response, 'Could not load final report dataset');
+}
+
+export async function deleteFinalReport(runId) {
+  const response = await fetch(`${backendApiUrl}/api/red-team/final-reports/${runId}`, {
+    method: 'DELETE',
+  });
+  return parseJsonResponse(response, 'Could not delete final report dataset');
+}
+
+export async function generateAnalysisFromFinalReport(runId) {
+  const response = await fetch(`${backendApiUrl}/api/red-team/final-reports/${runId}/analysis`, {
+    method: 'POST',
+  });
+  return parseJsonResponse(response, 'Could not generate analysis from final report');
+}
+
+export function finalReportPdfUrl(runId) {
+  return `${backendApiUrl}/api/red-team/final-reports/${runId}/pdf`;
+}
+
+export function finalReportJsonUrl(runId) {
+  return finalReportDatasetJsonUrl(runId);
+}
+
+export function analysisArtifactUrl(runId, artifact) {
+  return `${backendApiUrl}/api/red-team/runs/${runId}/analysis/artifacts/${artifact}`;
+}
+
+export function analysisZipUrl(runId) {
+  return `${backendApiUrl}/api/red-team/runs/${runId}/analysis.zip`;
+}
+
+export function analysisVisualZipUrl(runId) {
+  return `${backendApiUrl}/api/red-team/runs/${runId}/analysis/artifacts/visual_zip`;
+}
+
+export function analysisPlotPngUrl(runId, artifact, width = 1800) {
+  return `${backendApiUrl}/api/red-team/runs/${runId}/analysis/plots/${artifact}.png?width=${width}`;
+}
+
+export function finalReportDatasetJsonUrl(runId) {
+  return `${backendApiUrl}/api/red-team/final-reports/${runId}/json`;
 }

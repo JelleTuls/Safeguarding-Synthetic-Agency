@@ -1,3 +1,4 @@
 @import './styles/appLayout.css';
 @import './features/personas/personaWorkspace.css';
 @import './features/redTeam/redTeamWorkspace.css';
+@import './features/analysis/computationalAnalysisWorkspace.css';

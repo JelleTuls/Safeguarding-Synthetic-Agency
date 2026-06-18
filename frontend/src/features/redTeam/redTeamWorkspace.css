@@ -38,6 +38,141 @@
   font-size: 24px;
 }
 
+.redTeamSavedRunsView {
+  display: grid;
+  gap: 14px;
+  grid-template-rows: auto minmax(0, 1fr);
+  height: 100%;
+  min-height: 0;
+}
+
+.redTeamSavedRunsHeader {
+  align-items: flex-start;
+  border-bottom: 1px solid #dfe7f0;
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+  padding: 4px 2px 14px;
+}
+
+.redTeamSavedRunsHeader span {
+  color: #667085;
+  display: block;
+  font-size: 11px;
+  margin-bottom: 7px;
+  text-transform: uppercase;
+}
+
+.redTeamSavedRunsHeader h2 {
+  color: #17202a;
+  font-size: 24px;
+  line-height: 1.15;
+}
+
+.redTeamSavedRunsHeader p,
+.redTeamSavedRunsEmpty p {
+  color: #667085;
+  font-size: 13px;
+  line-height: 1.45;
+  margin-top: 8px;
+}
+
+.redTeamSavedRunsHeader button {
+  background: #ffffff;
+  border: 1px solid #cdd8e4;
+  border-radius: 10px;
+  color: #263445;
+  cursor: pointer;
+  flex: 0 0 auto;
+  font: inherit;
+  font-size: 12px;
+  min-height: 36px;
+  padding: 8px 12px;
+}
+
+.redTeamSavedRunsHeader button:hover {
+  border-color: #1b8a70;
+  color: #116650;
+}
+
+.redTeamSavedRunList {
+  align-content: start;
+  display: grid;
+  gap: 9px;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 2px 4px 10px 0;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.redTeamSavedRunList::-webkit-scrollbar {
+  display: none;
+}
+
+.redTeamSavedRunCard {
+  background: #ffffff;
+  border: 1px solid #dfe7f0;
+  border-radius: 10px;
+  cursor: pointer;
+  display: grid;
+  gap: 8px;
+  min-height: 112px;
+  padding: 12px;
+  text-align: left;
+}
+
+.redTeamSavedRunCard:hover {
+  border-color: #1b8a70;
+  box-shadow: 0 14px 28px rgba(27, 138, 112, 0.1);
+}
+
+.redTeamSavedRunCard span {
+  color: #667085;
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
+.redTeamSavedRunCard strong {
+  color: #17202a;
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+
+.redTeamSavedRunCard small {
+  color: #667085;
+  font-size: 12px;
+}
+
+.redTeamSavedRunMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.redTeamSavedRunMeta b {
+  background: #f4f7fa;
+  border: 1px solid #dfe7f0;
+  border-radius: 999px;
+  color: #425066;
+  font-size: 11px;
+  font-weight: 400;
+  padding: 5px 8px;
+}
+
+.redTeamSavedRunsEmpty {
+  align-self: start;
+  background: #ffffff;
+  border: 1px dashed #cdd8e4;
+  border-radius: 10px;
+  padding: 18px;
+}
+
+.redTeamSavedRunsEmpty h3 {
+  color: #17202a;
+  font-size: 16px;
+}
+
 .redTeamMethodControls,
 .redTeamModeControls {
   display: grid;
@@ -45,7 +180,8 @@
 }
 
 .redTeamMethodControls label,
-.redTeamModeControls label {
+.redTeamModeControls label,
+.redTeamProfileCountControl {
   align-items: center;
   background: #ffffff;
   border: 1px solid #dfe7f0;
@@ -58,6 +194,99 @@
   line-height: 1.25;
   min-height: 44px;
   padding: 10px 12px;
+}
+
+.redTeamProfileCountControl {
+  justify-content: space-between;
+}
+
+.redTeamProfileSelectionHeader {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.redTeamProfileSelectionHeader span {
+  color: #667085;
+  font-size: 12px;
+  margin-right: auto;
+}
+
+.redTeamProfileSelectionHeader button {
+  background: #ffffff;
+  border: 1px solid #cdd8e4;
+  border-radius: 8px;
+  color: #263445;
+  cursor: pointer;
+  font: inherit;
+  font-size: 11px;
+  padding: 7px 9px;
+}
+
+.redTeamProfileList {
+  display: grid;
+  gap: 7px;
+  max-height: 220px;
+  overflow-y: auto;
+  padding-right: 3px;
+  scrollbar-width: none;
+}
+
+.redTeamProfileList::-webkit-scrollbar {
+  display: none;
+}
+
+.redTeamProfileList label {
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid #dfe7f0;
+  border-radius: 10px;
+  color: #334155;
+  cursor: pointer;
+  display: grid;
+  font-size: 12px;
+  gap: 4px 9px;
+  grid-template-columns: auto minmax(0, 1fr);
+  line-height: 1.25;
+  min-height: 46px;
+  padding: 9px 10px;
+}
+
+.redTeamProfileList input {
+  accent-color: #1b8a70;
+  grid-row: span 2;
+  margin: 0;
+}
+
+.redTeamProfileList small {
+  color: #667085;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Legacy numeric selector styles retained for older rendered runs. */
+.redTeamProfileCountControl input {
+  border: 1px solid #cdd8e4;
+  border-radius: 8px;
+  color: #17202a;
+  font: inherit;
+  font-size: 13px;
+  max-width: 84px;
+  padding: 8px;
+}
+
+.redTeamProfileCountControl strong {
+  color: #667085;
+  font-size: 12px;
+}
+
+.redTeamInlineError {
+  color: #b42318;
+  font-size: 12px;
+  line-height: 1.45;
+  margin: -4px 0 0;
 }
 
 .redTeamMethodControls input,
@@ -161,13 +390,17 @@
 .redTeamRunSummary {
   border-bottom: 1px solid #dfe7f0;
   display: grid;
-  gap: 12px;
+  gap: 10px;
   padding-bottom: 16px;
 }
 
 .redTeamRunHeading {
   border-bottom: 1px solid #dfe7f0;
   padding-bottom: 14px;
+}
+
+.redTeamRunHeading.isCompact {
+  padding-bottom: 8px;
 }
 
 .redTeamRunHeadingTopline {
@@ -192,30 +425,35 @@
   line-height: 1.2;
 }
 
-.redTeamScoreCards {
+.redTeamScorePair {
   display: grid;
   gap: 8px;
+}
+
+.redTeamScoreCards {
+  display: grid;
+  gap: 6px;
 }
 
 .redTeamScoreCard {
   background: #ffffff;
   border: 1px solid #dfe7f0;
-  border-radius: 10px;
-  padding: 12px;
+  border-radius: 8px;
+  padding: 9px 10px;
 }
 
 .redTeamScoreCard span {
   color: #667085;
   display: block;
   font-size: 11px;
-  margin-bottom: 7px;
+  margin-bottom: 5px;
   text-transform: uppercase;
 }
 
 .redTeamScoreCard strong {
   color: #17202a;
   display: block;
-  font-size: 22px;
+  font-size: 20px;
   line-height: 1;
 }
 
@@ -224,7 +462,128 @@
 }
 
 .redTeamScoreCard.isMethodScore strong {
-  font-size: 18px;
+  font-size: 17px;
+}
+
+.redTeamScoreCard.isImprovement.isPositive {
+  background: #eaf7ee;
+  border-color: #ccebd5;
+}
+
+.redTeamScoreCard.isImprovement.isNegative {
+  background: #fff1f0;
+  border-color: #ffd5d1;
+}
+
+.redTeamScoreSectionLabel {
+  color: #667085;
+  display: block;
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
+.redTeamModeToggle {
+  background: #eef2f6;
+  border: 1px solid #dfe7f0;
+  border-radius: 10px;
+  display: grid;
+  gap: 4px;
+  grid-template-columns: 1fr 1fr;
+  padding: 4px;
+}
+
+.redTeamModeToggle button {
+  background: transparent;
+  border: 0;
+  border-radius: 7px;
+  color: #526171;
+  cursor: pointer;
+  font: inherit;
+  font-size: 11px;
+  min-height: 28px;
+  padding: 6px 7px;
+}
+
+.redTeamModeToggle button.isActive {
+  background: #ffffff;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.08);
+  color: #17202a;
+}
+
+.redTeamResultProfiles {
+  display: grid;
+  gap: 6px;
+}
+
+.redTeamResultProfiles button {
+  background: #ffffff;
+  border: 1px solid #dfe7f0;
+  border-radius: 8px;
+  color: #425066;
+  cursor: pointer;
+  font: inherit;
+  font-size: 11px;
+  min-height: 30px;
+  overflow: hidden;
+  padding: 7px 9px;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.redTeamResultProfiles button.isActive {
+  background: #17202a;
+  border-color: #17202a;
+  color: #ffffff;
+}
+
+.redTeamDownloadActions {
+  background: #f8fafc;
+  border: 1px solid #dfe7f0;
+  border-radius: 8px;
+  display: grid;
+  gap: 7px;
+  padding: 9px;
+}
+
+.redTeamDownloadActions button,
+.redTeamDownloadActions a {
+  border-radius: 8px;
+  font-size: 11px;
+  padding: 8px 9px;
+  text-align: center;
+}
+
+.redTeamDownloadActions button {
+  background: #1b8a70;
+  border: 0;
+  color: #ffffff;
+  cursor: pointer;
+  font: inherit;
+}
+
+.redTeamDownloadActions button:disabled {
+  background: #98a2b3;
+  cursor: default;
+}
+
+.redTeamDownloadActions a {
+  background: #eef2f6;
+  color: #273444;
+  text-decoration: none;
+}
+
+.redTeamDownloadActions a.isDisabled {
+  color: #98a2b3;
+  cursor: default;
+  pointer-events: none;
+}
+
+.redTeamInlineNote {
+  color: #667085;
+  font-size: 11px;
+  line-height: 1.35;
+  margin: -3px 0 0;
 }
 
 .redTeamResetButton {

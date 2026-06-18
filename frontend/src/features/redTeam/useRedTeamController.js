@@ -1,13 +1,23 @@
+// Red-team workflow controller hook.
+//
+// The hook starts the standalone red-team service, creates/cancels/finalizes
+// runs, polls progress, loads review items, and stores optional human score
+// overrides used by the answer-review panel.
+
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { backendApiUrl } from '../../config/api';
 import {
   cancelRedTeamRun as cancelRunRequest,
   createRedTeamRun,
+  fetchFinalReportDataset,
+  fetchFinalReports,
   fetchPromptSettings,
   fetchRedTeamReviewItems,
   fetchRedTeamRun,
+  fetchRedTeamAnalysis,
   finalizeRedTeamRun as finalizeRunRequest,
+  generateAnalysisFromFinalReport,
   startRedTeamService,
   submitRedTeamReview,
 } from './redTeamApi';
@@ -23,11 +33,16 @@ export function useRedTeamController() {
   const [redTeamReviewItems, setRedTeamReviewItems] = useState([]);
   const [redTeamError, setRedTeamError] = useState(null);
   const [selectedRedTeamMethods, setSelectedRedTeamMethods] = useState(redTeamMethods.map(([method]) => method));
-  const [redTeamTargetMode, setRedTeamTargetMode] = useState('guardrailed');
+  const [redTeamTargetMode, setRedTeamTargetMode] = useState('full_analysis_stack');
+  const [selectedRedTeamProfileIds, setSelectedRedTeamProfileIds] = useState([]);
   const [redTeamPromptSettings, setRedTeamPromptSettings] = useState([]);
   const [redTeamPromptSettingsStatus, setRedTeamPromptSettingsStatus] = useState('idle');
   const [selectedPromptId, setSelectedPromptId] = useState(null);
   const [redTeamSettingsOpen, setRedTeamSettingsOpen] = useState(false);
+  const [redTeamAnalysis, setRedTeamAnalysis] = useState(null);
+  const [redTeamAnalysisStatus, setRedTeamAnalysisStatus] = useState('idle');
+  const [savedRedTeamReports, setSavedRedTeamReports] = useState([]);
+  const [savedRedTeamReportsStatus, setSavedRedTeamReportsStatus] = useState('idle');
 
   const loadRedTeamRun = useCallback(async (runId) => {
     if (!runId) {
@@ -41,6 +56,69 @@ export function useRedTeamController() {
       if (reviewPayload) {
         setRedTeamReviewItems(reviewPayload.cases || []);
       }
+      const analysisPayload = await fetchRedTeamAnalysis(runId);
+      if (analysisPayload) {
+        setRedTeamAnalysis(analysisPayload);
+        setRedTeamAnalysisStatus('ready');
+      }
+    }
+  }, []);
+
+  const loadSavedRedTeamReports = useCallback(async () => {
+    try {
+      setSavedRedTeamReportsStatus('loading');
+      const payload = await fetchFinalReports();
+      setSavedRedTeamReports(payload.reports || []);
+      setSavedRedTeamReportsStatus('ready');
+      return payload.reports || [];
+    } catch (err) {
+      setSavedRedTeamReportsStatus('error');
+      setRedTeamError(err.message);
+      return [];
+    }
+  }, []);
+
+  useEffect(() => {
+    loadSavedRedTeamReports();
+  }, [loadSavedRedTeamReports]);
+
+  const openSavedRedTeamReport = useCallback(async (runId) => {
+    if (!runId) {
+      return null;
+    }
+    try {
+      setRedTeamError(null);
+      setRedTeamAnalysis(null);
+      setRedTeamAnalysisStatus('idle');
+      const report = await fetchFinalReportDataset(runId);
+      const cases = report.cases || [];
+      const hydratedRun = {
+        ...report,
+        loaded_from_final_report: true,
+        status: report.status || 'completed',
+        progress: report.progress || {
+          total_cases: cases.length,
+          completed_cases: cases.length,
+          current_step: 'loaded from saved final report',
+        },
+        final_scores: report.final_scores || {},
+        final_report: {
+          download_url: `/api/red-team/final-reports/${runId}/json`,
+          json_download_url: `/api/red-team/final-reports/${runId}/json`,
+          pdf_download_url: `/api/red-team/final-reports/${runId}/pdf`,
+        },
+      };
+      setRedTeamRun(hydratedRun);
+      setRedTeamReviewItems(cases);
+      const analysisPayload = await fetchRedTeamAnalysis(runId);
+      if (analysisPayload) {
+        setRedTeamAnalysis(analysisPayload);
+        setRedTeamAnalysisStatus('ready');
+      }
+      return hydratedRun;
+    } catch (err) {
+      setRedTeamError(err.message);
+      return null;
     }
   }, []);
 
@@ -96,7 +174,13 @@ export function useRedTeamController() {
       ? redTeamPromptSettings
       : await loadRedTeamPromptSettings();
     const methodsToRun = selectedRedTeamMethods;
-    const totalCases = methodsToRun.length * 10;
+    if (selectedRedTeamProfileIds.length === 0) {
+      setRedTeamError('Select at least one profile.');
+      return;
+    }
+
+    const targetModeCount = redTeamTargetMode === 'full_analysis_stack' ? 2 : 1;
+    const totalCases = methodsToRun.length * 10 * selectedRedTeamProfileIds.length * targetModeCount;
     const expectedAnswerOverrides = Object.fromEntries(
       promptSettingsForRun
         .filter((prompt) => methodsToRun.includes(prompt.method))
@@ -123,6 +207,8 @@ export function useRedTeamController() {
         country: 'netherlands',
         selected_methods: methodsToRun,
         target_mode: redTeamTargetMode,
+        profile_count: selectedRedTeamProfileIds.length,
+        selected_profile_ids: selectedRedTeamProfileIds,
         expected_answer_overrides: expectedAnswerOverrides,
       });
       setRedTeamRun({
@@ -196,6 +282,35 @@ export function useRedTeamController() {
     }
     await finalizeRunRequest(redTeamRun.run_id);
     await loadRedTeamRun(redTeamRun.run_id);
+    await loadSavedRedTeamReports();
+  }
+
+  async function generateComputationalAnalysis() {
+    if (!redTeamRun?.run_id) {
+      return null;
+    }
+    setRedTeamAnalysisStatus('loading');
+    try {
+      try {
+        await finalizeRunRequest(redTeamRun.run_id);
+        await loadSavedRedTeamReports();
+      } catch (finalizeError) {
+        if (!redTeamRun.loaded_from_final_report) {
+          throw finalizeError;
+        }
+      }
+      const analysis = await generateAnalysisFromFinalReport(redTeamRun.run_id);
+      setRedTeamAnalysis(analysis);
+      setRedTeamAnalysisStatus('ready');
+      if (!redTeamRun.loaded_from_final_report) {
+        await loadRedTeamRun(redTeamRun.run_id);
+      }
+      return analysis;
+    } catch (err) {
+      setRedTeamAnalysisStatus('error');
+      setRedTeamError(err.message);
+      return null;
+    }
   }
 
   function toggleRedTeamMethod(method) {
@@ -225,6 +340,8 @@ export function useRedTeamController() {
     setRedTeamRun(null);
     setRedTeamReviewItems([]);
     setRedTeamError(null);
+    setRedTeamAnalysis(null);
+    setRedTeamAnalysisStatus('idle');
   }
 
   const derived = useMemo(() => {
@@ -255,19 +372,28 @@ export function useRedTeamController() {
     ...derived,
     cancelRedTeamRun,
     finalizeRedTeamRun,
+    generateComputationalAnalysis,
+    loadSavedRedTeamReports,
     loadRedTeamPromptSettings,
     loadRedTeamRun,
+    openSavedRedTeamReport,
     redTeamError,
+    redTeamAnalysis,
+    redTeamAnalysisStatus,
     redTeamPromptSettingsStatus,
     redTeamReviewItems,
     redTeamRun,
     redTeamSettingsOpen,
     redTeamTargetMode,
+    savedRedTeamReports,
+    savedRedTeamReportsStatus,
     refreshRedTeamRun,
     resetPromptExpectedAnswer,
     resetRedTeamRun,
+    selectedRedTeamProfileIds,
     selectedRedTeamMethods,
     setRedTeamSettingsOpen,
+    setSelectedRedTeamProfileIds,
     setRedTeamTargetMode,
     setSelectedPromptId,
     startRedTeamRun,

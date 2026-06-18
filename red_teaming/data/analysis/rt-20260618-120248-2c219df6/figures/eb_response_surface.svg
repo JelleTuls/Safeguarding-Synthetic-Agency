@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="520" height="460" viewBox="0 0 520 460" role="img">
+<style>text{font-family:Inter,Arial,sans-serif;fill:#17202a} .muted{fill:#64748b}.axis{stroke:#cbd5e1;stroke-width:1}.grid{stroke:#e2e8f0;stroke-width:1}.guard{fill:#2563eb}.light{fill:#f59e0b}.positive{fill:#16a34a}.negative{fill:#dc2626}.line{stroke:#334155;stroke-width:1.5;fill:none}</style>
+<text x="20" y="30" font-size="20" font-weight="700">Epistemic Boundary Response Surface</text>
+<text x="20" y="52" font-size="12" class="muted">Binned topic-profile fit and depth/authority proxy; colour is mean EB score</text>
+<line class="axis" x1="100" y1="392" x2="410" y2="392"/>
+<line class="axis" x1="100" y1="82" x2="100" y2="392"/>
+<rect x="100" y="330" width="58" height="58" rx="4" fill="rgb(197,227,208)"/>
+<text x="131.0" y="361.0" text-anchor="middle" font-size="11">21%</text>
+<text x="131.0" y="375.0" text-anchor="middle" font-size="9" class="muted">n=3</text>
+<rect x="100" y="268" width="58" height="58" rx="4" fill="rgb(245,245,245)"/>
+<rect x="100" y="206" width="58" height="58" rx="4" fill="rgb(245,245,245)"/>
+<rect x="100" y="144" width="58" height="58" rx="4" fill="rgb(245,245,245)"/>
+<rect x="100" y="82" width="58" height="58" rx="4" fill="rgb(245,245,245)"/>
+<rect x="162" y="330" width="58" height="58" rx="4" fill="rgb(245,245,245)"/>
+<rect x="162" y="268" width="58" height="58" rx="4" fill="rgb(166,216,184)"/>
+<text x="193.0" y="299.0" text-anchor="middle" font-size="11">35%</text>
+<text x="193.0" y="313.0" text-anchor="middle" font-size="9" class="muted">n=2</text>
+<rect x="162" y="206" width="58" height="58" rx="4" fill="rgb(125,201,153)"/>
+<text x="193.0" y="237.0" text-anchor="middle" font-size="11">54%</text>
+<text x="193.0" y="251.0" text-anchor="middle" font-size="9" class="muted">n=6</text>
+<rect x="162" y="144" width="58" height="58" rx="4" fill="rgb(90,188,126)"/>
+<text x="193.0" y="175.0" text-anchor="middle" font-size="11">69%</text>
+<text x="193.0" y="189.0" text-anchor="middle" font-size="9" class="muted">n=4</text>
+<rect x="162" y="82" width="58" height="58" rx="4" fill="rgb(61,177,104)"/>
+<text x="193.0" y="113.0" text-anchor="middle" font-size="11">82%</text>
+<text x="193.0" y="127.0" text-anchor="middle" font-size="9" class="muted">n=15</text>
+<rect x="224" y="330" width="58" height="58" rx="4" fill="rgb(245,245,245)"/>
+<rect x="224" y="268" width="58" height="58" rx="4" fill="rgb(86,186,123)"/>
+<text x="255.0" y="299.0" text-anchor="middle" font-size="11">71%</text>
+<text x="255.0" y="313.0" text-anchor="middle" font-size="9" class="muted">n=1</text>
+<rect x="224" y="206" width="58" height="58" rx="4" fill="rgb(132,203,158)"/>
+<text x="255.0" y="237.0" text-anchor="middle" font-size="11">50%</text>
+<text x="255.0" y="251.0" text-anchor="middle" font-size="9" class="muted">n=9</text>
+<rect x="224" y="144" width="58" height="58" rx="4" fill="rgb(245,245,245)"/>
+<rect x="224" y="82" width="58" height="58" rx="4" fill="rgb(52,174,97)"/>
+<text x="255.0" y="113.0" text-anchor="middle" font-size="11">86%</text>
+<text x="255.0" y="127.0" text-anchor="middle" font-size="9" class="muted">n=1</text>
+<rect x="286" y="330" width="58" height="58" rx="4" fill="rgb(245,245,245)"/>
+<rect x="286" y="268" width="58" height="58" rx="4" fill="rgb(245,245,245)"/>
+<rect x="286" y="206" width="58" height="58" rx="4" fill="rgb(245,245,245)"/>
+<rect x="286" y="144" width="58" height="58" rx="4" fill="rgb(78,183,117)"/>
+<text x="317.0" y="175.0" text-anchor="middle" font-size="11">74%</text>
+<text x="317.0" y="189.0" text-anchor="middle" font-size="9" class="muted">n=2</text>
+<rect x="286" y="82" width="58" height="58" rx="4" fill="rgb(245,245,245)"/>
+<rect x="348" y="330" width="58" height="58" rx="4" fill="rgb(245,245,245)"/>
+<rect x="348" y="268" width="58" height="58" rx="4" fill="rgb(144,208,168)"/>
+<text x="379.0" y="299.0" text-anchor="middle" font-size="11">45%</text>
+<text x="379.0" y="313.0" text-anchor="middle" font-size="9" class="muted">n=1</text>
+<rect x="348" y="206" width="58" height="58" rx="4" fill="rgb(245,245,245)"/>
+<rect x="348" y="144" width="58" height="58" rx="4" fill="rgb(122,199,150)"/>
+<text x="379.0" y="175.0" text-anchor="middle" font-size="11">55%</text>
+<text x="379.0" y="189.0" text-anchor="middle" font-size="9" class="muted">n=1</text>
+<rect x="348" y="82" width="58" height="58" rx="4" fill="rgb(52,174,97)"/>
+<text x="379.0" y="113.0" text-anchor="middle" font-size="11">86%</text>
+<text x="379.0" y="127.0" text-anchor="middle" font-size="9" class="muted">n=49</text>
+<text x="100.0" y="410" text-anchor="middle" font-size="10" class="muted">0.0</text>
+<text x="76" y="396.0" text-anchor="end" font-size="10" class="muted">0.0</text>
+<text x="162.0" y="410" text-anchor="middle" font-size="10" class="muted">0.2</text>
+<text x="76" y="334.0" text-anchor="end" font-size="10" class="muted">0.2</text>
+<text x="224.0" y="410" text-anchor="middle" font-size="10" class="muted">0.4</text>
+<text x="76" y="272.0" text-anchor="end" font-size="10" class="muted">0.4</text>
+<text x="286.0" y="410" text-anchor="middle" font-size="10" class="muted">0.6</text>
+<text x="76" y="210.0" text-anchor="end" font-size="10" class="muted">0.6</text>
+<text x="348.0" y="410" text-anchor="middle" font-size="10" class="muted">0.8</text>
+<text x="76" y="148.0" text-anchor="end" font-size="10" class="muted">0.8</text>
+<text x="410.0" y="410" text-anchor="middle" font-size="10" class="muted">1.0</text>
+<text x="76" y="86.0" text-anchor="end" font-size="10" class="muted">1.0</text>
+<text x="255.0" y="432" text-anchor="middle" font-size="12">Topic-profile fit</text>
+<text x="24" y="90" font-size="12" transform="rotate(-90 24,90)">Depth/authority proxy</text>
+</svg>

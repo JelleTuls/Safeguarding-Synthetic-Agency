@@ -1,3 +1,11 @@
+// Red-team service debug UI.
+//
+// This small browser script powers the standalone FastAPI red-team page at
+// `red_teaming/app/main.py`. It starts runs, refreshes run state, renders case
+// scores, and submits optional human review overrides. The main React frontend
+// uses its own red-team interface; this file is kept as a lightweight service
+// console for local debugging.
+
 const runsNode = document.getElementById("runs");
 const detailNode = document.getElementById("run-detail");
 const startButton = document.getElementById("start-run");

@@ -4,6 +4,7 @@ from importlib import import_module
 
 from app.guardrails.schemas import (
     AuthoritySignal,
+    DynamicRequestSignal,
     EpistemicSignal,
     GuardrailInput,
     GuardrailSignals,
@@ -14,6 +15,7 @@ from app.guardrails.schemas import (
 )
 from app.guardrails.session_trace import append_kv_block, append_named_block
 from app.logging import get_logger
+from app.guardrails.dynamic_request import analyze_dynamic_request
 
 
 detect_prompt_injection = import_module("app.guardrails.01_lexical").detect_prompt_injection
@@ -71,6 +73,48 @@ def log_guardrailed_request(guardrail_input: GuardrailInput) -> None:
             ),
         ],
     )
+
+
+# =============================================================================
+# Layer 00b: Dynamic Request Intent
+# =============================================================================
+
+def run_layer_00b_dynamic_request(guardrail_input: GuardrailInput) -> DynamicRequestSignal:
+    """Extract dynamic intent signals from the current user message."""
+    signal = analyze_dynamic_request(
+        user_message=guardrail_input.user_message,
+        persona_biography=guardrail_input.persona_biography,
+    )
+    log.info(
+        "Layer 00b dynamic request analysis: persuasion=%s %.2f, style=%s %.2f, attack=%s, depth=%s %.2f, domain=%s.",
+        signal.persuasion_intent_type,
+        signal.persuasion_intent_score,
+        signal.requested_style,
+        signal.style_conflict_score,
+        signal.attack_type,
+        signal.requested_depth,
+        signal.reasoning_depth_score,
+        signal.high_stakes_domain,
+    )
+    append_kv_block(
+        trace=guardrail_input.session_trace,
+        title="Dynamic Request Intent",
+        step_label="LAYER 00b",
+        items=[
+            ("Persuasion intent", signal.persuasion_intent_type),
+            ("Persuasion score", signal.persuasion_intent_score),
+            ("Sensitive decision target", signal.sensitive_decision_target),
+            ("Requested style", signal.requested_style),
+            ("Style conflict score", signal.style_conflict_score),
+            ("Attack type", signal.attack_type),
+            ("Requested depth", signal.requested_depth),
+            ("Reasoning depth score", signal.reasoning_depth_score),
+            ("High-stakes domain", signal.high_stakes_domain),
+            ("Topic-profile distance hint", signal.topic_profile_distance_hint),
+            ("Matched markers", signal.matched_markers),
+        ],
+    )
+    return signal
 
 
 # =============================================================================
@@ -220,6 +264,7 @@ def run_layer_05_stylometric(guardrail_input: GuardrailInput) -> StylometricSign
 def build_guardrail_signals(
     *,
     session_trace,
+    dynamic_signal: DynamicRequestSignal,
     lexical_signal: LexicalSignal,
     relevance_signal: RelevanceSignal,
     epistemic_signal: EpistemicSignal,
@@ -230,6 +275,7 @@ def build_guardrail_signals(
     _log_section("Guardrail Signals")
     log.info("The pre-judge signals are now bundled for Layer 06.")
     signals = GuardrailSignals(
+        dynamic=dynamic_signal,
         lexical=lexical_signal,
         relevance=relevance_signal,
         epistemic=epistemic_signal,
@@ -240,6 +286,19 @@ def build_guardrail_signals(
         trace=session_trace,
         title="Bundled Guardrail Signals",
         content={
+            "dynamic": {
+                "persuasion_intent_score": dynamic_signal.persuasion_intent_score,
+                "persuasion_intent_type": dynamic_signal.persuasion_intent_type,
+                "sensitive_decision_target": dynamic_signal.sensitive_decision_target,
+                "style_conflict_score": dynamic_signal.style_conflict_score,
+                "requested_style": dynamic_signal.requested_style,
+                "attack_type": dynamic_signal.attack_type,
+                "reasoning_depth_score": dynamic_signal.reasoning_depth_score,
+                "requested_depth": dynamic_signal.requested_depth,
+                "high_stakes_domain": dynamic_signal.high_stakes_domain,
+                "topic_profile_distance_hint": dynamic_signal.topic_profile_distance_hint,
+                "matched_markers": dynamic_signal.matched_markers,
+            },
             "lexical": {
                 "triggered": lexical_signal.triggered,
                 "matched_terms": lexical_signal.matched_terms,

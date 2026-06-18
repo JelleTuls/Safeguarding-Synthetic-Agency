@@ -7,8 +7,8 @@
 
 .pageSurface {
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr) 18px;
-  gap: 14px;
+  grid-template-rows: auto auto minmax(0, 1fr) 18px;
+  gap: 10px;
   height: min(100%, 860px);
   margin: 0 auto;
   max-width: 1240px;
@@ -72,6 +72,47 @@
   background: #ffffff;
   box-shadow: 0 7px 18px rgba(38, 52, 68, 0.12);
   color: #17202a;
+}
+
+.workspaceBackRow {
+  align-items: center;
+  display: flex;
+  min-height: 34px;
+}
+
+.workspaceBackButton {
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid #d7e1ec;
+  border-radius: 999px;
+  box-shadow: 0 8px 20px rgba(38, 52, 68, 0.09);
+  cursor: pointer;
+  display: inline-flex;
+  height: 30px;
+  justify-content: center;
+  padding: 0;
+  transition: border-color 0.16s ease, box-shadow 0.16s ease, transform 0.16s ease;
+  width: 30px;
+}
+
+.workspaceBackButton span {
+  border-bottom: 2px solid #263445;
+  border-left: 2px solid #263445;
+  display: block;
+  height: 8px;
+  margin-left: 3px;
+  transform: rotate(45deg);
+  width: 8px;
+}
+
+.workspaceBackButton:hover {
+  border-color: #1b8a70;
+  box-shadow: 0 10px 24px rgba(27, 138, 112, 0.12);
+  transform: translateX(-1px);
+}
+
+.workspaceBackButton:hover span {
+  border-color: #116650;
 }
 
 .workspaceShell {
@@ -154,6 +195,10 @@
   .appHeader {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .workspaceBackRow {
+    min-height: 30px;
   }
 
   .workspaceTabs button {

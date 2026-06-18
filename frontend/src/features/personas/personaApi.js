@@ -1,3 +1,8 @@
+// Persona API client helpers.
+//
+// The backend owns persona generation/caching; the frontend only requests the
+// current country/limit slice and renders the returned profile metadata.
+
 import { backendApiUrl } from '../../config/api';
 
 

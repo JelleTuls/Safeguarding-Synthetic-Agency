@@ -1,3 +1,8 @@
+// Hover/floating analysis inspector for chat messages.
+//
+// The inspector presents guardrail signals, judge decisions, stylometry, and
+// post-processing metadata without crowding the visible chat bubbles.
+
 import { createPortal } from 'react-dom';
 import { useEffect, useRef, useState } from 'react';
 
