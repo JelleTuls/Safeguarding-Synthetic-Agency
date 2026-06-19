@@ -3,7 +3,7 @@ Flask==1.1.4
 gensim==3.5.0
 gunicorn==19.10.0
 itsdangerous==1.1.0
-Jinja2==2.11.3
+Jinja2==3.1.6
 MarkupSafe==1.1.1
 nltk==3.4.5
 smart_open==1.8.4
