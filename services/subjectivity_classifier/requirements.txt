@@ -8,4 +8,4 @@ MarkupSafe==1.1.1
 nltk==3.4.5
 smart_open==1.8.4
 tensorflow==1.5.0
-Werkzeug==1.0.1
+Werkzeug==3.1.6
