@@ -93,7 +93,8 @@ cp frontend/.env.example frontend/.env
 ```
 
 The examples already contain the local ports, default model names, frontend URL,
-red-team service URL, subjectivity sidecar URL, and safe development toggles.
+red-team service URL, subjectivity sidecar URL, verbose narrative logging, and
+safe development toggles.
 For normal local use, the only file most reviewers need to edit is
 `backend/.env`.
 
@@ -262,6 +263,37 @@ downloads at configurable pixel sizes, PDF/Markdown summaries, and a manifest
 with warnings for skipped plots when optional fields such as `round_id`,
 `style_distance`, or `adversarial_intensity` are absent.
 
+## Curated Final Dataset And Plots
+
+The repository intentionally keeps one final red-team dataset and its generated
+analysis artifacts in git:
+
+```text
+rt-20260618-180138-af1204a6
+```
+
+This is the dataset used as the final reference run for the thesis-facing
+computational analysis. Other working runs and old analysis folders are treated
+as local runtime output and are not part of the cleaned handoff state.
+
+Core result files:
+
+- [Final results JSON](red_teaming/data/reports/rt-20260618-180138-af1204a6-final-results.json)
+- [Final results PDF](red_teaming/data/reports/rt-20260618-180138-af1204a6-final-results.pdf)
+- [Analysis manifest](red_teaming/data/analysis/rt-20260618-180138-af1204a6/manifest.json)
+- [Analysis summary Markdown](red_teaming/data/analysis/rt-20260618-180138-af1204a6/summaries/analysis_summary.md)
+- [Analysis summary PDF](red_teaming/data/analysis/rt-20260618-180138-af1204a6/summaries/analysis_summary.pdf)
+
+Main thesis plots for this dataset:
+
+- [Guardrail Effect Forest Plot](red_teaming/data/analysis/rt-20260618-180138-af1204a6/figures/paired_delta_forest.svg)
+- [Pairwise Win Rate](red_teaming/data/analysis/rt-20260618-180138-af1204a6/figures/pairwise_win_rate.svg)
+- [Guardrail Delta Heatmap](red_teaming/data/analysis/rt-20260618-180138-af1204a6/figures/guardrail_delta_heatmap.svg)
+- [Failure Transition Matrix](red_teaming/data/analysis/rt-20260618-180138-af1204a6/figures/failure_transition_matrix.svg)
+- [Score Distributions Boxplot](red_teaming/data/analysis/rt-20260618-180138-af1204a6/figures/score_distributions_boxplot.svg)
+- [Delta ECDF By Method](red_teaming/data/analysis/rt-20260618-180138-af1204a6/figures/delta_ecdf_by_method.svg)
+- [Performance-Stability Frontier](red_teaming/data/analysis/rt-20260618-180138-af1204a6/figures/stability_frontier.svg)
+
 ## Manual Run
 
 The one-command `./start.sh` path is preferred. If you need to start services
@@ -313,10 +345,16 @@ backend and `REACT_APP_RED_TEAM_API_URL` to point at the red-teaming service.
 
 ## VS Code
 
-Use `Run Full Project` from the Run and Debug panel. It runs `./start.sh`,
-clears old local dev processes, starts Docker Compose for the subjectivity
-sidecar, then starts the backend and frontend in a normal terminal process
-without attaching the Python debugger.
+The repository keeps two workspace tasks:
+
+- **Prepare Full Project:** runs `bash scripts/prepare_project.sh` to create
+  missing env files, install Python/frontend dependencies, and pre-build the
+  optional subjectivity sidecar image when Docker Compose is available.
+- **Start Full Project:** runs `./start.sh` to prepare anything still missing,
+  start the optional Docker sidecar, and launch the backend plus frontend.
+
+The Run and Debug panel also exposes **Run Full Project**, which calls
+`./start.sh` in a normal terminal process without attaching the Python debugger.
 
 ## Runtime Shape
 
@@ -343,6 +381,7 @@ description explaining their role in the system. The most important entry points
 are:
 
 - `start.sh`: prepares dependencies and starts the full local development stack.
+- `scripts/prepare_project.sh`: prepares env files, dependencies, and the optional sidecar image without starting long-running servers.
 - `scripts/smoke_check.sh`: compiles backend/red-team Python and builds the frontend.
 - `backend/main.py`: ASGI entry point for the main FastAPI backend.
 - `backend/app/server.py`: backend application factory and lifecycle wiring.

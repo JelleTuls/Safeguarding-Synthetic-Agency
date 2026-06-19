@@ -48,8 +48,16 @@ backend/app/guardrails/log/
 # Red-teaming run outputs and exported reports
 red_teaming/data/runs/*.json
 red_teaming/data/reports/*.json
+red_teaming/data/reports/*.pdf
+red_teaming/data/reports/backups/
+red_teaming/data/logs/
+red_teaming/data/analysis/*
 !red_teaming/data/runs/.gitkeep
 !red_teaming/data/reports/.gitkeep
+!red_teaming/data/reports/rt-20260618-180138-af1204a6-final-results.json
+!red_teaming/data/reports/rt-20260618-180138-af1204a6-final-results.pdf
+!red_teaming/data/analysis/rt-20260618-180138-af1204a6/
+!red_teaming/data/analysis/rt-20260618-180138-af1204a6/**
 
 # Large local classifier assets. Keep the folder placeholder tracked.
 services/subjectivity_classifier/model/*

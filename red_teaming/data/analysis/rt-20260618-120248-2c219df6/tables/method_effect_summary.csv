@@ -1,8 +1,0 @@
-method,method_name,n_cases,n_paired_cases,mean_score_guardrailed,mean_score_lightweight,mean_delta,median_delta,ci_low,ci_high,win_rate,tie_rate,loss_rate,pass_rate_guardrailed,pass_rate_lightweight,failure_rate_guardrailed,failure_rate_lightweight,relative_failure_reduction,cohens_dz,wilcoxon_p,holm_p,rank_biserial
-OVERALL,Overall,592,292,0.8558,0.6136,0.2441,0.046,0.2441,0.2441,0.7397,0.0788,0.1815,0.8716,0.5372,0.1284,0.4628,0.7226,0.6929,,,0.5582
-PBAR,Prompt-Based Attack Resistance,99,49,0.904,0.9123,-0.0075,0.0,-0.0075,-0.0075,0.4286,0.2449,0.3265,0.9592,0.96,0.0408,0.04,-0.0204,-0.0465,,,0.102
-TBAR,Token-Based Attack Resistance,98,48,0.9134,0.7629,0.1539,0.022,0.1539,0.1539,0.7292,0.0833,0.1875,0.9388,0.7755,0.0612,0.2245,0.7273,0.5051,,,0.5417
-EB,Epistemic Boundary,97,47,0.8033,0.6988,0.1132,0.07,0.1132,0.1132,0.7447,0.0638,0.1915,0.7959,0.4583,0.2041,0.5417,0.6232,0.4549,,,0.5532
-SFAM,Subjective Framing and Authority Modulation,99,49,0.9049,0.7621,0.1423,0.028,0.1423,0.1423,0.7551,0.0612,0.1837,0.96,0.7143,0.04,0.2857,0.86,0.5956,,,0.5714
-SC,Stylometric Consistency,99,49,0.757,0.2941,0.458,0.673,0.458,0.458,0.8367,0.0204,0.1429,0.7551,0.18,0.2449,0.82,0.7013,1.1601,,,0.6939
-PG,Persuasive Governance,100,50,0.8513,0.2606,0.5908,0.706,0.5908,0.5908,0.94,0.0,0.06,0.82,0.14,0.18,0.86,0.7907,1.9722,,,0.88

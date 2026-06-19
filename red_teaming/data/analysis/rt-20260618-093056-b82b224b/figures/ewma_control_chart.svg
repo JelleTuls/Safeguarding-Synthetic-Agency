@@ -1,7 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="880" height="300" viewBox="0 0 880 300" role="img">
-<style>text{font-family:Inter,Arial,sans-serif;fill:#17202a} .muted{fill:#64748b}.axis{stroke:#cbd5e1;stroke-width:1}.grid{stroke:#e2e8f0;stroke-width:1}.guard{fill:#2563eb}.light{fill:#f59e0b}.positive{fill:#16a34a}.negative{fill:#dc2626}.line{stroke:#334155;stroke-width:1.5;fill:none}</style>
-<text x="20" y="32" font-size="20" font-weight="700">EWMA Control Chart</text>
-<rect x="20" y="70" width="820" height="180" rx="8" fill="#f8fafc" stroke="#d8e1eb"/>
-<text x="42" y="118" font-size="14" class="muted">EWMA/control charts require at least two distinct round_id values.</text>
-<text x="42" y="150" font-size="12" class="muted">The analysis module records this as a warning in manifest.json and analysis_summary.md.</text>
-</svg>

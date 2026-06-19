@@ -1,6 +1,7 @@
 """Shared stdout logger configuration for local persona chat debugging."""
 
 import logging
+import os
 import sys
 
 
@@ -22,6 +23,7 @@ def get_logger(name: str) -> logging.Logger:
     handler.setFormatter(logging.Formatter(_FORMAT))
 
     logger.addHandler(handler)
-    logger.setLevel(logging.INFO)
+    level_name = os.getenv("SSA_LOG_LEVEL", "DEBUG").strip().upper()
+    logger.setLevel(getattr(logging, level_name, logging.INFO))
     logger.propagate = False
     return logger

@@ -1,9 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="360" viewBox="0 0 1200 360" role="img" aria-label="Dispersion reduction formula: open parenthesis 0.226 minus 0.162 close parenthesis divided by 0.226 is approximately 0.283">
-  <rect width="1200" height="360" fill="#ffffff"/>
-  <g fill="#000000" font-family="Times New Roman, STIX Two Text, Georgia, serif">
-    <text x="356" y="126" text-anchor="middle" font-size="78">(0.226 - 0.162)</text>
-    <line x1="120" y1="164" x2="592" y2="164" stroke="#000000" stroke-width="6" stroke-linecap="round"/>
-    <text x="356" y="260" text-anchor="middle" font-size="78">0.226</text>
-    <text x="642" y="202" font-size="78">&#8776; 0.283</text>
-  </g>
-</svg>

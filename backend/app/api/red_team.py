@@ -26,8 +26,10 @@ router = APIRouter()
 REPO_ROOT = Path(__file__).resolve().parents[3]
 RED_TEAM_DIR = REPO_ROOT / "red_teaming"
 REPORTS_DIR = RED_TEAM_DIR / "data" / "reports"
+RED_TEAM_LOG_DIR = RED_TEAM_DIR / "data" / "logs"
 DEFAULT_RED_TEAM_URL = "http://127.0.0.1:8010"
 _red_team_process: subprocess.Popen | None = None
+_red_team_log_handle = None
 
 
 def _red_team_url() -> str:
@@ -53,6 +55,23 @@ def _service_has_final_reports(url: str) -> bool:
 
 def _process_is_alive() -> bool:
     return _red_team_process is not None and _red_team_process.poll() is None
+
+
+def _red_team_service_log_handle():
+    """Return an append handle for the standalone red-team service log."""
+    global _red_team_log_handle
+    RED_TEAM_LOG_DIR.mkdir(parents=True, exist_ok=True)
+    if _red_team_log_handle is None or _red_team_log_handle.closed:
+        _red_team_log_handle = open(
+            RED_TEAM_LOG_DIR / "red_team_service.log",
+            "a",
+            encoding="utf-8",
+            buffering=1,
+        )
+        _red_team_log_handle.write(
+            "\n--- Red-team service launcher attached a new process log stream. ---\n"
+        )
+    return _red_team_log_handle
 
 
 def _analysis_module():
@@ -345,6 +364,7 @@ def start_red_team_service() -> dict[str, Any]:
         raise HTTPException(status_code=500, detail="red_teaming directory was not found.")
 
     if not _process_is_alive():
+        log_handle = _red_team_service_log_handle()
         _red_team_process = subprocess.Popen(
             [
                 sys.executable,
@@ -358,8 +378,8 @@ def start_red_team_service() -> dict[str, Any]:
             ],
             cwd=RED_TEAM_DIR,
             env={**os.environ, "PYTHONUNBUFFERED": "1"},
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
+            stdout=log_handle,
+            stderr=subprocess.STDOUT,
         )
 
     for _ in range(24):

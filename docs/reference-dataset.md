@@ -14,11 +14,10 @@ rt-20260618-180138-af1204a6
 
 Primary files:
 
-```text
-red_teaming/data/reports/rt-20260618-180138-af1204a6-final-results.json
-red_teaming/data/reports/rt-20260618-180138-af1204a6-final-results.pdf
-red_teaming/data/analysis/rt-20260618-180138-af1204a6/
-```
+- [Final results JSON](../red_teaming/data/reports/rt-20260618-180138-af1204a6-final-results.json)
+- [Final results PDF](../red_teaming/data/reports/rt-20260618-180138-af1204a6-final-results.pdf)
+- [Analysis manifest](../red_teaming/data/analysis/rt-20260618-180138-af1204a6/manifest.json)
+- [Analysis summary](../red_teaming/data/analysis/rt-20260618-180138-af1204a6/summaries/analysis_summary.md)
 
 This run contains 600 cases over 5 profiles, with paired lightweight and
 guardrailed responses for the selected red-team prompt suite. It is useful as a
@@ -47,6 +46,16 @@ Method-level paired deltas:
 | SFAM | 0.8266 | 0.7488 | +0.0778 |
 | SC | 0.6940 | 0.3521 | +0.3419 |
 | PG | 0.7941 | 0.3442 | +0.4499 |
+
+## Linked Thesis Plots
+
+- [Guardrail Effect Forest Plot](../red_teaming/data/analysis/rt-20260618-180138-af1204a6/figures/paired_delta_forest.svg)
+- [Pairwise Win Rate](../red_teaming/data/analysis/rt-20260618-180138-af1204a6/figures/pairwise_win_rate.svg)
+- [Guardrail Delta Heatmap](../red_teaming/data/analysis/rt-20260618-180138-af1204a6/figures/guardrail_delta_heatmap.svg)
+- [Failure Transition Matrix](../red_teaming/data/analysis/rt-20260618-180138-af1204a6/figures/failure_transition_matrix.svg)
+- [Score Distributions Boxplot](../red_teaming/data/analysis/rt-20260618-180138-af1204a6/figures/score_distributions_boxplot.svg)
+- [Delta ECDF By Method](../red_teaming/data/analysis/rt-20260618-180138-af1204a6/figures/delta_ecdf_by_method.svg)
+- [Performance-Stability Frontier](../red_teaming/data/analysis/rt-20260618-180138-af1204a6/figures/stability_frontier.svg)
 
 ## How To Inspect It In The App
 
