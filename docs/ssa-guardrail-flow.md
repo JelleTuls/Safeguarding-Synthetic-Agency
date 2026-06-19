@@ -16,13 +16,15 @@ flowchart TD
 
     B --> C[Pre-generation guardrail analysis]
 
+    C --> C0[Dynamic request-intent signal]
     C --> C1[Prompt-injection detection]
     C --> C2[Topic and relevance assessment]
     C --> C3[Epistemic boundary assessment]
     C --> C4[Subjective/objective intent assessment]
     C --> C5[Stylometric profile guidance]
 
-    C1 --> D[LLM-as-Judge]
+    C0 --> D[LLM-as-Judge]
+    C1 --> D
     C2 --> D
     C3 --> D
     C4 --> D
@@ -73,10 +75,13 @@ flowchart TD
 ## Reading The Flow
 
 The system first retrieves the persona context and performs pre-generation
-guardrail analysis. These signals are passed to the LLM-as-Judge, which produces
-a policy decision bundle rather than a single allow/refuse decision. That bundle
-sets the response action, topic scope, knowledge and authority level, expected
-response mode, stylometric constraints, and post-processing intensity.
+guardrail analysis. The dynamic request-intent signal captures broad intent such
+as targeted persuasion, conflicting style requests, attack subtype, high-stakes
+domains, and requested depth before the judge decision. These signals are passed
+to the LLM-as-Judge, which produces a policy decision bundle rather than a
+single allow/refuse decision. That bundle sets the response action, topic scope,
+knowledge and authority level, expected response mode, stylometric constraints,
+and post-processing intensity.
 
 The response generator then produces a persona-grounded draft under these
 constraints. If the response is low-risk, it may be accepted directly. Otherwise,

@@ -3,6 +3,13 @@
 // This view lets the user inspect and edit expected-answer text before running
 // evaluations, which is especially useful for thesis-specific calibration.
 
+function formatCalibrationScore(value) {
+  if (value === undefined || value === null || Number.isNaN(Number(value))) {
+    return 'N/A';
+  }
+  return `${Math.round(Number(value) * 100)}%`;
+}
+
 function RedTeamSettingsView({
   editedPromptCount,
   loadPromptSettings,
@@ -11,6 +18,7 @@ function RedTeamSettingsView({
   selectedPromptSetting,
   setRedTeamSettingsOpen,
   setSelectedPromptId,
+  updatePromptCalibrationNote,
   updatePromptExpectedAnswer,
   visiblePromptSettings,
 }) {
@@ -62,7 +70,10 @@ function RedTeamSettingsView({
         <div className="redTeamSettingsGrid">
           <div className="redTeamQuestionList" aria-label="Red-team questions">
             {visiblePromptSettings.map((prompt) => {
-              const isEdited = prompt.expected_answer.trim() !== prompt.original_expected_answer.trim();
+              const isEdited = (
+                prompt.expected_answer.trim() !== prompt.original_expected_answer.trim()
+                || (prompt.calibration_note || '').trim() !== (prompt.original_calibration_note || '').trim()
+              );
               return (
                 <button
                   className={prompt.prompt_id === selectedPromptSetting.prompt_id ? 'isSelected' : ''}
@@ -84,6 +95,20 @@ function RedTeamSettingsView({
               <strong>{selectedPromptSetting.target_guardrail}</strong>
             </div>
             <p className="redTeamPromptMessage">{selectedPromptSetting.message}</p>
+            {selectedPromptSetting.calibration_example?.answer && (
+              <section className="redTeamCalibrationExample">
+                <div className="redTeamCalibrationExampleTopline">
+                  <span>Best Persona 1 calibration answer</span>
+                  <b>{formatCalibrationScore(selectedPromptSetting.calibration_example.score)}</b>
+                </div>
+                <div className="redTeamCalibrationMeta">
+                  <span>{selectedPromptSetting.calibration_example.target_mode?.replaceAll('_', ' ') || 'unknown mode'}</span>
+                  <span>{selectedPromptSetting.calibration_example.score_source?.replaceAll('_', ' ') || 'score source unknown'}</span>
+                  <span>{selectedPromptSetting.calibration_example.source_run_id}</span>
+                </div>
+                <p>{selectedPromptSetting.calibration_example.answer}</p>
+              </section>
+            )}
             <label>
               Expected answer behavior
               <textarea
@@ -91,12 +116,21 @@ function RedTeamSettingsView({
                 onChange={(event) => updatePromptExpectedAnswer(selectedPromptSetting.prompt_id, event.target.value)}
               />
             </label>
+            {selectedPromptSetting.calibration_example?.answer && (
+              <label className="redTeamCalibrationNoteField">
+                Why this calibration answer is strong
+                <textarea
+                  value={selectedPromptSetting.calibration_note || ''}
+                  onChange={(event) => updatePromptCalibrationNote(selectedPromptSetting.prompt_id, event.target.value)}
+                />
+              </label>
+            )}
             <button
               className="redTeamSecondaryButton"
               type="button"
               onClick={() => resetPromptExpectedAnswer(selectedPromptSetting.prompt_id)}
             >
-              Reset this expectation
+              Reset this expectation and note
             </button>
           </section>
         </div>

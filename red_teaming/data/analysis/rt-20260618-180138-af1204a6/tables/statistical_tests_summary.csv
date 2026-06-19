@@ -1,0 +1,8 @@
+method,cohens_dz,rank_biserial,wilcoxon_p,holm_p
+OVERALL,1.1616,0.76,,
+PBAR,1.8569,0.88,,
+TBAR,1.4603,0.92,,
+EB,0.5958,0.52,,
+SFAM,0.6701,0.5,,
+SC,1.3495,0.8,,
+PG,2.4337,0.94,,

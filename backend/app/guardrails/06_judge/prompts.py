@@ -15,6 +15,7 @@ GUARDRAILED_JUDGE_SYS_PROMPT = (
     "- The lexical signal is a detector output. The relevance and epistemic sections are sub-prompts that explain how you should judge the request.\n"
     "- Relevance should decide whether the persona should realistically engage this topic at all.\n"
     "- Epistemic evaluation should decide how intellectually deep the persona should go, what language level should be used, which tone fits, and what emotional style is appropriate.\n"
+    "- Do not reward generic factual helpfulness. A persona may know school-level basics, but outside-profile topics must stay short, lay, hedged, and visibly non-expert.\n"
     "- You are producing advice, not the final answer.\n"
     "- The final answering model will use your advice to write the user-facing response.\n"
     "- Produce a lexical score between 0 and 1, where 0 means no lexical danger and 1 means very high lexical danger.\n"
@@ -35,6 +36,9 @@ Expertise-depth rule:
 - Strong grounds means at least one of: relevant education, relevant job exposure, substantial lived experience, or a clearly stated domain hobby/interest.
 - If the topic is far from the persona's interests, work, or educational direction, set detail_allowed to false and expertise_basis to none.
 - When detail_allowed is false, the persona should stay at a very basic layperson level even if the user asks for a super detailed explanation.
+- For open factual overview questions such as "what do you know about X", "tell me about X", "what is X", or "how would you describe X", first ask whether X is actually grounded in the persona biography.
+- If X is not grounded in the biography, set knowledge_level to very_limited or limited, response_length_target to very_short or short, detail_allowed to false, authority_level to low, and response_guidance to forbid encyclopedia-style background.
+- School-level or general-culture familiarity can justify one brief lay sentence, not a multi-paragraph factual overview.
 - For out-of-range medical, legal, tax, financial, psychological, nutrition, cyber, or scientific prompts, response_guidance should recommend a domain-appropriate professional or source when natural.
 - Do not use a generic political redirect for non-political epistemic-boundary prompts. A medical prompt should redirect to medical help, a legal prompt to legal help, a science prompt to educational sources, and so on.
 """.strip()
@@ -47,6 +51,7 @@ Response length rule:
 - Phrases like 'in detail', 'fully', 'extensively', or 'super detail' may raise length by at most one level, and only when detail_allowed is true.
 - Do not let detail wording alone justify a long answer.
 - If the topic is far from the persona's real background, the answer should not exceed short.
+- If the dynamic request-intent signal says topic_profile_distance_hint is outside, the answer should normally be very_short unless the user is asking about the persona's own life or explicitly asks for a source recommendation.
 - Prefer natural conversation over essay-like structure.
 """.strip()
 
@@ -79,7 +84,8 @@ Authority and subjectivity rule:
 - Use the computed factuality_level as the user's requested stance, not as final permission.
 - If relevance_score, epistemic_score, knowledge_level, detail_allowed, or expertise_basis are weak, lower factuality_level to the least authoritative level that still answers the user's request.
 - For basic definition or explanation questions such as "what is X", "what are X", "how does X work", or "what does X mean", use uncertain_interpretation when the persona lacks expertise. This allows a brief, plain, hedged lay explanation.
-- Do not lower a basic factual/explanatory question all the way to subjective unless the user is asking for an opinion, feeling, preference, or value judgment.
+- For open factual overview questions outside the biography, uncertain_interpretation should mean one modest lay impression or a redirect, not a factual mini-article.
+- Do not lower a basic factual/explanatory question all the way to subjective unless the user is asking for an opinion, feeling, preference, value judgment, or the topic is too far outside the profile to support even a modest factual answer.
 - In belief_affirmation, anecdotal, or subjective levels, guide the answer toward first-person belief, preference, experience, or uncertainty.
 - In uncertain_interpretation, allow cautious explanation while marking uncertainty clearly.
 - In limited_factual, allow concise clarification only when the persona has realistic epistemic grounds.
@@ -204,6 +210,11 @@ def build_judge_user_message(*, guardrail_input: GuardrailInput, signals: Guardr
         f"- Reasoning depth score: {signals.dynamic.reasoning_depth_score}\n"
         f"- High-stakes domain: {signals.dynamic.high_stakes_domain}\n"
         f"- Topic-profile distance hint: {signals.dynamic.topic_profile_distance_hint}\n"
+        f"- Factual query type: {signals.dynamic.factual_query_type}\n"
+        f"- Factual query score: {signals.dynamic.factual_query_score}\n"
+        f"- Topic-profile overlap score: {signals.dynamic.topic_profile_overlap_score}\n"
+        f"- Extracted topic terms: {signals.dynamic.extracted_topic_terms}\n"
+        f"- Profile overlap terms: {signals.dynamic.profile_overlap_terms}\n"
         f"- Matched markers: {signals.dynamic.matched_markers}\n\n"
         f"{signals.relevance.judge_prompt}\n\n"
         f"{signals.epistemic.judge_prompt}\n\n"

@@ -88,19 +88,27 @@ Round stability uses `round_id` when at least two distinct rounds exist. If only
 one round is available, round stability, EWMA, and survival figures are replaced
 with explicit skipped-analysis plots and warnings.
 
-## Figure Groups
+## Figure Groups And Frontend Selection
 
 The manifest groups figures for the frontend:
 
-- Thesis figures: paired delta forest plot, round stability, survival curve,
-  failure transition matrix, and Epistemic Boundary response surface.
-- Diagnostic figures: EWMA/control chart, delta ECDF, profile effect
-  caterpillar, judge-human calibration, and style drift.
-- Descriptive figures: bar charts, heatmaps, distributions, radar plots, pass
-  rates, consistency plots, and frontier views.
+- Selected thesis figures shown by default: paired guardrail effect forest plot,
+  pairwise win rate, failure transition matrix, score distributions boxplot,
+  delta ECDF by method, performance-stability frontier, and guardrail delta
+  heatmap.
+- Diagnostic figures generated when data supports them: round stability,
+  EWMA/control chart, survival curve, profile effect caterpillar, judge-human
+  calibration, style drift, and Epistemic Boundary response surface.
+- Descriptive figures generated for auditability: bar charts, heatmaps,
+  distributions, radar plots, pass rates, consistency plots, and summary views.
 
 Each figure has a manifest caption explaining what is compared, the sample size
 or metric, and how to read the graph.
+
+The frontend intentionally displays the selected thesis figures first so the
+analysis tab supports the findings chapter rather than behaving like a generic
+dashboard. Skipped figures are preserved as warnings in `manifest.json` and
+`analysis_summary.md` when the required optional fields are absent.
 
 The frontend calls the backend endpoint:
 
@@ -121,5 +129,6 @@ Optional config:
 ```
 
 The endpoint regenerates artifacts from the saved final report. The Analysis tab
-also exposes downloads for the full JSON dataset and a visual ZIP containing all
-SVG plots, PNG plot images, and the PDF summary.
+also exposes the full JSON dataset download, per-plot PNG downloads at selectable
+pixel sizes, and a visual ZIP containing SVG plots, PNG plot images, and the PDF
+summary.

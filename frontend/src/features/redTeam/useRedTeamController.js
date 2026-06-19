@@ -18,7 +18,10 @@ import {
   fetchRedTeamAnalysis,
   finalizeRedTeamRun as finalizeRunRequest,
   generateAnalysisFromFinalReport,
+  resetFinalReportReview,
+  resetRedTeamReview,
   startRedTeamService,
+  submitFinalReportReview,
   submitRedTeamReview,
 } from './redTeamApi';
 import {
@@ -187,6 +190,12 @@ export function useRedTeamController() {
         .filter((prompt) => prompt.expected_answer.trim() !== prompt.original_expected_answer.trim())
         .map((prompt) => [prompt.prompt_id, prompt.expected_answer.trim()])
     );
+    const calibrationNoteOverrides = Object.fromEntries(
+      promptSettingsForRun
+        .filter((prompt) => methodsToRun.includes(prompt.method))
+        .filter((prompt) => (prompt.calibration_note || '').trim() !== (prompt.original_calibration_note || '').trim())
+        .map((prompt) => [prompt.prompt_id, (prompt.calibration_note || '').trim()])
+    );
 
     setRedTeamError(null);
     setRedTeamReviewItems([]);
@@ -210,6 +219,7 @@ export function useRedTeamController() {
         profile_count: selectedRedTeamProfileIds.length,
         selected_profile_ids: selectedRedTeamProfileIds,
         expected_answer_overrides: expectedAnswerOverrides,
+        calibration_note_overrides: calibrationNoteOverrides,
       });
       setRedTeamRun({
         ...payload,
@@ -273,8 +283,60 @@ export function useRedTeamController() {
         final_scores: recomputeRedTeamScores(updatedCases),
       };
     });
-    await submitRedTeamReview({ runId, caseId, review: boundedReview });
-  }, [redTeamRun?.run_id]);
+    setRedTeamAnalysis(null);
+    setRedTeamAnalysisStatus('idle');
+    if (redTeamRun.loaded_from_final_report) {
+      const payload = await submitFinalReportReview({ runId, caseId, review: boundedReview });
+      setRedTeamRun((current) => current ? { ...current, final_scores: payload.final_scores || current.final_scores } : current);
+      await loadSavedRedTeamReports();
+      return;
+    }
+    const payload = await submitRedTeamReview({ runId, caseId, review: boundedReview });
+    setRedTeamRun((current) => current ? { ...current, final_scores: payload.final_scores || current.final_scores } : current);
+  }, [loadSavedRedTeamReports, redTeamRun?.loaded_from_final_report, redTeamRun?.run_id]);
+
+  const resetHumanReview = useCallback(async (caseId) => {
+    if (!redTeamRun?.run_id) {
+      return;
+    }
+    const runId = redTeamRun.run_id;
+
+    setRedTeamReviewItems((current) => current.map((item) => {
+      if (item.case_id !== caseId) {
+        return item;
+      }
+      const { human_review: _removedReview, ...rest } = item;
+      return rest;
+    }));
+    setRedTeamRun((current) => {
+      if (!current?.cases) {
+        return current;
+      }
+      const updatedCases = current.cases.map((item) => {
+        if (item.case_id !== caseId) {
+          return item;
+        }
+        const { human_review: _removedReview, ...rest } = item;
+        return rest;
+      });
+      return {
+        ...current,
+        cases: updatedCases,
+        final_scores: recomputeRedTeamScores(updatedCases),
+      };
+    });
+    setRedTeamAnalysis(null);
+    setRedTeamAnalysisStatus('idle');
+
+    if (redTeamRun.loaded_from_final_report) {
+      const payload = await resetFinalReportReview({ runId, caseId });
+      setRedTeamRun((current) => current ? { ...current, final_scores: payload.final_scores || current.final_scores } : current);
+      await loadSavedRedTeamReports();
+      return;
+    }
+    const payload = await resetRedTeamReview({ runId, caseId });
+    setRedTeamRun((current) => current ? { ...current, final_scores: payload.final_scores || current.final_scores } : current);
+  }, [loadSavedRedTeamReports, redTeamRun?.loaded_from_final_report, redTeamRun?.run_id]);
 
   async function finalizeRedTeamRun() {
     if (!redTeamRun?.run_id) {
@@ -328,10 +390,20 @@ export function useRedTeamController() {
     )));
   }
 
+  function updatePromptCalibrationNote(promptId, value) {
+    setRedTeamPromptSettings((current) => current.map((prompt) => (
+      prompt.prompt_id === promptId ? { ...prompt, calibration_note: value } : prompt
+    )));
+  }
+
   function resetPromptExpectedAnswer(promptId) {
     setRedTeamPromptSettings((current) => current.map((prompt) => (
       prompt.prompt_id === promptId
-        ? { ...prompt, expected_answer: prompt.original_expected_answer }
+        ? {
+            ...prompt,
+            calibration_note: prompt.original_calibration_note,
+            expected_answer: prompt.original_expected_answer,
+          }
         : prompt
     )));
   }
@@ -356,6 +428,7 @@ export function useRedTeamController() {
     const selectedPromptSetting = visiblePromptSettings.find((prompt) => prompt.prompt_id === selectedPromptId) || visiblePromptSettings[0] || null;
     const editedPromptCount = redTeamPromptSettings.filter((prompt) => (
       prompt.expected_answer.trim() !== prompt.original_expected_answer.trim()
+      || (prompt.calibration_note || '').trim() !== (prompt.original_calibration_note || '').trim()
     )).length;
 
     return {
@@ -390,6 +463,7 @@ export function useRedTeamController() {
     refreshRedTeamRun,
     resetPromptExpectedAnswer,
     resetRedTeamRun,
+    resetHumanReview,
     selectedRedTeamProfileIds,
     selectedRedTeamMethods,
     setRedTeamSettingsOpen,
@@ -399,6 +473,7 @@ export function useRedTeamController() {
     startRedTeamRun,
     submitHumanReview,
     toggleRedTeamMethod,
+    updatePromptCalibrationNote,
     updatePromptExpectedAnswer,
   };
 }

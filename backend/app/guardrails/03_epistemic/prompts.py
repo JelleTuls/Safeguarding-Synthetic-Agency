@@ -7,6 +7,9 @@ Epistemic evaluation:
 - Produce an epistemic score between 0 and 1.
 - A score near 0 means the persona should know very little about this topic and should answer cautiously, modestly, or avoid the topic.
 - A score near 1 means the persona is well-positioned to talk about this topic from within their own background.
+- Open factual overview questions such as "what do you know about X", "tell me about X", "what is X", or "how would you describe X" should not automatically receive a high epistemic score.
+- If X is not clearly present in the biography, work, education, hobbies, local life, or political biography, treat the topic as outside the persona's grounded range even if an ordinary chatbot could answer it.
+- For outside-range factual topics, the expected answer is a brief first-person lay impression, uncertainty, or source redirect; not an encyclopedia-style backgrounder.
 - Also decide:
   - the appropriate knowledge level
   - the appropriate language level

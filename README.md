@@ -1,13 +1,43 @@
 # Safeguarding Synthetic Social Agents
 
-### Chat-only prototype for:
+### Applied companion codebase for:
 
 Safeguarding Synthetic Agency: A Framework for Measuring and Operationalizing System Integrity in Synthetic Social Agent Systems
 
-The app serves 30 synthetic social agent profiles and opens each profile in a
-chat flow. Users can run the full guardrailed pipeline or the lightweight
-baseline pipeline, and the red-teaming module can compare both modes across
-selected profiles.
+This repository is the practical counterpart, or right hand, of the research
+project with the same focus: safeguarding synthetic social agents. The thesis
+develops the conceptual framework for SSA system integrity, while this codebase
+operationalizes that framework as a runnable local system. It lets readers move
+from the paper's claims to inspectable behavior: persona chat, lightweight versus
+guardrailed generation, red-teaming evaluation, human score review, saved result
+datasets, and reproducible computational-analysis plots.
+
+The app serves 30 synthetic social agent profiles and exposes three connected
+workspaces:
+
+- **Chat:** open a persona chat and choose either the full guardrailed pipeline
+  or the lightweight profile-only baseline before sending messages.
+- **Red-teaming:** run single-turn adversarial prompt suites across manually
+  selected profiles, compare lightweight and guardrailed answers, review scores,
+  and save final JSON/PDF reports.
+- **Computational analysis:** select saved red-team final-results JSON files and
+  regenerate thesis-ready plots, tables, summaries, PNG exports, and report
+  bundles.
+
+## For Supervisors And Second Readers
+
+For an academic review of the repository, start with:
+
+- [Reviewer Guide](docs/reviewer-guide.md): suggested reading order and demo
+  path through the app.
+- [Thesis To Code Map](docs/thesis-code-map.md): maps PBAR, TBAR, EB, SFAM, SC,
+  and PG to implementation modules, prompt families, and computational plots.
+- [Reproducibility Checklist](docs/reproducibility-checklist.md): clean-machine
+  setup and repeatable red-team/analysis steps.
+- [Reference Dataset](docs/reference-dataset.md): curated saved run and analysis
+  artifacts for inspection without creating a new long run.
+- [Limitations And Third-Party Components](docs/limitations-and-citations.md):
+  known limitations, external software, and citation/reporting notes.
 
 > [!IMPORTANT]
 > **Full guardrail fidelity requires Docker to be installed and running.**
@@ -22,7 +52,19 @@ selected profiles.
 > the guardrail flow active, but it is **not the highest-fidelity classifier
 > mode**.
 
-## Docker Requirement
+## Prerequisites
+
+Before starting the app on a fresh machine, install:
+
+- **Python 3.11 or newer**. Python 3.12 is recommended.
+- **Node.js and npm**. Node 18+ or the current LTS release is recommended.
+- **Docker Desktop** for full guardrail fidelity. The app can start without it,
+  but Layer 08 then uses the deterministic subjectivity/objectivity fallback.
+- **A Bash-compatible terminal**. On Windows, use WSL or Git Bash rather than
+  PowerShell for the one-command launcher.
+- **One LLM API key** for real chat and red-teaming runs. Without a key, the
+  frontend and backend can still start, but model-backed chat/evaluator calls
+  will fail with a configuration message.
 
 Install Docker Desktop for your operating system:
 
@@ -30,154 +72,126 @@ Install Docker Desktop for your operating system:
 - **Windows:** https://docs.docker.com/desktop/setup/install/windows-install/
 - **Linux:** https://docs.docker.com/desktop/setup/install/linux/
 
-After installation:
-
-1. Open Docker Desktop.
-2. Wait until Docker says it is running.
-3. Start this project with `./start.sh`.
-
-No separate manual installation step is required for the subjectivity classifier.
-On first run, `./start.sh` asks Docker Compose to build and start the
-`subjectivity-classifier` sidecar from `services/subjectivity_classifier/`.
-That Docker image installs the classifier's legacy TensorFlow dependencies
-inside the container.
-
-Optional higher-quality embedding step: for the best classifier quality, place
-the full Stanford GloVe 6B 50d file here before starting the project:
-
-```text
-services/subjectivity_classifier/model/glove.6B.50d.txt
-```
-
-If this file is missing, the Docker sidecar still starts with compact
-development embeddings, so this is optional rather than required.
-
-You can quickly check whether Docker is available with:
+After installing Docker, open Docker Desktop and wait until it says Docker is
+running. You can check Docker Compose with:
 
 ```bash
 docker compose version
 ```
 
-If that command fails, the project will fall back to deterministic subjectivity
-scoring.
+If that command fails, the project still starts, but it runs Layer 08 in fallback
+mode rather than with the Dockerized `fractalego/subjectivity_classifier`
+sidecar.
 
 ## Quick Start
 
-For the easiest local setup, make sure Docker Desktop is open and running, then
-run:
+From the repository root, copy the environment examples:
+
+```bash
+cp backend/.env.example backend/.env
+cp frontend/.env.example frontend/.env
+```
+
+The examples already contain the local ports, default model names, frontend URL,
+red-team service URL, subjectivity sidecar URL, and safe development toggles.
+For normal local use, the only file most reviewers need to edit is
+`backend/.env`.
+
+Open `backend/.env` and fill **one** provider block:
+
+- **Groq quick demo:** fill only `GROQ_API_KEY`; the Groq model and endpoint are
+  already filled.
+- **OpenAI:** fill only `OPENAI_API_KEY`; the default OpenAI endpoint and model
+  are already filled.
+- **Generic OpenAI-compatible gateway:** fill `LLM_API_KEY` and `LLM_BASE_URL`;
+  change `LLM_MODEL` only if your provider uses a different model name.
+- **Azure OpenAI:** fill `AZURE_OPENAI_API_KEY`, `AZURE_OPENAI_BASE_URL`, and
+  `AZURE_OPENAI_MODEL` because Azure deployment names are project-specific.
+
+Keep `LLM_PROVIDER=auto` unless you intentionally want to force one provider.
+Do not commit `backend/.env` or `frontend/.env`; they are local configuration
+files.
+
+Then start the full local stack:
 
 ```bash
 ./start.sh
 ```
 
-On the first run, the script will:
+If your shell says the script is not executable, run:
 
-- create `backend/.env` from `backend/.env.example` if needed;
-- create `frontend/.env` from `frontend/.env.example` if needed;
+```bash
+chmod +x start.sh
+./start.sh
+```
+
+On the first run, the launcher will:
+
+- create `backend/.env` and `frontend/.env` from the examples if they are missing;
 - create the Python virtual environment in `env/`;
-- install all required backend Python packages from `backend/requirements.txt`;
-- install all required red-teaming Python packages from `red_teaming/requirements.txt`;
+- install backend and red-teaming Python packages;
 - install frontend dependencies;
 - start the Docker subjectivity-classifier sidecar when Docker Compose is available;
-- fall back to the built-in deterministic subjectivity scorer when Docker is not available;
+- fall back to the deterministic subjectivity scorer when Docker is unavailable;
 - start the backend and frontend.
 
-Open:
+Open the app at:
 
 ```text
 http://127.0.0.1:3000
 ```
 
-The red-teaming service is started from the frontend when you click the
-red-teaming button, so it does not need a separate terminal command.
+The Red-teaming tab starts the standalone red-team service through the main
+backend launcher endpoint, so a normal reviewer does not need a separate
+terminal command for port `8010`. The Computational analysis tab reads finalized
+JSON reports from `red_teaming/data/reports/` and writes generated artifacts to
+`red_teaming/data/analysis/`.
 
-Chat and evaluator calls still need one usable LLM provider in `backend/.env`.
-If no key is configured yet, the project still starts so the frontend/backend
-stack can be checked, but model-backed interactions will show a configuration
-error until a provider key is added.
+## Port Map
 
-## Setting Up an API Key
+| Service | Default URL | Started By |
+| --- | --- | --- |
+| React frontend | `http://127.0.0.1:3000` | `./start.sh` |
+| Main backend API | `http://127.0.0.1:8000` | `./start.sh` |
+| Subjectivity sidecar | `http://127.0.0.1:8001` | Docker Compose via `./start.sh` |
+| Red-teaming service | `http://127.0.0.1:8010` | Red-teaming tab/backend launcher |
 
-The full chat and red-teaming evaluator flows require at least one usable LLM
-configuration in `backend/.env`. Keep `LLM_PROVIDER=auto` unless you specifically
-want to force one provider.
+If you change `BACKEND_PORT` or `PORT` when launching, update
+`frontend/.env` and `backend/.env` so the URLs still match.
 
-For most users, the rule is simple: **choose one setup block, fill in only that
-block, and leave the other API-key fields empty.** The system will use whichever
-complete block it finds.
+## Environment Files
 
-The easiest and most flexible block is the generic OpenAI-compatible block:
+`backend/.env.example` and `frontend/.env.example` are intentionally
+copy-ready. The values that can be safely prefilled are already filled in. After
+copying, users normally only need to update:
 
-- `LLM_API_KEY`: your provider API key
-- `LLM_MODEL`: the model name your provider tells you to use
-- `LLM_BASE_URL`: the provider's OpenAI-compatible API URL
+- API keys or other secrets;
+- a custom provider endpoint such as `LLM_BASE_URL` or `AZURE_OPENAI_BASE_URL`;
+- a model/deployment name only when their provider requires a different one.
 
-This generic block is tried first because it works with many providers, including
-institutional gateways and local OpenAI-compatible servers.
+Provider priority with `LLM_PROVIDER=auto` is:
 
-The named provider blocks are there for convenience:
+1. `LLM_API_KEY` + `LLM_MODEL` + `LLM_BASE_URL`
+2. `AZURE_OPENAI_API_KEY` + `AZURE_OPENAI_MODEL` + `AZURE_OPENAI_BASE_URL`
+3. `OPENAI_API_KEY` + `OPENAI_MODEL` + `OPENAI_BASE_URL`
+4. `GROQ_API_KEY` or `GROQ_API_KEY_2` + `GROQ_MODEL` + `GROQ_BASE_URL`
 
-- Azure users can fill `AZURE_OPENAI_API_KEY`, `AZURE_OPENAI_MODEL`, and
-  `AZURE_OPENAI_BASE_URL`.
-- OpenAI users can fill `OPENAI_API_KEY`, `OPENAI_MODEL`, and
-  `OPENAI_BASE_URL`.
-- Groq users can fill `GROQ_API_KEY`, `GROQ_MODEL`, and `GROQ_BASE_URL`.
+For detailed provider examples, see
+[Model Provider Configuration](docs/model-provider-configuration.md).
 
-`GROQ_API_KEY_2` is optional. It is only used as an extra fallback if the first
-Groq key fails or reaches a limit.
+## Troubleshooting
 
-In short:
-
-- If you only fill the generic `LLM_*` block, the system uses that.
-- If you only fill the Groq block, the system uses Groq.
-- If you fill the generic block and Groq, the system tries the generic endpoint
-  first and Groq only as fallback.
-- If no complete block is filled, the backend cannot call an AI model and will
-  show a configuration error.
-
-### Normal OpenAI-Compatible Endpoint
-
-Use this option when you have one normal provider endpoint, model name, and API
-key. This can be OpenAI, an institutional gateway, a local OpenAI-compatible
-server, or another provider exposing `/chat/completions`.
-
-```env
-LLM_PROVIDER=auto
-LLM_API_KEY=your_api_key
-LLM_MODEL=your_model_name
-LLM_BASE_URL=https://your-provider.example/v1
-```
-
-The backend uses the model name you provide. See
-[Model Provider Configuration](docs/model-provider-configuration.md) for OpenAI,
-Groq, Azure, and custom OpenAI-compatible examples.
-
-### Groq Setup
-
-Groq is a convenient testing provider because it exposes an OpenAI-compatible
-chat-completions endpoint and usually takes only a few minutes to set up. The
-official Groq quickstart says to create an API key in the Groq Console and use
-it as `GROQ_API_KEY`: https://console.groq.com/docs/quickstart
-
-To create a Groq key:
-
-1. Go to https://console.groq.com.
-2. Create an account or sign in.
-3. Open the API keys page: https://console.groq.com/keys.
-4. Click **Create API Key**.
-5. Copy the key once. Treat it like a password; do not commit it to git.
-6. Open `backend/.env` and fill in:
-
-```env
-LLM_PROVIDER=auto
-GROQ_API_KEY=your_groq_api_key
-GROQ_API_KEY_2=
-GROQ_MODEL=openai/gpt-oss-120b
-GROQ_BASE_URL=https://api.groq.com/openai/v1
-```
-
-For testing, one Groq key is enough. If you add `GROQ_API_KEY_2`, the backend
-uses it as a second Groq fallback route.
+- **`backend/.env does not appear to contain an LLM API key`:** the app can
+  start, but chat and red-teaming need a configured provider key.
+- **Docker is not running:** open Docker Desktop and wait until it is ready, then
+  restart `./start.sh`. Without Docker, the app uses the fallback scorer.
+- **Port already in use:** stop the old process or set another port, for example
+  `PORT=3001 ./start.sh`. Keep `frontend/.env` aligned with any changed backend
+  port.
+- **`Permission denied: ./start.sh`:** run `chmod +x start.sh`.
+- **Red-teaming page cannot connect to port `8010`:** open the Red-teaming tab
+  once so the backend can launch the service, or start it manually with the
+  command in the Manual Run section.
 
 ## Dependencies and Cached Profiles
 
@@ -216,14 +230,66 @@ This fallback keeps the post-generation validation flow active, but it is less
 faithful than the Dockerized classifier and should be treated as a development
 or sharing fallback rather than the highest-fidelity evaluation mode.
 
+## Saved Results and Computational Analysis
+
+Red-team runs are first stored as working run files in:
+
+```text
+red_teaming/data/runs/
+```
+
+When a run is finalized, the stable thesis/report files are written to:
+
+```text
+red_teaming/data/reports/
+```
+
+The frontend Analysis tab lists `*-final-results.json` files from that reports
+folder. Selecting one report and clicking **Generate analysis** uses the same
+backend analysis route as the red-team completion view. Regenerating analysis
+for the same run overwrites the analysis folder for that run, which keeps plots
+and summaries aligned with the currently saved dataset.
+
+Generated computational-analysis artifacts are written to:
+
+```text
+red_teaming/data/analysis/<run_id>/
+```
+
+The analysis module creates normalized case tables, paired guardrailed-minus-
+lightweight deltas, method/profile summaries, selected thesis figures, PNG plot
+downloads at configurable pixel sizes, PDF/Markdown summaries, and a manifest
+with warnings for skipped plots when optional fields such as `round_id`,
+`style_distance`, or `adversarial_intensity` are absent.
+
 ## Manual Run
 
-Backend:
+The one-command `./start.sh` path is preferred. If you need to start services
+manually for debugging, use four terminals from the repository root.
+
+Install dependencies once:
+
+```bash
+python3 -m venv env
+env/bin/python -m pip install --upgrade pip
+env/bin/python -m pip install -r backend/requirements.txt -r red_teaming/requirements.txt
+cd frontend
+npm install
+cd ..
+```
+
+Optional full-fidelity subjectivity sidecar:
+
+```bash
+docker compose up -d subjectivity-classifier
+```
+
+Backend API:
 
 ```bash
 cd backend
-../env/bin/python -m pip install -r requirements.txt
-uvicorn main:app --reload --host 127.0.0.1 --port 8000
+SUBJECTIVITY_CLASSIFIER_URL=http://127.0.0.1:8001 \
+  ../env/bin/python -m uvicorn main:app --reload --host 127.0.0.1 --port 8000
 ```
 
 Frontend:
@@ -233,7 +299,17 @@ cd frontend
 npm start
 ```
 
-The frontend expects `REACT_APP_API_URL` to point at the backend.
+Optional standalone red-teaming service for debugging:
+
+```bash
+cd red_teaming
+../env/bin/python -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8010
+```
+
+For normal use, the frontend calls the main backend endpoint
+`POST /api/red-team/service/start`, and the backend starts the red-teaming
+service automatically. The frontend expects `REACT_APP_API_URL` to point at the
+backend and `REACT_APP_RED_TEAM_API_URL` to point at the red-teaming service.
 
 ## VS Code
 
@@ -246,9 +322,19 @@ without attaching the Python debugger.
 
 - `backend/main.py` exposes the chat API.
 - `backend/app/api/chat.py` serves persona profiles and streams chat responses.
-- `backend/app/` contains the API, biography generation, profile caching, provider configuration, data files, rate limits, the guardrailed pipeline, and the lightweight direct-response pipeline.
-- `red_teaming/` contains the standalone black-box evaluation service, prompt suite, LLM judge, optional human review state, and JSON/PDF report generation.
-- `frontend/src/` contains the React persona browser, chat interface, pipeline selector, red-team setup view, and answer review panel.
+- `backend/app/` contains the API, biography generation, profile caching,
+  provider configuration, data files, rate limits, the guardrailed pipeline, the
+  dynamic request-intent signal, and the lightweight direct-response pipeline.
+- `backend/app/lightweight/` contains the profile-only baseline that uses the
+  copied base system prompt without the guardrail judge or post-processing.
+- `red_teaming/` contains the standalone black-box evaluation service, prompt
+  suite, evaluator LLM, optional human score overrides, JSON/PDF report
+  generation, and computational-analysis package.
+- `red_teaming/computational_analysis/` turns finalized red-team reports into
+  reproducible thesis plots, CSV tables, PDF/Markdown summaries, and ZIP
+  bundles.
+- `frontend/src/` contains the React persona browser, chat interface, pipeline
+  selector, red-team setup/review views, and computational-analysis workspace.
 
 ## Script Documentation
 
@@ -261,15 +347,31 @@ are:
 - `backend/main.py`: ASGI entry point for the main FastAPI backend.
 - `backend/app/server.py`: backend application factory and lifecycle wiring.
 - `backend/app/services/chat_flow.py`: selects guardrailed or lightweight response generation.
+- `backend/app/guardrails/dynamic_request.py`: interpretable request-intent signal used by judge, generator, and post-processors.
 - `red_teaming/app/main.py`: standalone red-team FastAPI service.
+- `red_teaming/app/runner.py`: black-box prompt executor for selected profiles and target modes.
+- `red_teaming/app/llm_grader.py`: evaluator-LLM prompts for individual and pairwise scoring.
+- `red_teaming/app/test_suites.py`: attaches method-level evaluation standards to editable prompts.
+- `red_teaming/computational_analysis/pipeline.py`: reproducible tables, figures, summaries, and downloads from final reports.
 - `red_teaming/prompt_script.py`: editable red-team prompt and expectation script.
-- `frontend/src/App.js`: top-level React shell for chat and red-team modes.
+- `frontend/src/App.js`: top-level React shell for Chat, Red-teaming, and Computational analysis tabs.
 
 ## Documentation
 
 - [Documentation Index](docs/README.md) lists all project documentation.
+- [Reviewer Guide](docs/reviewer-guide.md) gives a supervisor/second-reader
+  review path through setup, demo, saved reports, and analysis.
+- [Thesis To Code Map](docs/thesis-code-map.md) connects thesis concepts to code
+  modules, red-team prompt families, and plots.
+- [Reproducibility Checklist](docs/reproducibility-checklist.md) provides a
+  clean-machine setup and regeneration checklist.
+- [Reference Dataset](docs/reference-dataset.md) documents the curated saved run
+  and its headline computational results.
+- [Limitations And Third-Party Components](docs/limitations-and-citations.md)
+  records prototype limits, external packages, and reporting notes.
 - [Model Provider Configuration](docs/model-provider-configuration.md) explains how to use one API key, one endpoint, and a chosen model.
 - [SSA Guardrail Flow](docs/ssa-guardrail-flow.md) shows the simplified flow from user message to final validated response.
 - [Guardrail Framework](docs/guardrail-framework.md) explains the layered guardrail pipeline in detail.
-- [Red-Teaming Service](docs/red-teaming-service.md) explains automated red-teaming, LLM grading, and human mediation.
+- [Red-Teaming Service](docs/red-teaming-service.md) explains automated red-teaming, LLM grading, optional human overrides, and saved reports.
+- [Computational Analysis](red_teaming/computational_analysis/README.md) explains the reproducible analysis package and thesis plot outputs.
 - [Subjectivity Classifier Sidecar](docs/subjectivity-classifier-sidecar.md) explains the Dockerized subjectivity classifier.

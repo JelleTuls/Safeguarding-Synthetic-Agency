@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import re
 import threading
 from datetime import datetime
@@ -16,6 +17,7 @@ from app.guardrails.schemas import GuardrailSessionTrace
 LOG_DIR = Path(__file__).resolve().parent / "log"
 _TRACE_LOCK = threading.Lock()
 _ACTIVE_SESSIONS: dict[str, "GuardrailSessionTrace"] = {}
+log = logging.getLogger(__name__)
 
 
 def _utc_timestamp() -> str:
@@ -176,6 +178,50 @@ def append_named_block(
     _append_text(trace, text)
 
 
+def _format_narrative_value(value) -> str:
+    """Return a compact readable value for narrative trace details."""
+    if isinstance(value, (dict, list, tuple)):
+        try:
+            return _format_json(value)
+        except TypeError:
+            return repr(value)
+    return str(value)
+
+
+def append_narrative_step(
+    *,
+    trace: GuardrailSessionTrace,
+    step_label: str,
+    title: str,
+    summary: str,
+    details: list[tuple[str, object]] | None = None,
+) -> None:
+    """Append a prose-style decision trace for reviewer-readable audits.
+
+    This is not a model chain-of-thought log. It records observable pipeline
+    decisions, evidence, thresholds, rewrites, and acceptance reasons so a human
+    reviewer can reconstruct why the visible answer changed.
+    """
+    lines = [summary.strip()]
+    if details:
+        lines.append("")
+        lines.append("Decision details:")
+        for key, value in details:
+            formatted = _format_narrative_value(value)
+            if "\n" in formatted:
+                lines.append(f"- {key}:")
+                lines.append(formatted)
+            else:
+                lines.append(f"- {key}: {formatted}")
+    log.info("Trace narrative [%s] %s: %s", step_label, title, summary.strip())
+    append_named_block(
+        trace=trace,
+        title=title,
+        content="\n".join(lines),
+        step_label=f"{step_label} NARRATIVE",
+    )
+
+
 def append_turn_opening(
     *,
     trace: GuardrailSessionTrace,
@@ -217,6 +263,21 @@ def append_turn_opening(
         trace=trace,
         title="Prior Chat History",
         content=chat_history if chat_history else "None",
+    )
+    append_narrative_step(
+        trace=trace,
+        step_label="TURN OPENING",
+        title="Conversation Turn Started",
+        summary=(
+            "A new persona-chat turn has started. The backend captured the "
+            "persona biography, baseline stylometric profile, current user "
+            "message, and prior history before any guardrail decision was made."
+        ),
+        details=[
+            ("History messages available to the model", len(chat_history)),
+            ("Persona grounding source", "cached biography and cached baseline stylometric profile"),
+            ("Next step", "run pre-generation guardrail analysis before response generation"),
+        ],
     )
 
 

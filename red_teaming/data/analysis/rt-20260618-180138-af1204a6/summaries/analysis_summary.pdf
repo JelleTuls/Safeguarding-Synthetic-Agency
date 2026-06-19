@@ -1,0 +1,104 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> >> >> /Contents 4 0 R >>
+endobj
+4 0 obj
+<< /Length 1583 >>
+stream
+BT
+/F1 9 Tf
+50 750 Td
+12 TL
+(# Computational Analysis Summary: rt-20260618-180138-af1204a6) Tj
+T*
+() Tj
+T*
+(- Generated at: 2026-06-19T08:05:11.064426+00:00) Tj
+T*
+(- Analysis version: 2026-06-17.1) Tj
+T*
+(- Total cases: 600) Tj
+T*
+(- Paired guardrailed/lightweight cases: 300) Tj
+T*
+(- Overall paired mean delta: +0.270) Tj
+T*
+(- Overall bootstrap 95% CI: [+0.270, +0.270]) Tj
+T*
+(- Guardrailed pairwise win rate: 83.0%) Tj
+T*
+(- Epistemic Boundary paired mean delta: +0.120) Tj
+T*
+(- Epistemic Boundary bootstrap 95% CI: [+0.120, +0.120]) Tj
+T*
+() Tj
+T*
+(## Data Warnings) Tj
+T*
+() Tj
+T*
+(- Round-level stability plots require at least two distinct round_id values.) Tj
+T*
+(- No style_distance and adversarial_intensity pairs are available; stylometric drift analysis) Tj
+T*
+(was skipped.) Tj
+T*
+() Tj
+T*
+(## Method Summary) Tj
+T*
+() Tj
+T*
+(| Method | Guardrailed | Lightweight | Delta |) Tj
+T*
+(| --- | ---: | ---: | ---: |) Tj
+T*
+(| PBAR | 97% | 64% | +0.33 |) Tj
+T*
+(| TBAR | 92% | 62% | +0.30 |) Tj
+T*
+(| EB | 74% | 62% | +0.12 |) Tj
+T*
+(| SFAM | 83% | 75% | +0.08 |) Tj
+T*
+(| SC | 69% | 35% | +0.34 |) Tj
+T*
+(| PG | 79% | 34% | +0.45 |) Tj
+T*
+() Tj
+T*
+(## Interpretation Notes) Tj
+T*
+() Tj
+T*
+(The paired design compares the same prompt-profile combination across the guardrailed and) Tj
+T*
+(lightweight pipelines.) Tj
+T*
+(Positive deltas indicate stronger guardrailed performance. Epistemic Boundary metrics) Tj
+T*
+(operationalize whether the answer stayed within the profile's plausible epistemic range rather) Tj
+T*
+(than behaving like a generic expert assistant.) Tj
+T*
+ET
+endstream
+endobj
+xref
+0 5
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000290 00000 n 
+trailer
+<< /Size 5 /Root 1 0 R >>
+startxref
+1925
+%%EOF

@@ -1,6 +1,6 @@
 # Guardrailed Flow
 
-This document explains how a user message moves through the guardrail system before a final persona response is shown. The pipeline first gathers signals about lexical risk, topic relevance, epistemic fit, subjective framing, and writing style. A judge LLM then combines those signals into one policy decision. The response generator writes a draft under that policy, and the post-generation layers check whether the draft stayed within the expected subjectivity, authority, and persuasion limits.
+This document explains how a user message moves through the guardrail system before a final persona response is shown. The pipeline first gathers signals about broad request intent, lexical risk, topic relevance, epistemic fit, subjective framing, and writing style. A judge LLM then combines those signals into one policy decision. The response generator writes a draft under that policy, and the post-generation layers check whether the draft stayed within the expected subjectivity, authority, and persuasion limits.
 
 The goal is not to silence the synthetic social agent, but to keep it responsible, profile-grounded, and bounded. The SSA can still express views, preferences, memories, and recommendations, but the system controls how factual, authoritative, persuasive, or emotionally forceful the final answer may become.
 
@@ -30,6 +30,14 @@ The goal is not to silence the synthetic social agent, but to keep it responsibl
 | app/guardrails/pipeline.py                                                                        |
 | Mechanism: trace logging only                                                                     |
 | Records message, history size, biography length, and stylometric summary                          |
++--------------------------------------------------------------------------------------------------+
+                                                |
+                                                v
++--------------------------------------------------------------------------------------------------+
+| LAYER 00B - DYNAMIC REQUEST-INTENT SIGNAL                                                         |
+| app/guardrails/dynamic_request.py                                                                 |
+| Mechanism: interpretable pattern groups; no LLM call                                              |
+| Output: persuasion intent, style conflict, attack subtype, high-stakes/depth flags                |
 +--------------------------------------------------------------------------------------------------+
                                                 |
                                                 v
@@ -77,14 +85,14 @@ The goal is not to silence the synthetic social agent, but to keep it responsibl
 | SIGNAL BUNDLE - PRE-JUDGE LAYER OUTPUTS                                                           |
 | app/guardrails/pipeline.py                                                                        |
 | Mechanism: orchestration only; bundles signals and judge sub-prompts without new LLM call         |
-| Output: Combined final prompt (lexical, relevance, epistemic, authority, stylometric)             |
+| Output: Combined final prompt (dynamic, lexical, relevance, epistemic, authority, stylometric)    |
 +--------------------------------------------------------------------------------------------------+
                                                 |
                                                 v
 +--------------------------------------------------------------------------------------------------+
 | JUDGE PROMPT ASSEMBLY                                                                             |
 | app/guardrails/06_judge/prompts.py                                                                |
-| Collects: biography, history, user message, lexical signal, and Layer 02-05 judge sub-prompts     |
+| Collects: biography, history, user message, dynamic signal, lexical signal, Layer 02-05 prompts   |
 | Adds: expertise, length, style, authority, fixed topic taxonomy, and JSON schema                  |
 | Output: one combined judge user message plus GUARDRAILED_JUDGE_SYS_PROMPT                         |
 +--------------------------------------------------------------------------------------------------+
@@ -192,6 +200,19 @@ The engine also opens the turn transcript with the persona biography, stylometri
 
 It writes the user message, number of history turns, biography length, and stylometric summary into the session trace. This orchestration step does not classify or block anything; it establishes the baseline evidence for the turn.
 
+### Layer 00b: Dynamic Request-Intent Signal
+
+`app/guardrails/dynamic_request.py` extracts broad user-intent signals before
+the numbered pre-generation guardrail layers run. It is deterministic and
+interpretable, but it is not a final policy decision.
+
+The signal captures targeted or coercive persuasion intent, political
+vote-influence framing, requested expert depth, high-stakes domains, style
+requests that conflict with the persona's baseline voice, and recognizable
+attack subtypes such as hidden prompt extraction or fake authority claims.
+Later layers use this as context for judge prompting, generator execution notes,
+subtype-specific boundaries, and persuasion-threshold tightening.
+
 ### Layer 01: Lexical Prompt-Injection Scan
 
 `app/guardrails/01_lexical/engine.py` performs a direct lexical scan against `PROMPT_INJECTION_TERMS`.
@@ -240,19 +261,35 @@ The rendered stylometry judge prompt is also cached per stable profile payload, 
 
 `build_guardrail_signals` in `app/guardrails/pipeline.py` combines all pre-judge outputs into one `GuardrailSignals` object.
 
-The bundle contains the lexical, relevance, epistemic, authority, and stylometric signals. This is the single structured input the judge uses to make a policy decision.
+The bundle contains the dynamic request, lexical, relevance, epistemic,
+authority, and stylometric signals. This is the single structured input the
+judge uses to make a policy decision.
 
 ### Judge Prompt Assembly
 
 `build_judge_user_message` in `app/guardrails/06_judge/prompts.py` is where the LLM-facing pieces are collected into one judge request.
 
-The assembled judge user message includes the persona biography, prior conversation, current user message, user-message length signal, lexical detector output, the Layer 02 relevance judge prompt, the Layer 03 epistemic judge prompt, the Layer 04 authority judge prompt, and the Layer 05 stylometric judge prompt. It then appends shared judge rules for expertise depth, response length, style modulation, authority, the five factuality envelopes, the fixed topic-policy taxonomy from `app/guardrails/topic_policy.py`, and the required JSON schema.
+The assembled judge user message includes the persona biography, prior
+conversation, current user message, user-message length signal, dynamic
+request-intent signal, lexical detector output, the Layer 02 relevance judge
+prompt, the Layer 03 epistemic judge prompt, the Layer 04 authority judge
+prompt, and the Layer 05 stylometric judge prompt. It then appends shared judge
+rules for expertise depth, response length, style modulation, authority, the
+five factuality envelopes, the fixed topic-policy taxonomy from
+`app/guardrails/topic_policy.py`, and the required JSON schema.
 
 `app/guardrails/06_judge/engine.py` sends this combined user message together with `GUARDRAILED_JUDGE_SYS_PROMPT` to the judge LLM.
 
 ### Layer 06: LLM-As-A-Judge Policy Decision
 
 `app/guardrails/06_judge/engine.py` builds the judge messages from the persona biography, chat history, current user message, and every upstream guardrail signal.
+
+After parsing the judge's JSON, the engine applies broad dynamic-signal
+constraints so obvious request intent is not lost in malformed or overly
+permissive judge output. Examples include lowering the response action for
+targeted political persuasion, preserving profile-level epistemic boundaries for
+high-depth out-of-range requests, and keeping foreign style requests from
+overriding the baseline stylometric profile.
 
 The judge returns structured JSON. The parser normalizes the response into a `PolicyDecision` with these controls: `action`, rationale, response guidance, length target, detail permission, expertise basis, hedging and confidence style, register, sentence style, abstraction level, vocabulary level, explanation style, response mode, factuality level, authority level, `topic_policy_category`, `postprocessing_mode`, lexical score, relevance score, epistemic score, knowledge level, language level, tone, and emotional style.
 
@@ -268,7 +305,14 @@ The judge also chooses `postprocessing_mode`. `full` keeps the normal Layer 08 a
 
 `app/guardrails/07_generator/engine.py` turns the policy into executable generation guidance.
 
-If the policy action is `refuse` or `redirect`, the generator returns a static guarded response. Otherwise, it resolves the final length target, tightens guidance for low-fit or non-expert topics, adds stylometric execution notes, authority execution notes, and opening variation guidance, then calls the answering model with the persona biography, guided user message, and chat history.
+If the policy action is `refuse` or `redirect`, the generator returns a static
+guarded response. Clear dynamic attack subtypes can also receive subtype-specific
+static boundaries, such as refusing hidden prompt extraction or declining
+targeted political persuasion. Otherwise, it resolves the final length target,
+tightens guidance for low-fit or non-expert topics, adds stylometric execution
+notes, authority execution notes, dynamic request notes, and opening variation
+guidance, then calls the answering model with the persona biography, guided user
+message, and chat history.
 
 Opening variation is selected in `app/guardrails/opening_variation.py`. The system has 40 subjective opening strategies and 40 objective opening strategies. It does not provide canned first sentences; it selects a structural opening strategy such as beginning from a practical everyday preference, acknowledging complexity, separating facts from interpretation, or stating an evidence boundary. The generator is explicitly told to use the selected strategy as inspiration rather than copying the wording literally. The same variation system is also used by Layer 08 when a rewrite is needed, which helps prevent repeated rewrite openings such as `from my experience`.
 
@@ -438,7 +482,14 @@ If the external model cannot be used, the log will show:
 detector=heuristic_fallback
 ```
 
-User-message persuasion handling is done earlier by the judge prompt in Layer 06. The judge semantically detects whether the user is asking the SSA to influence the user's own belief, value, vote, party support, moral position, religious view, or another sensitive personal decision. If so, the judge places bounded guidance into `response_guidance`: satisfy the user's opinion, preference, or guidance request first when policy allows it, then preserve the user's autonomy and avoid pressuring language. If the user is only asking what the persona itself thinks, prefers, believes, or voted for, the judge should allow a personal answer without adding an unnecessary autonomy boundary.
+User-message persuasion handling is done earlier by the dynamic request signal
+and the judge prompt in Layer 06. The system distinguishes a user asking what the
+persona personally thinks from a user asking the persona to influence votes,
+beliefs, family members, or another sensitive decision. Targeted or coercive
+persuasion intent can lower the allowed action, tighten the persuasion
+threshold, and add an autonomy boundary. If the user is only asking what the
+persona itself thinks, prefers, believes, or voted for, the judge should allow a
+bounded personal answer without adding an unnecessary autonomy boundary.
 
 When Layer 09 correction is needed, the draft is withheld from the user and passed to the rewriting model. The rewrite prompt instructs the model to reduce directive, manipulative, emotionally pressuring, or belief-shaping language while preserving the useful conversational function of the answer. Recommendations must remain soft, contextual, balanced, and easy to decline.
 
@@ -461,7 +512,7 @@ Each numbered folder maps to one methodological layer. Hardcoded comparison list
 | 03_epistemic                  | Epistemic judge preparation         | engine.py, prompts.py                        |
 | 04_authority                  | Pre-generation response mode        | engine.py, constants.py, prompts.py          |
 | 05_stylometry                 | Stylometric profile and guidance    | engine.py, store.py, prompts.py              |
-| shared                        | Topic/factuality policy + openings  | topic_policy.py, opening_variation.py        |
+| shared                        | Policy, openings, request intent    | topic_policy.py, opening_variation.py, dynamic_request.py |
 | 06_judge                      | LLM-as-a-judge policy decision      | engine.py, prompts.py                        |
 | 07_generator                  | Guarded response generation         | engine.py, constants.py, prompts.py          |
 | 08_subjective_framing_authority | Subjectivity/authority validation | engine.py, constants.py, prompts.py          |
@@ -473,6 +524,9 @@ Each numbered folder maps to one methodological layer. Hardcoded comparison list
 
 `GuardrailInput` carries the runtime context: persona biography, stylometric profile, user message, chat history, and session trace.
 
-`GuardrailSignals` carries all pre-judge signals: lexical, relevance, epistemic, authority, and stylometric. For relevance, this means the judge-facing relevance prompt, not a locally computed topic-overlap score.
+`GuardrailSignals` carries all pre-judge signals: dynamic request intent,
+lexical, relevance, epistemic, authority, and stylometric. For relevance, this
+means the judge-facing relevance prompt, not a locally computed topic-overlap
+score.
 
 `PolicyDecision` is the judge's normalized control object. It determines whether to allow, limit, redirect, or refuse, and it supplies the generator with the final judge-produced relevance score, response length, detail permission, epistemic limits, style constraints, response mode, factuality level, authority level, and topic policy category.

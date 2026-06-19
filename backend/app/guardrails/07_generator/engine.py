@@ -1,14 +1,22 @@
 """Final response generation for the guardrailed pipeline."""
 
+import re
+
 from app.guardrails.schemas import GuardrailInput, GuardrailSignals, PolicyDecision
 from app.guardrails.chat_bubbles import split_response_into_bubbles, typing_status_for_bubble
 from app.guardrails.opening_variation import select_opening_variation
-from app.guardrails.session_trace import append_kv_block, append_named_block, append_turn_closing
+from app.guardrails.session_trace import (
+    append_kv_block,
+    append_named_block,
+    append_narrative_step,
+    append_turn_closing,
+)
 from app.guardrails.topic_policy import get_topic_persuasion_threshold
 from app.logging import get_logger
 from app.utils import (
     build_chat_messages,
     create_system_prompt,
+    run_chat_completion,
     stream_chat_response,
 )
 from .constants import (
@@ -47,12 +55,28 @@ LOW_RELEVANCE_THRESHOLD = 0.5
 LOW_EPISTEMIC_THRESHOLD = 0.5
 LENGTH_LEVELS = ("very_short", "short", "medium", "long")
 LIGHT_POSTPROCESSING_WORD_LIMIT = 35
+PROFILE_DISTANT_FACTUAL_WORD_LIMIT = 45
 LOW_RISK_LIGHT_TOPICS = {
     "everyday_conversation",
     "hobbies_leisure",
     "food_lifestyle",
     "sports_entertainment",
 }
+
+FACTUAL_BACKGROUND_MARKERS = (
+    "started in",
+    "founded",
+    "emerged",
+    "lasted from",
+    "began with",
+    "known for",
+    "major events",
+    "spread to",
+    "international",
+    "worldwide",
+    "law-enforcement",
+    "institutions like",
+)
 
 STYLE_DRIFT_RESPONSE_MARKERS = {
     "teenage_gamer_slang": ("lol", "lmao", "gg", "npc", "vibes", "low-key", "squad", "bro"),
@@ -209,6 +233,17 @@ def _is_expertise_or_factual_request(user_message: str) -> bool:
     return any(marker in normalized for marker in EXPERTISE_OR_FACTUAL_REQUEST_MARKERS)
 
 
+def _is_profile_distant_factual_query(*, signals: GuardrailSignals) -> bool:
+    """Return True when an open factual query is weakly grounded in the biography."""
+    dynamic = signals.dynamic
+    return (
+        dynamic.factual_query_score >= 0.7
+        and dynamic.topic_profile_distance_hint in {"outside", "near_or_uncertain"}
+        and dynamic.topic_profile_overlap_score <= 0.2
+        and dynamic.high_stakes_domain != "political_persuasion"
+    )
+
+
 def _should_force_basic_limited_answer(*, policy: PolicyDecision, user_message: str) -> bool:
     """Return True when the persona should stay basic even if a hard two-sentence cap is unnecessary."""
     return (
@@ -232,12 +267,13 @@ def _should_force_very_basic_nonexpert_answer(
     if _is_greeting_or_smalltalk(user_message) or _is_low_stakes_personal_advice(user_message):
         return False
 
+    dynamic_profile_distance_risk = _is_profile_distant_factual_query(signals=signals)
     dynamic_depth_risk = (
         signals.dynamic.high_stakes_domain not in {"none", "political_persuasion"}
         and signals.dynamic.reasoning_depth_score >= 0.25
     )
 
-    return dynamic_depth_risk or (
+    return dynamic_profile_distance_risk or dynamic_depth_risk or (
         not policy.detail_allowed
         and _is_expertise_or_factual_request(user_message)
         and (
@@ -253,6 +289,12 @@ def _build_dynamic_execution_note(signals: GuardrailSignals) -> str:
     """Turn dynamic request-intent signals into generation constraints."""
     dynamic = signals.dynamic
     notes: list[str] = ["Dynamic request-intent execution notes:"]
+    if _is_profile_distant_factual_query(signals=signals):
+        notes.append(
+            "- The user asked an open factual overview question whose topic has little or no grounding in the biography. "
+            "Do not answer as a factual assistant. Give at most one or two short, hedged, first-person lay sentences, "
+            "or point to a reliable source. Avoid background history, dates, named examples, and multi-paragraph exposition."
+        )
     if dynamic.attack_type != "none":
         notes.append(
             f"- Detected attack subtype: {dynamic.attack_type}. Refuse this subtype directly; do not use unrelated cyber-exploitation wording unless the request is actually cyber exploitation."
@@ -337,6 +379,86 @@ def _maybe_correct_style_conflict(
         "reasons": reasons,
         "requested_style": dynamic.requested_style,
         "markers": markers,
+    }
+
+
+def _profile_distance_overreach_reasons(*, response: str, signals: GuardrailSignals) -> list[str]:
+    """Return reasons when a profile-distant factual answer became too encyclopedic."""
+    if not _is_profile_distant_factual_query(signals=signals):
+        return []
+
+    normalized = response.lower()
+    words = response.split()
+    sentences = [part for part in response.replace("\n", " ").split(".") if part.strip()]
+    year_like_values = re.findall(r"\b(?:1[5-9]\d{2}|20\d{2})\b", response)
+    marker_hits = [marker for marker in FACTUAL_BACKGROUND_MARKERS if marker in normalized]
+
+    reasons: list[str] = []
+    if len(words) > PROFILE_DISTANT_FACTUAL_WORD_LIMIT:
+        reasons.append(
+            f"profile-distant factual answer is too long ({len(words)} words > {PROFILE_DISTANT_FACTUAL_WORD_LIMIT})"
+        )
+    if len(sentences) > 2:
+        reasons.append(f"profile-distant factual answer uses too many explanatory sentences ({len(sentences)} > 2)")
+    if year_like_values:
+        reasons.append(f"profile-distant factual answer includes date/year detail: {', '.join(year_like_values[:5])}")
+    if marker_hits:
+        reasons.append(f"profile-distant factual answer includes backgrounder markers: {', '.join(marker_hits[:5])}")
+    return reasons
+
+
+def _maybe_correct_profile_distance_overreach(
+    *,
+    response: str,
+    guardrail_input: GuardrailInput,
+    policy: PolicyDecision,
+    signals: GuardrailSignals,
+) -> tuple[str, dict]:
+    """Rewrite an encyclopedia-like answer when the topic is outside the profile."""
+    reasons = _profile_distance_overreach_reasons(response=response, signals=signals)
+    if not reasons:
+        return response, {
+            "changed": False,
+            "reasons": [],
+            "factual_query_type": signals.dynamic.factual_query_type,
+            "topic_profile_overlap_score": signals.dynamic.topic_profile_overlap_score,
+            "profile_overlap_terms": signals.dynamic.profile_overlap_terms,
+        }
+
+    system_prompt = create_system_prompt(
+        GUARDRAILED_RESPONSE_SYS_PROMPT,
+        guardrail_input.persona_biography,
+    )
+    correction_prompt = (
+        "Rewrite this draft so it sounds like the synthetic social agent, not a factual assistant.\n"
+        "The user's question is an open factual overview question, but the topic has little or no grounding in the persona biography.\n"
+        "Rules:\n"
+        "- Use at most 1 or 2 short sentences.\n"
+        "- Use first-person limited knowledge or a brief reliable-source redirect.\n"
+        "- Do not include timelines, founding dates, origin histories, lists, examples, or broad background.\n"
+        "- Do not say 'I'm not an expert' and then continue with an expert-style explanation.\n"
+        "- Keep the persona's ordinary language level and modest confidence.\n\n"
+        f"User message:\n{guardrail_input.user_message}\n\n"
+        f"Policy topic: {policy.topic_policy_category}\n"
+        f"Policy knowledge level: {policy.knowledge_level}\n"
+        f"Profile overlap score: {signals.dynamic.topic_profile_overlap_score}\n"
+        f"Overreach reasons: {'; '.join(reasons)}\n\n"
+        f"Draft to rewrite:\n{response}"
+    )
+    corrected = run_chat_completion(
+        messages=build_chat_messages(
+            system_prompt=system_prompt,
+            user_message=correction_prompt,
+            chat_history=[],
+        ),
+        temperature=0.2,
+    ).strip()
+    return corrected or response, {
+        "changed": bool(corrected),
+        "reasons": reasons,
+        "factual_query_type": signals.dynamic.factual_query_type,
+        "topic_profile_overlap_score": signals.dynamic.topic_profile_overlap_score,
+        "profile_overlap_terms": signals.dynamic.profile_overlap_terms,
     }
 
 
@@ -503,9 +625,39 @@ def _tighten_guidance_for_nonexpert_detail(policy: PolicyDecision) -> str:
     )
 
 
+def _tighten_guidance_for_profile_distant_factual_query(policy: PolicyDecision) -> str:
+    """Add a hard ceiling for factual overview questions outside the profile."""
+    return (
+        f"{policy.response_guidance}\n"
+        "Profile-distance hard ceiling: the user asked for factual knowledge on a topic that is not grounded in the biography.\n"
+        "Do not answer like a general factual assistant or encyclopedia.\n"
+        "Use at most 1 or 2 short sentences.\n"
+        "Frame any answer as a limited first-person lay impression, e.g. what you vaguely know or what you would check.\n"
+        "Do not provide timelines, founding dates, origin histories, lists of examples, organizational structure, named groups, or multi-paragraph background.\n"
+        "If the user needs a real explanation, point briefly to a reliable source or a more qualified person.\n"
+        "Never use 'I'm not an expert' as a preface to then give an expert-style answer."
+    )
+
+
 def _log_and_yield_text(*, trace, action: str, text: str):
     """Log and yield a static response."""
     log.info("Layer 07 -> static %s response selected.", action)
+    append_narrative_step(
+        trace=trace,
+        step_label="LAYER 07",
+        title="Static Guarded Response Selected",
+        summary=(
+            f"The generator did not call the answering model because the policy "
+            f"action was `{action}`. A static boundary response was selected so "
+            "the persona can answer safely without producing a draft that needs "
+            "post-generation repair."
+        ),
+        details=[
+            ("Action", action),
+            ("Static response", text),
+            ("Post-generation validators", "not needed for static boundary response"),
+        ],
+    )
     append_kv_block(
         trace=trace,
         title="Static Policy Response",
@@ -674,6 +826,10 @@ def _build_user_message_analysis(*, signals: GuardrailSignals, policy: PolicyDec
                     ["Requested depth", signals.dynamic.requested_depth],
                     ["High-stakes domain", signals.dynamic.high_stakes_domain],
                     ["Topic-profile distance hint", signals.dynamic.topic_profile_distance_hint],
+                    ["Factual query type", signals.dynamic.factual_query_type],
+                    ["Factual query score", _format_score(signals.dynamic.factual_query_score)],
+                    ["Topic-profile overlap score", _format_score(signals.dynamic.topic_profile_overlap_score)],
+                    ["Profile overlap terms", ", ".join(signals.dynamic.profile_overlap_terms) or "none"],
                 ],
             },
             {
@@ -700,6 +856,7 @@ def _build_response_analysis(
     skipped_expensive_postprocessing: bool,
     draft_response: str,
     style_result: dict,
+    epistemic_restraint_result: dict,
     response_before_persuasion: str,
 ) -> dict:
     """Build hover metadata for final response bubble parts."""
@@ -745,15 +902,29 @@ def _build_response_analysis(
             ]
         )
 
+    epistemic_restraint_rows = [
+        ["Factual query type", epistemic_restraint_result.get("factual_query_type", "none")],
+        ["Topic-profile overlap score", _format_score(epistemic_restraint_result.get("topic_profile_overlap_score", 0.0))],
+        ["Profile overlap terms", ", ".join(epistemic_restraint_result.get("profile_overlap_terms") or []) or "none"],
+        ["Epistemic restraint rewrite needed", "yes" if epistemic_restraint_result.get("changed") else "no"],
+        ["Rewrite reasons", _format_reasons(epistemic_restraint_result.get("reasons") or [])],
+    ]
+    if epistemic_restraint_result.get("changed"):
+        epistemic_restraint_rows.append(["Original draft before epistemic restraint", draft_response])
+
     sections = [
         {
             "title": "Decision Summary",
             "rows": [
                 ["Topic", policy.topic_policy_category],
                 ["Action", policy.action],
-                ["Final response changed", "yes" if subjective_result.changed or persuasive_result.changed else "no"],
+                ["Final response changed", "yes" if subjective_result.changed or persuasive_result.changed or epistemic_restraint_result.get("changed") else "no"],
                 ["Skipped classifiers", "yes" if skipped_expensive_postprocessing else "no"],
             ],
+        },
+        {
+            "title": "Epistemic Restraint Check",
+            "rows": epistemic_restraint_rows,
         },
         {
             "title": "Response Framing",
@@ -855,6 +1026,10 @@ def _stream_with_logging(
                 "requested_depth": signals.dynamic.requested_depth,
                 "high_stakes_domain": signals.dynamic.high_stakes_domain,
                 "topic_profile_distance_hint": signals.dynamic.topic_profile_distance_hint,
+                "factual_query_type": signals.dynamic.factual_query_type,
+                "factual_query_score": signals.dynamic.factual_query_score,
+                "topic_profile_overlap_score": signals.dynamic.topic_profile_overlap_score,
+                "profile_overlap_terms": signals.dynamic.profile_overlap_terms,
             },
         },
         "stylometry": {
@@ -880,6 +1055,22 @@ def _stream_with_logging(
         content=user_message_analysis,
         step_label="MESSAGE ANALYSIS",
     )
+    append_narrative_step(
+        trace=trace,
+        step_label="MESSAGE ANALYSIS",
+        title="User Hover Analysis Prepared",
+        summary=(
+            "The backend prepared the metadata shown on the user-message hover "
+            "panel. This is a compact frontend explanation of the same "
+            "pre-generation evidence used internally by the guardrail pipeline."
+        ),
+        details=[
+            ("Policy action", policy.action),
+            ("Topic category", policy.topic_policy_category),
+            ("Dynamic request", signals.dynamic.persuasion_intent_type),
+            ("Lexical triggered", signals.lexical.triggered),
+        ],
+    )
     yield {
         "event": "user_message_analysis",
         "analysis": user_message_analysis,
@@ -890,14 +1081,71 @@ def _stream_with_logging(
         chunks.append(chunk)
 
     draft_response = "".join(chunks)
+    append_narrative_step(
+        trace=trace,
+        step_label="LAYER 07",
+        title="Draft Response Collected",
+        summary=(
+            "The answering model finished its first draft. The draft is not yet "
+            "shown to the user because the backend still needs to check style, "
+            "subjective framing, authority, and persuasive intensity."
+        ),
+        details=[
+            ("Draft word count", len(draft_response.split())),
+            ("Draft character count", len(draft_response)),
+            ("Draft response", draft_response or "Empty draft"),
+            ("Next validation", "stylometric conflict check, then Layer 08 and Layer 09 if required"),
+        ],
+    )
     style_checked_response, style_result = _maybe_correct_style_conflict(
         response=draft_response,
         guardrail_input=guardrail_input,
         policy=policy,
         signals=signals,
     )
-    skipped_expensive_postprocessing = _should_skip_expensive_postprocessing(
+    append_narrative_step(
+        trace=trace,
+        step_label="LAYER 07",
+        title="Stylometric Conflict Check",
+        summary=(
+            "The draft was checked against the persona's baseline style and any "
+            "foreign style requested by the user. The goal is to prevent the SSA "
+            "from adopting a voice that does not fit the profile."
+        ),
+        details=[
+            ("Requested foreign style", signals.dynamic.requested_style),
+            ("Style conflict score", f"{signals.dynamic.style_conflict_score:.3f}"),
+            ("Changed by style correction", style_result.get("changed", False)),
+            ("Style correction reasons", style_result.get("reasons") or "None"),
+            ("Response after style check", style_checked_response),
+        ],
+    )
+    epistemic_checked_response, epistemic_restraint_result = _maybe_correct_profile_distance_overreach(
         response=style_checked_response,
+        guardrail_input=guardrail_input,
+        policy=policy,
+        signals=signals,
+    )
+    append_narrative_step(
+        trace=trace,
+        step_label="LAYER 07",
+        title="Profile-Distance Factual Overreach Check",
+        summary=(
+            "The draft was checked for encyclopedia-style factual overreach when "
+            "the user asked about a topic with little grounding in the persona "
+            "biography."
+        ),
+        details=[
+            ("Factual query type", epistemic_restraint_result.get("factual_query_type")),
+            ("Profile overlap score", epistemic_restraint_result.get("topic_profile_overlap_score")),
+            ("Profile overlap terms", epistemic_restraint_result.get("profile_overlap_terms") or "None"),
+            ("Changed by epistemic restraint check", epistemic_restraint_result.get("changed")),
+            ("Overreach reasons", epistemic_restraint_result.get("reasons") or "None"),
+            ("Response after epistemic restraint check", epistemic_checked_response),
+        ],
+    )
+    skipped_expensive_postprocessing = _should_skip_expensive_postprocessing(
+        response=epistemic_checked_response,
         policy=policy,
     )
     if skipped_expensive_postprocessing:
@@ -909,13 +1157,13 @@ def _stream_with_logging(
         ).PersuasiveGovernanceResult
 
         subjective_result = SubjectiveAuthorityResult(
-            final_response=style_checked_response,
+            final_response=epistemic_checked_response,
             detector_source="skipped_light_mode",
             scoring_mode="skipped",
             classification_label="not_run",
         )
         persuasive_result = PersuasiveGovernanceResult(
-            final_response=style_checked_response,
+            final_response=epistemic_checked_response,
             detector_source="skipped_light_mode",
             topic_policy_category=policy.topic_policy_category,
             base_topic_threshold=get_topic_persuasion_threshold(policy.topic_policy_category),
@@ -930,9 +1178,41 @@ def _stream_with_logging(
             len(draft_response.split()),
             policy.topic_policy_category,
         )
+        append_narrative_step(
+            trace=trace,
+            step_label="POST-GENERATION",
+            title="Classifier Validation Skipped",
+            summary=(
+                "Layer 08 and Layer 09 were skipped because the judge selected "
+                "light post-processing and the draft stayed short, low-authority, "
+                "and low-risk."
+            ),
+            details=[
+                ("Post-processing mode", policy.postprocessing_mode),
+                ("Draft word count", len(epistemic_checked_response.split())),
+                ("Topic category", policy.topic_policy_category),
+                ("Authority level", policy.authority_level),
+                ("Skipped detector source", "skipped_light_mode"),
+            ],
+        )
     else:
+        append_narrative_step(
+            trace=trace,
+            step_label="POST-GENERATION",
+            title="Classifier Validation Started",
+            summary=(
+                "The draft will go through post-generation validation before it "
+                "is streamed. Layer 08 checks subjectivity/objectivity and "
+                "authority; Layer 09 checks persuasive intensity."
+            ),
+            details=[
+                ("Post-processing mode", policy.postprocessing_mode),
+                ("Layer 08 input", epistemic_checked_response),
+                ("Layer 09 input", "Layer 08 final response"),
+            ],
+        )
         subjective_result = apply_subjective_framing_authority(
-            response=style_checked_response,
+            response=epistemic_checked_response,
             guardrail_input=guardrail_input,
             signals=signals,
             policy=policy,
@@ -952,6 +1232,7 @@ def _stream_with_logging(
         skipped_expensive_postprocessing=skipped_expensive_postprocessing,
         draft_response=draft_response,
         style_result=style_result,
+        epistemic_restraint_result=epistemic_restraint_result,
         response_before_persuasion=subjective_result.final_response,
     )
     log.info("Message analysis attached to response bubble(s): %s", response_analysis)
@@ -961,10 +1242,37 @@ def _stream_with_logging(
         content=response_analysis,
         step_label="MESSAGE ANALYSIS",
     )
+    append_narrative_step(
+        trace=trace,
+        step_label="MESSAGE ANALYSIS",
+        title="Response Hover Analysis Prepared",
+        summary=(
+            "The backend prepared the response-hover metadata after validation. "
+            "This is the compact frontend explanation of the final policy, "
+            "detector scores, rewrites, and adapted stylometric values."
+        ),
+        details=[
+            ("Subjective framing changed response", subjective_result.changed),
+            ("Persuasive governance changed response", persuasive_result.changed),
+            ("Style correction changed response", style_result.get("changed", False)),
+            ("Epistemic restraint changed response", epistemic_restraint_result.get("changed", False)),
+            ("Response analysis sections", [section.get("title") for section in response_analysis.get("sections", [])]),
+        ],
+    )
     yield from _yield_bubbled_response(final_response, analysis=response_analysis)
 
-    postprocessing_changed = style_result.get("changed") or subjective_result.changed or persuasive_result.changed
-    postprocessing_reasons = [*(style_result.get("reasons") or []), *subjective_result.reasons, *persuasive_result.reasons]
+    postprocessing_changed = (
+        style_result.get("changed")
+        or epistemic_restraint_result.get("changed")
+        or subjective_result.changed
+        or persuasive_result.changed
+    )
+    postprocessing_reasons = [
+        *(style_result.get("reasons") or []),
+        *(epistemic_restraint_result.get("reasons") or []),
+        *subjective_result.reasons,
+        *persuasive_result.reasons,
+    ]
     word_count = len(final_response.split())
     paragraph_count = len([part for part in final_response.split("\n\n") if part.strip()])
     bubbles = split_response_into_bubbles(final_response)
@@ -988,6 +1296,28 @@ def _stream_with_logging(
             persuasive_result.persuasion_threshold,
             persuasive_result.detector_source,
         )
+    append_narrative_step(
+        trace=trace,
+        step_label="FINAL",
+        title="Final Response Decision",
+        summary=(
+            "The backend selected the final response to stream to the user. "
+            + (
+                "One or more validation layers changed the original draft before streaming."
+                if postprocessing_changed
+                else "The original draft passed validation without rewrite."
+            )
+        ),
+        details=[
+            ("Final word count", word_count),
+            ("Chat bubble count", len(bubbles)),
+            ("Changed by post-processing", postprocessing_changed),
+            ("Reasons for changes", postprocessing_reasons or "None"),
+            ("Subjectivity/objectivity", f"{subjective_result.subjectivity_score}/{subjective_result.objectivity_score} via {subjective_result.detector_source}"),
+            ("Persuasion score/threshold", f"{persuasive_result.persuasion_score}/{persuasive_result.persuasion_threshold} via {persuasive_result.detector_source}"),
+            ("Final response", final_response),
+        ],
+    )
     append_kv_block(
         trace=trace,
         title="Generated Response and Post-Generation Validation Summary",
@@ -999,6 +1329,7 @@ def _stream_with_logging(
             ("Layer 08 analyzed text", "generated LLM response"),
             ("Draft response before validation", draft_response),
             ("Response after stylometric conflict check", style_checked_response),
+            ("Response after epistemic restraint check", epistemic_checked_response),
             ("Response word count", word_count),
             ("Response paragraph count", paragraph_count),
             ("Chat bubble count", len(bubbles)),
@@ -1006,6 +1337,7 @@ def _stream_with_logging(
             ("Expensive post-processing skipped", skipped_expensive_postprocessing),
             ("Post-processing reasons", postprocessing_reasons or "None"),
             ("Stylometric conflict reasons", style_result.get("reasons") or "None"),
+            ("Epistemic restraint reasons", epistemic_restraint_result.get("reasons") or "None"),
             ("Subjective framing reasons", subjective_result.reasons or "None"),
             ("Persuasive governance reasons", persuasive_result.reasons or "None"),
             ("Subjectivity detector", subjective_result.detector_source),
@@ -1108,25 +1440,33 @@ def generate_policy_response(
         )
 
     effective_guidance = policy.response_guidance
+    guidance_reason = "judge policy guidance used without additional generator tightening"
     resolved_length_target = _resolve_response_length_target(
         policy=policy,
         user_message=guardrail_input.user_message,
     )
     if _is_greeting_or_smalltalk(guardrail_input.user_message):
         effective_guidance = _tighten_guidance_for_smalltalk(policy)
+        guidance_reason = "smalltalk/greeting path tightened the answer to a short social response"
+    elif _is_profile_distant_factual_query(signals=signals):
+        effective_guidance = _tighten_guidance_for_profile_distant_factual_query(policy)
+        guidance_reason = "profile-distant factual overview query forced a very short lay/persona-bounded answer"
     elif _should_force_very_basic_nonexpert_answer(
         policy=policy,
         signals=signals,
         user_message=guardrail_input.user_message,
     ):
         effective_guidance = _tighten_guidance_for_nonexpert_detail(policy)
+        guidance_reason = "high-depth or high-stakes out-of-range request forced a very basic non-expert answer"
     elif _should_force_brief_limited_answer(policy):
         effective_guidance = _tighten_guidance_for_low_fit(policy)
+        guidance_reason = "low relevance or weak epistemic fit forced a brief limited answer"
     elif _should_force_basic_limited_answer(
         policy=policy,
         user_message=guardrail_input.user_message,
     ):
         effective_guidance = _tighten_guidance_for_basic_fit(policy)
+        guidance_reason = "basic-fit policy forced a short plain layperson answer"
     effective_guidance = f"{effective_guidance}\n{_build_length_guidance(resolved_length_target)}"
 
     system_prompt = create_system_prompt(
@@ -1196,6 +1536,27 @@ def generate_policy_response(
         log.info("Layer 07 opening variation: %s", opening_variation_note.replace("\n", " "))
     else:
         log.info("Layer 07 opening variation skipped for smalltalk.")
+    append_narrative_step(
+        trace=guardrail_input.session_trace,
+        step_label="LAYER 07",
+        title="Generation Guidance Selected",
+        summary=(
+            "The generator translated the judge policy into executable answer "
+            "instructions. This step decides the practical length ceiling, "
+            "style note, authority note, dynamic request note, and opening "
+            "variation before the answering model is called."
+        ),
+        details=[
+            ("Guidance branch", guidance_reason),
+            ("Resolved length target", resolved_length_target),
+            ("Detail allowed", policy.detail_allowed),
+            ("Knowledge level", policy.knowledge_level),
+            ("Dynamic request note", _build_dynamic_execution_note(signals) or "None"),
+            ("Style execution note", style_execution_note),
+            ("Authority execution note", authority_execution_note),
+            ("Opening variation", opening_variation_note or "Skipped for smalltalk"),
+        ],
+    )
     append_kv_block(
         trace=guardrail_input.session_trace,
         title="Response Preparation Summary",

@@ -59,6 +59,7 @@ class RunCreateRequest(BaseModel):
     profile_count: int = Field(default=1, ge=1, le=30)
     selected_profile_ids: list[str] | None = None
     expected_answer_overrides: dict[str, str] = Field(default_factory=dict)
+    calibration_note_overrides: dict[str, str] = Field(default_factory=dict)
 
 
 class HumanReviewRequest(BaseModel):
@@ -123,6 +124,7 @@ def start_run(request: RunCreateRequest, background_tasks: BackgroundTasks):
         profile_count=request.profile_count,
         selected_profile_ids=request.selected_profile_ids,
         expected_answer_overrides=request.expected_answer_overrides,
+        calibration_note_overrides=request.calibration_note_overrides,
     )
     save_run(run)
     background_tasks.add_task(execute_run, run)
@@ -244,6 +246,33 @@ def submit_review(run_id: str, case_id: str, request: HumanReviewRequest):
     return {
         "case_id": case_id,
         "human_review": target["human_review"],
+        "final_scores": run["final_scores"],
+    }
+
+
+@app.delete("/api/runs/{run_id}/review-items/{case_id}")
+def reset_review(run_id: str, case_id: str):
+    """Remove a human review override so the case uses its automated score."""
+    try:
+        run = load_run(run_id)
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail="Run not found") from exc
+
+    target: dict[str, Any] | None = None
+    for case in run.get("cases", []):
+        if case.get("case_id") == case_id:
+            target = case
+            break
+    if target is None:
+        raise HTTPException(status_code=404, detail="Case not found")
+
+    target.pop("human_review", None)
+    run["final_scores"] = recompute_final_scores(run)
+    save_run(run)
+    return {
+        "case_id": case_id,
+        "human_review": None,
+        "automated_score": target.get("automated_score"),
         "final_scores": run["final_scores"],
     }
 

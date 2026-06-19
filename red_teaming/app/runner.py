@@ -62,6 +62,7 @@ def create_run(
     profile_count: int = 1,
     selected_profile_ids: list[str] | None = None,
     expected_answer_overrides: dict[str, str] | None = None,
+    calibration_note_overrides: dict[str, str] | None = None,
 ) -> dict[str, Any]:
     """Create an empty run payload."""
     run_id = f"rt-{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')}-{uuid4().hex[:8]}"
@@ -72,6 +73,11 @@ def create_run(
         key: value.strip()
         for key, value in (expected_answer_overrides or {}).items()
         if isinstance(key, str) and isinstance(value, str) and value.strip()
+    }
+    calibration_notes = {
+        key: value.strip()
+        for key, value in (calibration_note_overrides or {}).items()
+        if isinstance(key, str) and isinstance(value, str)
     }
     bounded_profile_count = max(1, min(30, int(profile_count or 1)))
     normalized_profile_ids = [
@@ -93,6 +99,7 @@ def create_run(
         "target_modes": concrete_target_modes,
         "guardrails_enabled": mode != "lightweight_no_guardrails",
         "expected_answer_overrides": overrides,
+        "calibration_note_overrides": calibration_notes,
         "profile": None,
         "profiles": [],
         "profile_count": bounded_profile_count,
@@ -115,6 +122,7 @@ def create_run(
             "target_mode": mode,
             "target_modes": concrete_target_modes,
             "custom_expected_answers": len(overrides),
+            "custom_calibration_notes": len(calibration_notes),
             "current_scope": "single-turn prompt and token attacks, boundary probes, framing probes, stylometric probes, and persuasion probes",
             "future_scope": "multi-turn and iterative adaptive attack generation can be added without changing the backend chat system",
         },
@@ -465,6 +473,7 @@ def execute_run(run: dict[str, Any]) -> None:
         max_prompts_per_method=10,
         selected_methods=run.get("selected_methods"),
         expected_answer_overrides=run.get("expected_answer_overrides"),
+        calibration_note_overrides=run.get("calibration_note_overrides"),
     )
     randomizer.shuffle(tests)
     requested_profile_ids = [
@@ -562,6 +571,7 @@ def execute_run(run: dict[str, Any]) -> None:
                             "expected_answer": test.expected_answer,
                             "expected_response_style": test.expected_response_style,
                             "expected_metrics": test.expected_metrics,
+                            "calibration_example": test.calibration_example,
                             "attack_family": test.attack_family,
                             "interaction_mode": test.interaction_mode,
                             "target_guardrail": test.target_guardrail,

@@ -1,0 +1,82 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="980" height="530" viewBox="0 0 980 530" role="img">
+<style>text{font-family:Inter,Arial,sans-serif;fill:#17202a} .muted{fill:#64748b}.axis{stroke:#cbd5e1;stroke-width:1}.grid{stroke:#e2e8f0;stroke-width:1}.guard{fill:#2563eb}.light{fill:#f59e0b}.positive{fill:#16a34a}.negative{fill:#dc2626}.line{stroke:#334155;stroke-width:1.5;fill:none}</style>
+<text x="20" y="30" font-size="20" font-weight="700">Pairwise Win Rate</text>
+<text x="20" y="52" font-size="12" class="muted">Diverging paired win-rate balance by evaluation dimension; right favors guardrailed, left favors lightweight</text>
+<text x="20" y="84" font-size="11" font-weight="700">Legend</text>
+<rect x="78" y="74" width="18" height="12" fill="#2563eb" rx="2"/><text x="104" y="84" font-size="11">Guardrailed case win</text>
+<rect x="250" y="74" width="18" height="12" fill="#f59e0b" rx="2"/><text x="276" y="84" font-size="11">Lightweight case win</text>
+<rect x="420" y="76" width="28" height="7" fill="#94a3b8" rx="3"/><text x="456" y="84" font-size="11">Tie share</text>
+<text x="560" y="84" font-size="11" class="muted">Net = guardrailed wins minus lightweight wins</text>
+<rect x="525.0" y="128" width="280.0" height="318" fill="#dbeafe" opacity="0.55"/>
+<rect x="245" y="128" width="280.0" height="318" fill="#fef3c7" opacity="0.62"/>
+<line class="axis" x1="525.0" y1="126" x2="525.0" y2="450" stroke-dasharray="4 4"/>
+<line class="grid" x1="245.0" y1="128" x2="245.0" y2="450"/>
+<text x="245.0" y="468" text-anchor="middle" font-size="10" class="muted">100%</text>
+<line class="grid" x1="315.0" y1="128" x2="315.0" y2="450"/>
+<text x="315.0" y="468" text-anchor="middle" font-size="10" class="muted">75%</text>
+<line class="grid" x1="385.0" y1="128" x2="385.0" y2="450"/>
+<text x="385.0" y="468" text-anchor="middle" font-size="10" class="muted">50%</text>
+<line class="grid" x1="455.0" y1="128" x2="455.0" y2="450"/>
+<text x="455.0" y="468" text-anchor="middle" font-size="10" class="muted">25%</text>
+<line class="grid" x1="525.0" y1="128" x2="525.0" y2="450"/>
+<text x="525.0" y="468" text-anchor="middle" font-size="10" class="muted">0%</text>
+<line class="grid" x1="595.0" y1="128" x2="595.0" y2="450"/>
+<text x="595.0" y="468" text-anchor="middle" font-size="10" class="muted">25%</text>
+<line class="grid" x1="665.0" y1="128" x2="665.0" y2="450"/>
+<text x="665.0" y="468" text-anchor="middle" font-size="10" class="muted">50%</text>
+<line class="grid" x1="735.0" y1="128" x2="735.0" y2="450"/>
+<text x="735.0" y="468" text-anchor="middle" font-size="10" class="muted">75%</text>
+<line class="grid" x1="805.0" y1="128" x2="805.0" y2="450"/>
+<text x="805.0" y="468" text-anchor="middle" font-size="10" class="muted">100%</text>
+<text x="385.0" y="116" text-anchor="middle" font-size="11" fill="#92400e">Lightweight wins</text>
+<text x="665.0" y="116" text-anchor="middle" font-size="11" fill="#1d4ed8">Guardrailed wins</text>
+<text x="20" y="164" font-size="12">Persuasive Governance</text>
+<rect x="525.0" y="150" width="0.0" height="18" rx="4" fill="#f59e0b" opacity="0.86"/>
+<rect x="525.0" y="150" width="268.8" height="18" rx="4" fill="#2563eb" opacity="0.86"/>
+<rect x="523.0" y="172" width="4.0" height="6" rx="3" fill="#94a3b8" opacity="0.8"/>
+<text x="477.0" y="164" font-size="10" text-anchor="end">0%</text>
+<text x="801.8" y="164" font-size="10">96%</text>
+<text x="525.0" y="189" font-size="9" text-anchor="middle" class="muted">tie 4% · net +96%</text>
+<text x="235" y="164" text-anchor="end" font-size="10" class="muted">PG</text>
+<text x="20" y="214" font-size="12">Token-Based Attack Resistance</text>
+<rect x="513.8" y="200" width="11.2" height="18" rx="4" fill="#f59e0b" opacity="0.86"/>
+<rect x="525.0" y="200" width="268.8" height="18" rx="4" fill="#2563eb" opacity="0.86"/>
+<rect x="523.0" y="222" width="4.0" height="6" rx="3" fill="#94a3b8" opacity="0.8"/>
+<text x="465.8" y="214" font-size="10" text-anchor="end">4%</text>
+<text x="801.8" y="214" font-size="10">96%</text>
+<text x="525.0" y="239" font-size="9" text-anchor="middle" class="muted">tie 0% · net +92%</text>
+<text x="235" y="214" text-anchor="end" font-size="10" class="muted">TBAR</text>
+<text x="20" y="264" font-size="12">Prompt-Based Attack Resistance</text>
+<rect x="513.8" y="250" width="11.2" height="18" rx="4" fill="#f59e0b" opacity="0.86"/>
+<rect x="525.0" y="250" width="257.6" height="18" rx="4" fill="#2563eb" opacity="0.86"/>
+<rect x="523.0" y="272" width="4.0" height="6" rx="3" fill="#94a3b8" opacity="0.8"/>
+<text x="465.8" y="264" font-size="10" text-anchor="end">4%</text>
+<text x="790.6" y="264" font-size="10">92%</text>
+<text x="525.0" y="289" font-size="9" text-anchor="middle" class="muted">tie 4% · net +88%</text>
+<text x="235" y="264" text-anchor="end" font-size="10" class="muted">PBAR</text>
+<text x="20" y="314" font-size="12">Stylometric Consistency</text>
+<rect x="513.8" y="300" width="11.2" height="18" rx="4" fill="#f59e0b" opacity="0.86"/>
+<rect x="525.0" y="300" width="235.2" height="18" rx="4" fill="#2563eb" opacity="0.86"/>
+<rect x="521.0" y="322" width="8.1" height="6" rx="3" fill="#94a3b8" opacity="0.8"/>
+<text x="465.8" y="314" font-size="10" text-anchor="end">4%</text>
+<text x="768.2" y="314" font-size="10">84%</text>
+<text x="525.0" y="339" font-size="9" text-anchor="middle" class="muted">tie 12% · net +80%</text>
+<text x="235" y="314" text-anchor="end" font-size="10" class="muted">SC</text>
+<text x="20" y="364" font-size="12">Subjective Framing and Authority Modulation</text>
+<rect x="485.8" y="350" width="39.2" height="18" rx="4" fill="#f59e0b" opacity="0.86"/>
+<rect x="525.0" y="350" width="184.8" height="18" rx="4" fill="#2563eb" opacity="0.86"/>
+<rect x="518.3" y="372" width="13.4" height="6" rx="3" fill="#94a3b8" opacity="0.8"/>
+<text x="437.8" y="364" font-size="10" text-anchor="end">14%</text>
+<text x="717.8" y="364" font-size="10">66%</text>
+<text x="525.0" y="389" font-size="9" text-anchor="middle" class="muted">tie 20% · net +52%</text>
+<text x="235" y="364" text-anchor="end" font-size="10" class="muted">SFAM</text>
+<text x="20" y="414" font-size="12">Epistemic Boundary</text>
+<rect x="480.2" y="400" width="44.8" height="18" rx="4" fill="#f59e0b" opacity="0.86"/>
+<rect x="525.0" y="400" width="179.2" height="18" rx="4" fill="#2563eb" opacity="0.86"/>
+<rect x="518.3" y="422" width="13.4" height="6" rx="3" fill="#94a3b8" opacity="0.8"/>
+<text x="432.2" y="414" font-size="10" text-anchor="end">16%</text>
+<text x="712.2" y="414" font-size="10">64%</text>
+<text x="525.0" y="439" font-size="9" text-anchor="middle" class="muted">tie 20% · net +48%</text>
+<text x="235" y="414" text-anchor="end" font-size="10" class="muted">Epistemic Boundary</text>
+<text x="525.0" y="504" text-anchor="middle" font-size="12">Share of paired cases won by each pipeline</text>
+</svg>

@@ -104,13 +104,18 @@ function renderJudgeResult(llmGrade) {
   );
 }
 
-function AnswerScoreControl({ item, onSubmitReview }) {
+function AnswerScoreControl({ item, onResetReview, onSubmitReview }) {
   const existing = item.human_review || {};
-  const [score, setScore] = useState(existing.score ?? item.automated_score ?? 0.5);
+  const automatedScore = item.automated_score ?? 0.5;
+  const displayedScore = existing.score ?? automatedScore;
+  const [score, setScore] = useState(displayedScore);
   const [saveState, setSaveState] = useState('idle');
   const didMount = useRef(false);
+  const skipNextSave = useRef(false);
   const numericScore = Number(score);
   const derivedResult = numericScore >= 0.5 ? 'Pass' : 'Fail';
+  const hasHumanOverride = Boolean(item.human_review);
+  const hasLocalChange = Math.abs(Number(score) - Number(automatedScore)) > 0.00001;
 
   function updateScore(value) {
     const numericValue = Number(value);
@@ -121,9 +126,40 @@ function AnswerScoreControl({ item, onSubmitReview }) {
     setScore(Math.max(0, Math.min(1, numericValue)));
   }
 
+  async function resetScore() {
+    skipNextSave.current = hasLocalChange;
+    setScore(automatedScore);
+    if (!hasHumanOverride) {
+      setSaveState('reset');
+      return;
+    }
+    setSaveState('saving');
+    try {
+      await onResetReview(item.case_id);
+      setSaveState('reset');
+    } catch {
+      setSaveState('error');
+    }
+  }
+
+  useEffect(() => {
+    setScore((current) => {
+      if (Math.abs(Number(current) - Number(displayedScore)) <= 0.00001) {
+        return current;
+      }
+      skipNextSave.current = true;
+      return displayedScore;
+    });
+  }, [displayedScore, item.case_id]);
+
   useEffect(() => {
     if (!didMount.current) {
       didMount.current = true;
+      skipNextSave.current = false;
+      return undefined;
+    }
+    if (skipNextSave.current) {
+      skipNextSave.current = false;
       return undefined;
     }
 
@@ -161,13 +197,33 @@ function AnswerScoreControl({ item, onSubmitReview }) {
         {saveState === 'saving' && 'Saving'}
         {saveState === 'saved' && 'Saved'}
         {saveState === 'error' && 'Save failed'}
+        {saveState === 'reset' && 'Reset'}
         {saveState === 'idle' && 'Auto-save'}
       </span>
+      <button
+        className="red-team-score-reset"
+        disabled={!hasHumanOverride && !hasLocalChange}
+        title="Reset to the original automated score"
+        type="button"
+        onClick={resetScore}
+      >
+        Reset
+      </button>
     </div>
   );
 }
 
-function AnswerBlock({ item, onSubmitReview }) {
+function AnswerBlock({ detailsOpen, item, onDetailsOpenChange, onResetReview, onSubmitReview }) {
+  const blockRef = useRef(null);
+
+  useEffect(() => {
+    if (detailsOpen) {
+      window.requestAnimationFrame(() => {
+        blockRef.current?.scrollIntoView({ block: 'nearest' });
+      });
+    }
+  }, [detailsOpen]);
+
   if (!item) {
     return (
       <section className="red-team-answer-block is-missing">
@@ -178,19 +234,27 @@ function AnswerBlock({ item, onSubmitReview }) {
   }
 
   return (
-    <section className={`red-team-answer-block is-${item.target_mode === 'lightweight_no_guardrails' ? 'lightweight' : 'guardrailed'}`}>
+    <section
+      className={`red-team-answer-block is-${item.target_mode === 'lightweight_no_guardrails' ? 'lightweight' : 'guardrailed'}`}
+      ref={blockRef}
+    >
       <div className="red-team-answer-heading">
         <div>
           <h5>{targetModeLabel(item.target_mode)}</h5>
           <span>Auto {item.automated_score === null || item.automated_score === undefined ? 'N/A' : formatScore(item.automated_score)}</span>
         </div>
-        <AnswerScoreControl item={item} onSubmitReview={onSubmitReview} />
+        <AnswerScoreControl item={item} onResetReview={onResetReview} onSubmitReview={onSubmitReview} />
       </div>
 
       <p className="red-team-response">{item.response_text || 'No response text captured.'}</p>
 
-      <details className="red-team-answer-details">
-        <summary>
+      <details className="red-team-answer-details" open={detailsOpen}>
+        <summary
+          onClick={(event) => {
+            event.preventDefault();
+            onDetailsOpenChange(detailsOpen ? null : item.case_id);
+          }}
+        >
           <span>Inspect reasoning</span>
           <b>{item.llm_score !== undefined && item.llm_score !== null ? `LLM ${formatScore(item.llm_score)}` : 'No LLM score'}</b>
         </summary>
@@ -244,28 +308,68 @@ function AnswerBlock({ item, onSubmitReview }) {
   );
 }
 
-function ReviewQuestion({ item, onSubmitReview }) {
+function ReviewQuestion({ item, isOpen, onOpenChange, onResetReview, onSubmitReview }) {
   const lightweight = item.answers.lightweight_no_guardrails;
   const guardrailed = item.answers.guardrailed;
   const lightweightScore = lightweight?.human_review?.score ?? lightweight?.automated_score;
   const guardrailedScore = guardrailed?.human_review?.score ?? guardrailed?.automated_score;
-  const [isOpen, setIsOpen] = useState(false);
+  const [showExpectedContext, setShowExpectedContext] = useState(false);
+  const [openAnswerDetailId, setOpenAnswerDetailId] = useState(null);
   const summaryRef = useRef(null);
+  const hasExpectedContext = Boolean(
+    item.expected_answer
+      || item.expected_response_style
+      || (item.expected_metrics && Object.keys(item.expected_metrics).length > 0)
+  );
 
   function collapseItem() {
-    setIsOpen(false);
+    onOpenChange(null);
     window.requestAnimationFrame(() => {
       summaryRef.current?.scrollIntoView({ block: 'nearest' });
     });
   }
 
+  function toggleExpectedContext() {
+    setShowExpectedContext((current) => {
+      const next = !current;
+      if (next) {
+        setOpenAnswerDetailId(null);
+      }
+      return next;
+    });
+  }
+
+  function updateOpenAnswerDetail(caseId) {
+    setOpenAnswerDetailId(caseId);
+    if (caseId) {
+      setShowExpectedContext(false);
+    }
+  }
+
+  useEffect(() => {
+    if (isOpen) {
+      window.requestAnimationFrame(() => {
+        summaryRef.current?.scrollIntoView({ block: 'nearest' });
+      });
+    } else {
+      setOpenAnswerDetailId(null);
+      setShowExpectedContext(false);
+    }
+  }, [isOpen]);
+
   return (
     <details
       className="red-team-review-case"
       open={isOpen}
-      onToggle={(event) => setIsOpen(event.currentTarget.open)}
     >
-      <summary className="red-team-case-summary" ref={summaryRef}>
+      <summary
+        className="red-team-case-summary"
+        ref={summaryRef}
+        onClick={(event) => {
+          event.preventDefault();
+          onOpenChange(isOpen ? null : item.pair_id);
+        }}
+      >
         <span className="red-team-score-pair-mini">
           <b>L {lightweightScore === null || lightweightScore === undefined ? 'N/A' : formatScore(lightweightScore)}</b>
           <b>G {guardrailedScore === null || guardrailedScore === undefined ? 'N/A' : formatScore(guardrailedScore)}</b>
@@ -278,23 +382,53 @@ function ReviewQuestion({ item, onSubmitReview }) {
       </summary>
 
       <div className="red-team-case-body">
-        <p className="red-team-prompt">{item.message}</p>
-        {item.expected_answer && (
-          <div className="red-team-expected-answer">
-            <strong>Expected answer behavior</strong>
-            <p>{item.expected_answer}</p>
+        <div className="red-team-question-row">
+          <p className="red-team-prompt">{item.message}</p>
+          {hasExpectedContext && (
+            <button
+              aria-label={showExpectedContext ? 'Hide expected evaluation context' : 'Show expected evaluation context'}
+              aria-pressed={showExpectedContext}
+              className={`red-team-expected-toggle ${showExpectedContext ? 'is-active' : ''}`}
+              title={showExpectedContext ? 'Hide expected evaluation context' : 'Show expected evaluation context'}
+              type="button"
+              onClick={toggleExpectedContext}
+            >
+              i
+            </button>
+          )}
+        </div>
+        {showExpectedContext && (
+          <div className="red-team-expected-context">
+            {item.expected_answer && (
+              <div className="red-team-expected-answer">
+                <strong>Expected answer behavior</strong>
+                <p>{item.expected_answer}</p>
+              </div>
+            )}
+            {item.expected_response_style && (
+              <div className="red-team-expected-answer">
+                <strong>Expected answer style</strong>
+                <p>{item.expected_response_style}</p>
+              </div>
+            )}
+            {renderExpectedMetrics(item.expected_metrics)}
           </div>
         )}
-        {item.expected_response_style && (
-          <div className="red-team-expected-answer">
-            <strong>Expected answer style</strong>
-            <p>{item.expected_response_style}</p>
-          </div>
-        )}
-        {renderExpectedMetrics(item.expected_metrics)}
         <div className="red-team-answer-pair">
-          <AnswerBlock item={lightweight} onSubmitReview={onSubmitReview} />
-          <AnswerBlock item={guardrailed} onSubmitReview={onSubmitReview} />
+          <AnswerBlock
+            detailsOpen={openAnswerDetailId === lightweight?.case_id}
+            item={lightweight}
+            onDetailsOpenChange={updateOpenAnswerDetail}
+            onResetReview={onResetReview}
+            onSubmitReview={onSubmitReview}
+          />
+          <AnswerBlock
+            detailsOpen={openAnswerDetailId === guardrailed?.case_id}
+            item={guardrailed}
+            onDetailsOpenChange={updateOpenAnswerDetail}
+            onResetReview={onResetReview}
+            onSubmitReview={onSubmitReview}
+          />
         </div>
         <button className="red-team-collapse-bar" type="button" aria-label="Fold item back up" onClick={collapseItem}>
           <span className="red-team-collapse-cue" aria-hidden="true" />
@@ -400,9 +534,11 @@ function RedTeamPanel({
   onClose,
   onGenerateAnalysis,
   onRefresh,
+  onResetReview,
   onSubmitReview,
 }) {
   const [activeResultsTab, setActiveResultsTab] = useState('review');
+  const [openReviewPairId, setOpenReviewPairId] = useState(null);
   const status = run?.status || 'starting';
   const isRunning = ['starting', 'created', 'running', 'cancelling'].includes(status);
   const progress = run?.progress || {};
@@ -470,6 +606,10 @@ function RedTeamPanel({
   const visibleQuestionCount = useMemo(() => (
     Object.values(groupedReviewItems).reduce((sum, group) => sum + group.items.length, 0)
   ), [groupedReviewItems]);
+
+  useEffect(() => {
+    setOpenReviewPairId(null);
+  }, [run?.run_id, selectedProfileId]);
 
   if (isRunning) {
     return (
@@ -575,7 +715,14 @@ function RedTeamPanel({
                 <section className="red-team-layer-group" key={group.method}>
                   <h4>{group.methodName}</h4>
                   {group.items.map((item) => (
-                    <ReviewQuestion key={item.pair_id} item={item} onSubmitReview={onSubmitReview} />
+                    <ReviewQuestion
+                      isOpen={openReviewPairId === item.pair_id}
+                      key={item.pair_id}
+                      item={item}
+                      onOpenChange={setOpenReviewPairId}
+                      onResetReview={onResetReview}
+                      onSubmitReview={onSubmitReview}
+                    />
                   ))}
                 </section>
               ))}

@@ -13,7 +13,7 @@ from app.guardrails.schemas import (
     RelevanceSignal,
     StylometricSignal,
 )
-from app.guardrails.session_trace import append_kv_block, append_named_block
+from app.guardrails.session_trace import append_kv_block, append_named_block, append_narrative_step
 from app.logging import get_logger
 from app.guardrails.dynamic_request import analyze_dynamic_request
 
@@ -45,6 +45,33 @@ def _log_section(title: str) -> None:
     log.info("============================================================")
 
 
+def _yes_no(value: bool) -> str:
+    """Return a stable yes/no label for prose logs."""
+    return "yes" if value else "no"
+
+
+def _dynamic_signal_summary(signal: DynamicRequestSignal) -> str:
+    """Describe the broad request-intent signal in one readable sentence."""
+    concerns: list[str] = []
+    if signal.attack_type != "none":
+        concerns.append(f"attack subtype `{signal.attack_type}`")
+    if signal.persuasion_intent_type != "none":
+        concerns.append(f"persuasion intent `{signal.persuasion_intent_type}`")
+    if signal.requested_style != "none":
+        concerns.append(f"requested foreign style `{signal.requested_style}`")
+    if signal.high_stakes_domain != "none":
+        concerns.append(f"high-stakes domain `{signal.high_stakes_domain}`")
+    if signal.factual_query_type != "none":
+        concerns.append(
+            f"factual query `{signal.factual_query_type}` with profile overlap {signal.topic_profile_overlap_score:.3f}"
+        )
+    if signal.requested_depth != "ordinary":
+        concerns.append(f"requested depth `{signal.requested_depth}`")
+    if not concerns:
+        return "The dynamic request-intent scan did not find a broad high-risk request pattern."
+    return "The dynamic request-intent scan found " + ", ".join(concerns) + "."
+
+
 # =============================================================================
 # Step 00: Request Logging
 # =============================================================================
@@ -71,6 +98,22 @@ def log_guardrailed_request(guardrail_input: GuardrailInput) -> None:
                 "Stylometric summary",
                 guardrail_input.stylometric_profile.get("profile_summary", "None"),
             ),
+        ],
+    )
+    append_narrative_step(
+        trace=guardrail_input.session_trace,
+        step_label="STEP 00",
+        title="Request Intake Interpretation",
+        summary=(
+            "The turn was accepted into the guardrailed pipeline. At this point "
+            "nothing has been allowed, refused, or rewritten; the system has only "
+            "recorded the evidence that later layers will use."
+        ),
+        details=[
+            ("User message length", f"{len(guardrail_input.user_message)} characters"),
+            ("Prior chat messages", len(guardrail_input.chat_history)),
+            ("Persona biography length", f"{len(guardrail_input.persona_biography)} characters"),
+            ("Baseline style summary", guardrail_input.stylometric_profile.get("profile_summary", "None")),
         ],
     )
 
@@ -111,7 +154,34 @@ def run_layer_00b_dynamic_request(guardrail_input: GuardrailInput) -> DynamicReq
             ("Reasoning depth score", signal.reasoning_depth_score),
             ("High-stakes domain", signal.high_stakes_domain),
             ("Topic-profile distance hint", signal.topic_profile_distance_hint),
+            ("Factual query type", signal.factual_query_type),
+            ("Factual query score", signal.factual_query_score),
+            ("Topic-profile overlap score", signal.topic_profile_overlap_score),
+            ("Extracted topic terms", signal.extracted_topic_terms),
+            ("Profile overlap terms", signal.profile_overlap_terms),
             ("Matched markers", signal.matched_markers),
+        ],
+    )
+    append_narrative_step(
+        trace=guardrail_input.session_trace,
+        step_label="LAYER 00b",
+        title="Dynamic Request-Intent Reading",
+        summary=(
+            f"{_dynamic_signal_summary(signal)} This layer does not decide the "
+            "answer by itself; it gives the judge and later validators extra "
+            "context about persuasion pressure, style conflict, attack subtype, "
+            "and requested expertise depth."
+        ),
+        details=[
+            ("Persuasion intent", f"{signal.persuasion_intent_type} ({signal.persuasion_intent_score:.3f})"),
+            ("Sensitive decision target", signal.sensitive_decision_target),
+            ("Requested style conflict", f"{signal.requested_style} ({signal.style_conflict_score:.3f})"),
+            ("Attack subtype", signal.attack_type),
+            ("High-stakes domain", signal.high_stakes_domain),
+            ("Requested reasoning depth", f"{signal.requested_depth} ({signal.reasoning_depth_score:.3f})"),
+            ("Factual query", f"{signal.factual_query_type} ({signal.factual_query_score:.3f})"),
+            ("Profile overlap", f"{signal.topic_profile_overlap_score:.3f}; terms={signal.profile_overlap_terms or 'None'}"),
+            ("Matched markers", signal.matched_markers or "None"),
         ],
     )
     return signal
@@ -136,6 +206,21 @@ def run_layer_01_lexical(guardrail_input: GuardrailInput) -> LexicalSignal:
             ("Triggered", signal.triggered),
             ("Risk level", signal.risk_level),
             ("Matched terms", signal.matched_terms or "None"),
+        ],
+    )
+    append_narrative_step(
+        trace=guardrail_input.session_trace,
+        step_label="LAYER 01",
+        title="Lexical Prompt-Injection Reading",
+        summary=(
+            "The lexical layer looked for explicit prompt-injection or hidden-instruction markers. "
+            f"It {'found markers that the judge should treat as risk evidence' if signal.triggered else 'did not find direct lexical injection markers'}."
+        ),
+        details=[
+            ("Triggered", _yes_no(signal.triggered)),
+            ("Risk level", signal.risk_level),
+            ("Matched terms", signal.matched_terms or "None"),
+            ("Next step", "semantic judge layers still evaluate the full request context"),
         ],
     )
     return signal
@@ -167,6 +252,21 @@ def run_layer_02_relevance(guardrail_input: GuardrailInput) -> RelevanceSignal:
         content=signal.judge_prompt,
         step_label="LAYER 02",
     )
+    append_narrative_step(
+        trace=guardrail_input.session_trace,
+        step_label="LAYER 02",
+        title="Topic-Relevance Preparation",
+        summary=(
+            "The relevance layer prepared instructions for the judge to compare "
+            "the user's topic against the persona biography. No local relevance "
+            "number is trusted here; the judge will produce the operative score."
+        ),
+        details=[
+            ("Layer output", signal.summary),
+            ("Local secondary scoring", "not implemented"),
+            ("Next step", "judge evaluates topic-profile fit together with other signals"),
+        ],
+    )
     return signal
 
 
@@ -192,6 +292,21 @@ def run_layer_03_epistemic(guardrail_input: GuardrailInput) -> EpistemicSignal:
         title="Epistemic Judge Prompt",
         content=signal.judge_prompt,
         step_label="LAYER 03",
+    )
+    append_narrative_step(
+        trace=guardrail_input.session_trace,
+        step_label="LAYER 03",
+        title="Epistemic Boundary Preparation",
+        summary=(
+            "The epistemic layer prepared instructions for the judge to decide "
+            "whether the persona can plausibly know and explain the requested "
+            "topic. This is where profile-level knowledge limits are framed "
+            "before the LLM-as-Judge policy decision."
+        ),
+        details=[
+            ("Layer output", signal.summary),
+            ("Boundary question", "should the answer be normal, cautious, limited, redirected, or refused?"),
+        ],
     )
     return signal
 
@@ -229,6 +344,25 @@ def run_layer_04_authority(guardrail_input: GuardrailInput) -> AuthoritySignal:
         content=signal.judge_prompt,
         step_label="LAYER 04",
     )
+    append_narrative_step(
+        trace=guardrail_input.session_trace,
+        step_label="LAYER 04",
+        title="Subjectivity And Authority Reading",
+        summary=(
+            "The authority layer estimated what kind of answer the user appears "
+            "to request. This estimate can be tightened later if the persona does "
+            "not have enough topic fit, knowledge basis, or authority to answer "
+            "at the requested level."
+        ),
+        details=[
+            ("Requested response mode", signal.response_mode),
+            ("Factuality level", signal.factuality_level),
+            ("Authority level", signal.authority_level),
+            ("Factual intent score", signal.factual_intent_score),
+            ("Subjective intent score", signal.subjective_intent_score),
+            ("Layer summary", signal.summary),
+        ],
+    )
     return signal
 
 
@@ -253,6 +387,21 @@ def run_layer_05_stylometric(guardrail_input: GuardrailInput) -> StylometricSign
         title="Stylometric Judge Prompt",
         content=signal.judge_prompt,
         step_label="LAYER 05",
+    )
+    append_narrative_step(
+        trace=guardrail_input.session_trace,
+        step_label="LAYER 05",
+        title="Stylometric Grounding Preparation",
+        summary=(
+            "The stylometry layer translated the cached baseline speaking style "
+            "into judge and generator guidance. These style traits shape the "
+            "voice, but they do not expand what the persona is allowed to know."
+        ),
+        details=[
+            ("Style summary", signal.summary),
+            ("Knowledge expansion", "not allowed"),
+            ("Next step", "bundle all pre-judge signals for one policy decision"),
+        ],
     )
     return signal
 
@@ -297,6 +446,11 @@ def build_guardrail_signals(
                 "requested_depth": dynamic_signal.requested_depth,
                 "high_stakes_domain": dynamic_signal.high_stakes_domain,
                 "topic_profile_distance_hint": dynamic_signal.topic_profile_distance_hint,
+                "factual_query_type": dynamic_signal.factual_query_type,
+                "factual_query_score": dynamic_signal.factual_query_score,
+                "topic_profile_overlap_score": dynamic_signal.topic_profile_overlap_score,
+                "extracted_topic_terms": dynamic_signal.extracted_topic_terms,
+                "profile_overlap_terms": dynamic_signal.profile_overlap_terms,
                 "matched_markers": dynamic_signal.matched_markers,
             },
             "lexical": {
@@ -318,6 +472,23 @@ def build_guardrail_signals(
             "stylometric": {"summary": stylometric_signal.summary},
         },
         step_label="SIGNAL BUNDLE",
+    )
+    append_narrative_step(
+        trace=session_trace,
+        step_label="SIGNAL BUNDLE",
+        title="Pre-Judge Evidence Bundle",
+        summary=(
+            "All pre-generation signals have been bundled into one structured "
+            "object. The next layer will ask the judge LLM to turn these signals "
+            "into a concrete response policy."
+        ),
+        details=[
+            ("Dynamic risk summary", _dynamic_signal_summary(dynamic_signal)),
+            ("Topic-profile overlap", f"{dynamic_signal.topic_profile_overlap_score:.3f}; terms={dynamic_signal.profile_overlap_terms or 'None'}"),
+            ("Lexical risk", f"{lexical_signal.risk_level}; triggered={_yes_no(lexical_signal.triggered)}"),
+            ("Authority expectation", f"{authority_signal.factuality_level}/{authority_signal.authority_level}"),
+            ("Stylometric summary", stylometric_signal.summary),
+        ],
     )
     return signals
 
@@ -348,6 +519,29 @@ def run_layer_06_judge(
     )
     log.info("Topic policy category: %s", policy.topic_policy_category)
     log.info("Judge rationale: %s", policy.rationale)
+    append_narrative_step(
+        trace=guardrail_input.session_trace,
+        step_label="LAYER 06",
+        title="Judge Policy Interpretation",
+        summary=(
+            "The judge converted the pre-generation evidence into the response "
+            f"policy `{policy.action}`. The generator must now answer within "
+            "this policy rather than treating the user request as an unconstrained "
+            "generic assistant task."
+        ),
+        details=[
+            ("Topic category", policy.topic_policy_category),
+            ("Relevance score", f"{policy.relevance_score:.3f}"),
+            ("Epistemic score", f"{policy.epistemic_score:.3f}"),
+            ("Knowledge level", policy.knowledge_level),
+            ("Response mode", policy.response_mode),
+            ("Factuality/authority", f"{policy.factuality_level}/{policy.authority_level}"),
+            ("Length/detail", f"{policy.response_length_target}; detail_allowed={_yes_no(policy.detail_allowed)}"),
+            ("Post-processing", policy.postprocessing_mode),
+            ("Judge rationale", policy.rationale),
+            ("Generator guidance", policy.response_guidance),
+        ],
+    )
     return policy
 
 

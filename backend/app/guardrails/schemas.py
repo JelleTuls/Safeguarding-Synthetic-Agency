@@ -81,6 +81,11 @@ class DynamicRequestSignal:
     requested_depth: str = "ordinary"
     high_stakes_domain: str = "none"
     topic_profile_distance_hint: str = "unknown"
+    factual_query_type: str = "none"
+    factual_query_score: float = 0.0
+    topic_profile_overlap_score: float = 0.0
+    extracted_topic_terms: list[str] = field(default_factory=list)
+    profile_overlap_terms: list[str] = field(default_factory=list)
     matched_markers: dict = field(default_factory=dict)
 
 

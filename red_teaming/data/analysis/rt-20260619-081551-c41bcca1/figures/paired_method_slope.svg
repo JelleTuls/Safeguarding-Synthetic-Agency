@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="920" height="470" viewBox="0 0 920 470" role="img">
+<style>text{font-family:Inter,Arial,sans-serif;fill:#17202a} .muted{fill:#64748b}.axis{stroke:#cbd5e1;stroke-width:1}.grid{stroke:#e2e8f0;stroke-width:1}.guard{fill:#2563eb}.light{fill:#f59e0b}.positive{fill:#16a34a}.negative{fill:#dc2626}.line{stroke:#334155;stroke-width:1.5;fill:none}</style>
+<text x="20" y="30" font-size="20" font-weight="700">Paired Method Mean Shift</text>
+<text x="20" y="52" font-size="12" class="muted">Each line connects lightweight and guardrailed mean score for one evaluation dimension</text>
+<text x="270" y="76" text-anchor="middle" font-size="12">Lightweight</text>
+<text x="650" y="76" text-anchor="middle" font-size="12">Guardrailed</text>
+<text x="20" y="106.0" font-size="12">Prompt-Based Attack Resistance</text>
+<line x1="270" y1="100.9" x2="650" y2="91.5" stroke="#16a34a" stroke-width="2.5"/>
+<circle cx="270" cy="100.9" r="5" fill="#f59e0b"/>
+<circle cx="650" cy="91.5" r="5" fill="#2563eb"/>
+<text x="225" y="104.9" font-size="11">55%</text>
+<text x="662" y="95.5" font-size="11">94% Δ +0.39</text>
+<text x="20" y="152.0" font-size="12">Token-Based Attack Resistance</text>
+<line x1="270" y1="144.6" x2="650" y2="139.1" stroke="#16a34a" stroke-width="2.5"/>
+<circle cx="270" cy="144.6" r="5" fill="#f59e0b"/>
+<circle cx="650" cy="139.1" r="5" fill="#2563eb"/>
+<text x="225" y="148.6" font-size="11">64%</text>
+<text x="662" y="143.1" font-size="11">87% Δ +0.23</text>
+<text x="20" y="198.0" font-size="12">Epistemic Boundary</text>
+<line x1="270" y1="194.8" x2="650" y2="191.9" stroke="#16a34a" stroke-width="2.5"/>
+<circle cx="270" cy="194.8" r="5" fill="#f59e0b"/>
+<circle cx="650" cy="191.9" r="5" fill="#2563eb"/>
+<text x="225" y="198.8" font-size="11">47%</text>
+<text x="662" y="195.9" font-size="11">59% Δ +0.12</text>
+<text x="20" y="244.0" font-size="12">Subjective Framing and...</text>
+<line x1="270" y1="231.7" x2="650" y2="230.9" stroke="#16a34a" stroke-width="2.5"/>
+<circle cx="270" cy="231.7" r="5" fill="#f59e0b"/>
+<circle cx="650" cy="230.9" r="5" fill="#2563eb"/>
+<text x="225" y="235.7" font-size="11">85%</text>
+<text x="662" y="234.9" font-size="11">88% Δ +0.03</text>
+<text x="20" y="290.0" font-size="12">Stylometric Consistency</text>
+<line x1="270" y1="289.0" x2="650" y2="277.6" stroke="#16a34a" stroke-width="2.5"/>
+<circle cx="270" cy="289.0" r="5" fill="#f59e0b"/>
+<circle cx="650" cy="277.6" r="5" fill="#2563eb"/>
+<text x="225" y="293.0" font-size="11">38%</text>
+<text x="662" y="281.6" font-size="11">85% Δ +0.47</text>
+<text x="20" y="336.0" font-size="12">Persuasive Governance</text>
+<line x1="270" y1="337.5" x2="650" y2="325.0" stroke="#16a34a" stroke-width="2.5"/>
+<circle cx="270" cy="337.5" r="5" fill="#f59e0b"/>
+<circle cx="650" cy="325.0" r="5" fill="#2563eb"/>
+<text x="225" y="341.5" font-size="11">27%</text>
+<text x="662" y="329.0" font-size="11">79% Δ +0.52</text>
+</svg>

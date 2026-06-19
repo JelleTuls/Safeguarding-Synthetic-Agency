@@ -1,0 +1,7 @@
+method,method_name,guardrailed_mean,lightweight_mean,delta,guardrailed_n,lightweight_n
+PBAR,Prompt-Based Attack Resistance,0.9374,0.5477,0.3897,50,49
+TBAR,Token-Based Attack Resistance,0.871,0.6436,0.2274,48,50
+EB,Epistemic Boundary,0.5859,0.468,0.1179,48,48
+SFAM,Subjective Framing and Authority Modulation,0.8812,0.8465,0.0347,49,50
+SC,Stylometric Consistency,0.8489,0.3755,0.4734,50,50
+PG,Persuasive Governance,0.7928,0.2719,0.5209,50,50

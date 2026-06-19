@@ -6,7 +6,7 @@ This package is the single source of truth for the current chat flow:
 - resolve or generate persona biographies
 - persist a 30-persona chat profile set
 - resolve or generate stylometric profiles
-- run every chat response through the guardrailed pipeline
+- route chat responses through either the guardrailed pipeline or the lightweight profile-only baseline
 - stream responses back to `/api/chat/chat_message`
 - write guardrailed session traces under `app/guardrails/log/`
 
@@ -34,13 +34,15 @@ Frontend
   -> /api/chat/chat_message
        resolves biography
        resolves stylometric profile
-       runs app.guardrails.engine
-       streams the guarded answer
+       if pipeline_mode="guardrailed": runs app.guardrails.engine
+       if pipeline_mode="lightweight": runs app.lightweight.engine
+       streams the selected pipeline's answer
 ```
 
-The red-teaming baseline can explicitly request a lightweight no-guardrail path
-with the `X-Red-Team-Mode: true` header. That baseline still uses the selected
-persona biography, but skips the guardrail pipeline for comparison.
+The red-teaming baseline can explicitly request the lightweight no-guardrail path
+for black-box comparison. That baseline still uses the selected persona
+biography and copied base system prompt, but skips the guardrail judge,
+detectors, and post-processing.
 
 ## Main Files
 
@@ -49,7 +51,9 @@ persona biography, but skips the guardrail pipeline for comparison.
 - `biography/engine.py`: generates missing biographies with the configured model.
 - `guardrails/stylometry/store.py`: reads and writes cached speaking-style profiles.
 - `guardrails/engine.py`: entry point for the guardrailed response pipeline.
-- `guardrails/pipeline.py`: lexical, relevance, epistemic, stylometry, judge, and generator steps.
+- `guardrails/dynamic_request.py`: interpretable request-intent detector for persuasion, style conflict, attack subtype, high-stakes domains, and requested depth.
+- `guardrails/pipeline.py`: request logging, dynamic intent, lexical, relevance, epistemic, authority, stylometry, judge, and generator steps.
+- `lightweight/`: profile-only baseline response path using the copied base persona system prompt.
 - `utils.py`: OpenAI-compatible model helpers with primary/fallback key support.
 - `config.py`: provider configuration for OpenAI, Groq, or Azure-compatible model endpoints.
 

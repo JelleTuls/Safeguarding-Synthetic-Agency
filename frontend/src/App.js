@@ -125,6 +125,7 @@ function App() {
     openSavedRedTeamReport,
     resetPromptExpectedAnswer,
     resetRedTeamRun,
+    resetHumanReview,
     savedRedTeamReports,
     savedRedTeamReportsStatus,
     selectedPromptSetting,
@@ -137,6 +138,7 @@ function App() {
     startRedTeamRun,
     submitHumanReview,
     toggleRedTeamMethod,
+    updatePromptCalibrationNote,
     updatePromptExpectedAnswer,
     visiblePromptSettings,
   } = useRedTeamController();
@@ -275,6 +277,7 @@ function App() {
                 selectedPromptSetting={selectedPromptSetting}
                 setRedTeamSettingsOpen={setRedTeamSettingsOpen}
                 setSelectedPromptId={setSelectedPromptId}
+                updatePromptCalibrationNote={updatePromptCalibrationNote}
                 updatePromptExpectedAnswer={updatePromptExpectedAnswer}
                 visiblePromptSettings={visiblePromptSettings}
               />
@@ -319,6 +322,7 @@ function App() {
                     onClose={resetRedTeamRun}
                     onGenerateAnalysis={generateComputationalAnalysis}
                     onRefresh={redTeamRun.loaded_from_final_report ? () => handleOpenSavedRedTeamReport(redTeamRun.run_id) : refreshRedTeamRun}
+                    onResetReview={resetHumanReview}
                     onSubmitReview={submitHumanReview}
                   />
                 ) : (

@@ -8,6 +8,7 @@ import re
 
 from app.guardrails.topic_policy import get_topic_persuasion_threshold, normalize_topic_policy_category
 from app.guardrails.schemas import GuardrailInput, GuardrailSignals, PolicyDecision
+from app.guardrails.session_trace import append_narrative_step
 from app.utils import build_chat_messages, create_system_prompt, run_chat_completion
 from .constants import (
     PERSUASION_MODEL_ID,
@@ -266,6 +267,24 @@ def apply_persuasive_governance(
     policy: PolicyDecision,
 ) -> PersuasiveGovernanceResult:
     """Validate persuasive pressure and regenerate when influence is too strong."""
+    append_narrative_step(
+        trace=guardrail_input.session_trace,
+        step_label="LAYER 09",
+        title="Persuasive Governance Validation Started",
+        summary=(
+            "Layer 09 started post-generation validation for persuasive language. "
+            "It checks the generated text against the topic-specific persuasion "
+            "threshold, with extra tightening when the user request itself asked "
+            "for targeted or coercive influence."
+        ),
+        details=[
+            ("Input response", response),
+            ("Topic category", policy.topic_policy_category),
+            ("Dynamic persuasion intent", signals.dynamic.persuasion_intent_type),
+            ("Dynamic persuasion score", f"{signals.dynamic.persuasion_intent_score:.3f}"),
+            ("Sensitive decision target", signals.dynamic.sensitive_decision_target),
+        ],
+    )
     analysis = _persuasion_analysis(response)
     persuasion = analysis.score
     base_topic_threshold, persuasion_threshold, threshold_adjustments = (
@@ -299,6 +318,27 @@ def apply_persuasive_governance(
         analysis.sentence_scores or "None",
         threshold_check,
     )
+    append_narrative_step(
+        trace=guardrail_input.session_trace,
+        step_label="LAYER 09",
+        title="Persuasion Threshold Comparison",
+        summary=(
+            "Layer 09 compared the response's persuasive-language score against "
+            "the effective threshold. The base topic threshold may be tightened "
+            "by the policy action, relevance score, or dynamic persuasion-intent "
+            "signal."
+        ),
+        details=[
+            ("Detector", analysis.detector_source),
+            ("Persuasion score", f"{persuasion:.3f}"),
+            ("Base topic threshold", f"{base_topic_threshold:.3f}"),
+            ("Effective threshold", f"{persuasion_threshold:.3f}"),
+            ("Threshold adjustments", threshold_adjustments or "None"),
+            ("Threshold check", threshold_check),
+            ("Persuasive sentences", analysis.persuasive_sentences or "None"),
+            ("Sentence scores", analysis.sentence_scores or "None"),
+        ],
+    )
     reasons: list[str] = []
 
     if _needs_persuasion_correction(
@@ -320,6 +360,21 @@ def apply_persuasive_governance(
         )
 
     if not reasons:
+        append_narrative_step(
+            trace=guardrail_input.session_trace,
+            step_label="LAYER 09",
+            title="Persuasive Governance Accepted",
+            summary=(
+                "Layer 09 accepted the response without rewriting because the "
+                "persuasive-language score stayed within the effective threshold "
+                "and no high-risk vote-influence language was detected."
+            ),
+            details=[
+                ("Persuasion score/threshold", f"{persuasion:.3f}/{persuasion_threshold:.3f}"),
+                ("Detector source", analysis.detector_source),
+                ("Reasons", "None"),
+            ],
+        )
         return PersuasiveGovernanceResult(
             final_response=response,
             persuasion_score=persuasion,
@@ -336,6 +391,22 @@ def apply_persuasive_governance(
     system_prompt = create_system_prompt(
         PERSUASIVE_GOVERNANCE_CORRECTOR_SYS_PROMPT,
         guardrail_input.persona_biography,
+    )
+    append_narrative_step(
+        trace=guardrail_input.session_trace,
+        step_label="LAYER 09",
+        title="Persuasive Governance Rewrite Triggered",
+        summary=(
+            "Layer 09 decided the response needed a persuasive-governance rewrite "
+            "before streaming. The rewrite should keep the useful conversational "
+            "function while removing directive, manipulative, or vote-influence "
+            "language."
+        ),
+        details=[
+            ("Rewrite reasons", reasons),
+            ("Original persuasion score/threshold", f"{persuasion:.3f}/{persuasion_threshold:.3f}"),
+            ("Original response", response),
+        ],
     )
     correction_prompt = build_persuasive_governance_correction_prompt(
         response=response,
@@ -375,6 +446,24 @@ def apply_persuasive_governance(
         corrected_analysis.detector_source,
         corrected_analysis.persuasive_sentences or "None",
         corrected_analysis.sentence_scores or "None",
+    )
+    append_narrative_step(
+        trace=guardrail_input.session_trace,
+        step_label="LAYER 09",
+        title="Persuasive Governance Rewrite Completed",
+        summary=(
+            "Layer 09 produced a rewritten response and re-ran the persuasion "
+            "detector on the rewritten text so the trace records the final "
+            "post-rewrite persuasion score."
+        ),
+        details=[
+            ("Original reasons", reasons),
+            ("Rewritten response", corrected or response),
+            ("Rewritten persuasion score", f"{corrected_analysis.score:.3f}"),
+            ("Effective threshold", f"{persuasion_threshold:.3f}"),
+            ("Rewritten detector", corrected_analysis.detector_source),
+            ("Rewritten persuasive sentences", corrected_analysis.persuasive_sentences or "None"),
+        ],
     )
     return PersuasiveGovernanceResult(
         final_response=corrected or response,

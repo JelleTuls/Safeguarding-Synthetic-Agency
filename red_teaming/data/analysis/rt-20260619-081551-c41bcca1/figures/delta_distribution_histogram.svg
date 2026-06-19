@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="920" height="420" viewBox="0 0 920 420" role="img">
+<style>text{font-family:Inter,Arial,sans-serif;fill:#17202a} .muted{fill:#64748b}.axis{stroke:#cbd5e1;stroke-width:1}.grid{stroke:#e2e8f0;stroke-width:1}.guard{fill:#2563eb}.light{fill:#f59e0b}.positive{fill:#16a34a}.negative{fill:#dc2626}.line{stroke:#334155;stroke-width:1.5;fill:none}</style>
+<text x="20" y="30" font-size="20" font-weight="700">Guardrail Improvement Distribution</text>
+<text x="20" y="52" font-size="12" class="muted">Histogram of paired score deltas: guardrailed minus lightweight</text>
+<line class="axis" x1="95" y1="342" x2="815" y2="342"/>
+<line class="axis" x1="95" y1="82" x2="95" y2="342"/>
+<line class="grid" x1="95" y1="342.0" x2="815" y2="342.0"/>
+<text x="59" y="346.0" font-size="10" class="muted">0</text>
+<line class="grid" x1="95" y1="276.3" x2="815" y2="276.3"/>
+<text x="59" y="280.3" font-size="10" class="muted">74</text>
+<line class="grid" x1="95" y1="210.7" x2="815" y2="210.7"/>
+<text x="59" y="214.7" font-size="10" class="muted">148</text>
+<line class="grid" x1="95" y1="145.0" x2="815" y2="145.0"/>
+<text x="59" y="149.0" font-size="10" class="muted">222</text>
+<line x1="455.0" y1="82" x2="455.0" y2="342" stroke="#334155" stroke-dasharray="4 4"/>
+<text x="461.0" y="96" font-size="10" class="muted">0 delta</text>
+<rect x="100.0" y="342.0" width="70.0" height="0.0" rx="3" fill="#dc2626" opacity="0.75"/>
+<text x="135.0" y="336.0" text-anchor="middle" font-size="10">0</text>
+<text x="135.0" y="360" text-anchor="middle" font-size="10">-1.00</text>
+<rect x="180.0" y="338.5" width="70.0" height="3.5" rx="3" fill="#dc2626" opacity="0.75"/>
+<text x="215.0" y="332.5" text-anchor="middle" font-size="10">4</text>
+<text x="215.0" y="360" text-anchor="middle" font-size="10">-0.50</text>
+<rect x="260.0" y="331.4" width="70.0" height="10.6" rx="3" fill="#dc2626" opacity="0.75"/>
+<text x="295.0" y="325.4" text-anchor="middle" font-size="10">12</text>
+<text x="295.0" y="360" text-anchor="middle" font-size="10">-0.25</text>
+<rect x="340.0" y="327.8" width="70.0" height="14.2" rx="3" fill="#dc2626" opacity="0.75"/>
+<text x="375.0" y="321.8" text-anchor="middle" font-size="10">16</text>
+<text x="375.0" y="360" text-anchor="middle" font-size="10">-0.10</text>
+<rect x="420.0" y="312.7" width="70.0" height="29.3" rx="3" fill="#94a3b8" opacity="0.75"/>
+<text x="455.0" y="306.7" text-anchor="middle" font-size="10">33</text>
+<text x="455.0" y="360" text-anchor="middle" font-size="10">-0.03</text>
+<rect x="500.0" y="308.3" width="70.0" height="33.7" rx="3" fill="#16a34a" opacity="0.75"/>
+<text x="535.0" y="302.3" text-anchor="middle" font-size="10">38</text>
+<text x="535.0" y="360" text-anchor="middle" font-size="10">+0.03</text>
+<rect x="580.0" y="304.7" width="70.0" height="37.3" rx="3" fill="#16a34a" opacity="0.75"/>
+<text x="615.0" y="298.7" text-anchor="middle" font-size="10">42</text>
+<text x="615.0" y="360" text-anchor="middle" font-size="10">+0.10</text>
+<rect x="660.0" y="287.9" width="70.0" height="54.1" rx="3" fill="#16a34a" opacity="0.75"/>
+<text x="695.0" y="281.9" text-anchor="middle" font-size="10">61</text>
+<text x="695.0" y="360" text-anchor="middle" font-size="10">+0.25</text>
+<rect x="740.0" y="82.0" width="70.0" height="260.0" rx="3" fill="#16a34a" opacity="0.75"/>
+<text x="775.0" y="76.0" text-anchor="middle" font-size="10">293</text>
+<text x="775.0" y="360" text-anchor="middle" font-size="10">+0.50</text>
+<text x="455.0" y="390" text-anchor="middle" font-size="12">Paired delta bins</text>
+<text x="20" y="90" font-size="12" transform="rotate(-90 20,90)">Number of paired cases</text>
+</svg>

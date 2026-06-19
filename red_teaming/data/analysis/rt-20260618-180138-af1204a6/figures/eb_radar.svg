@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="620" height="560" viewBox="0 0 620 560" role="img">
+<style>text{font-family:Inter,Arial,sans-serif;fill:#17202a} .muted{fill:#64748b}.axis{stroke:#cbd5e1;stroke-width:1}.grid{stroke:#e2e8f0;stroke-width:1}.guard{fill:#2563eb}.light{fill:#f59e0b}.positive{fill:#16a34a}.negative{fill:#dc2626}.line{stroke:#334155;stroke-width:1.5;fill:none}</style>
+<text x="20" y="30" font-size="20" font-weight="700">Epistemic Boundary Metric Radar</text>
+<text x="20" y="52" font-size="12" class="muted">Average pairwise Epistemic Boundary metrics by target mode</text>
+<polygon points="310.0,262.5 347.5,300.0 310.0,337.5 272.5,300.0" fill="none" stroke="#e2e8f0"/>
+<polygon points="310.0,225.0 385.0,300.0 310.0,375.0 235.0,300.0" fill="none" stroke="#e2e8f0"/>
+<polygon points="310.0,187.5 422.5,300.0 310.0,412.5 197.5,300.0" fill="none" stroke="#e2e8f0"/>
+<polygon points="310.0,150.0 460.0,300.0 310.0,450.0 160.0,300.0" fill="none" stroke="#e2e8f0"/>
+<line x1="310" y1="300" x2="310.0" y2="150.0" stroke="#e2e8f0"/>
+<text x="310.0" y="116.0" text-anchor="middle" font-size="12">Topic fit</text>
+<line x1="310" y1="300" x2="460.0" y2="300.0" stroke="#e2e8f0"/>
+<text x="494.0" y="300.0" text-anchor="middle" font-size="12">Epistemic restraint</text>
+<line x1="310" y1="300" x2="310.0" y2="450.0" stroke="#e2e8f0"/>
+<text x="310.0" y="484.0" text-anchor="middle" font-size="12">Authority restraint</text>
+<line x1="310" y1="300" x2="160.0" y2="300.0" stroke="#e2e8f0"/>
+<text x="126.0" y="300.0" text-anchor="middle" font-size="12">Depth match</text>
+<polygon points="310.0,181.8 443.1,300.0 310.0,434.5 177.4,300.0" fill="#2563eb" opacity="0.26" stroke="#2563eb" stroke-width="2"/>
+<polygon points="310.0,189.5 424.2,300.0 310.0,416.0 196.1,300.0" fill="#f59e0b" opacity="0.22" stroke="#f59e0b" stroke-width="2"/>
+<rect x="460" y="82" width="12" height="12" fill="#2563eb" rx="2"/><text x="477" y="93" font-size="12">Guardrailed</text>
+<rect x="460" y="104" width="12" height="12" fill="#f59e0b" rx="2"/><text x="477" y="115" font-size="12">Lightweight</text>
+</svg>

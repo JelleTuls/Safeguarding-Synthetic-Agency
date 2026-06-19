@@ -86,5 +86,6 @@ for `custom`, `openai`, and `azure` only when Groq keys are present.
 The red-teaming LLM evaluator reads the same environment values. If the generic
 `LLM_API_KEY`, `LLM_MODEL`, and `LLM_BASE_URL` are set, it uses that endpoint for
 grading prompt/response pairs. If the evaluator cannot reach a model, the
-red-team run still completes using rule-based scoring and records that the LLM
-judge was unavailable.
+red-team case records that the LLM judge was unavailable and marks the item for
+human review instead of silently replacing the judge with a separate rule-score
+average. EB overreach ceilings are applied only after an evaluator score exists.

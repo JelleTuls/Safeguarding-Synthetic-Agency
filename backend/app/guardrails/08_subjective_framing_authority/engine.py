@@ -12,6 +12,7 @@ import httpx
 
 from app.guardrails.schemas import GuardrailInput, GuardrailSignals, PolicyDecision
 from app.guardrails.opening_variation import select_opening_variation
+from app.guardrails.session_trace import append_narrative_step
 from app.guardrails.topic_policy import (
     AUTHORITY_RANK,
     get_combined_policy_thresholds,
@@ -449,6 +450,22 @@ def apply_subjective_framing_authority(
     """Validate the generated LLM response and regenerate when authority is too strong."""
     del signals
     log.info("Layer 08 received generated LLM response for validation: %s", response)
+    append_narrative_step(
+        trace=guardrail_input.session_trace,
+        step_label="LAYER 08",
+        title="Subjective Framing Validation Started",
+        summary=(
+            "Layer 08 started post-generation validation. It checks whether the "
+            "draft is factual, subjective, and authoritative in the way allowed "
+            "by the judge-selected topic category and factuality level."
+        ),
+        details=[
+            ("Input response", response),
+            ("Policy topic", policy.topic_policy_category),
+            ("Policy factuality", policy.factuality_level),
+            ("Policy authority", policy.authority_level),
+        ],
+    )
     analysis = _subjectivity_analysis(response)
     log.info(
         "Layer 08 analyzed the generated LLM response with %s/%s: %.3f subjectivity, %.3f objectivity.",
@@ -491,6 +508,30 @@ def apply_subjective_framing_authority(
         combined_thresholds=policy_thresholds,
     )
     log.info("Layer 08 threshold checks: %s", threshold_checks)
+    append_narrative_step(
+        trace=guardrail_input.session_trace,
+        step_label="LAYER 08",
+        title="Subjectivity Threshold Comparison",
+        summary=(
+            "Layer 08 compared the classifier scores against the combined topic "
+            "and factuality envelope. The stricter expectation from topic policy "
+            "or response mode controls whether a rewrite is needed."
+        ),
+        details=[
+            ("Detector", f"{analysis.detector_source}/{analysis.scoring_mode}"),
+            ("Subjectivity score", f"{analysis.subjectivity:.3f}"),
+            ("Objectivity score", f"{analysis.objectivity:.3f}"),
+            ("Classification label", _classification_label(
+                detector_source=analysis.detector_source,
+                subjectivity=analysis.subjectivity,
+                objectivity=analysis.objectivity,
+            )),
+            ("Combined thresholds", policy_thresholds),
+            ("Threshold checks", threshold_checks),
+            ("Objective sentences", analysis.objective_sentences or "None"),
+            ("Subjective sentences", analysis.subjective_sentences or "None"),
+        ],
+    )
 
     if analysis.detector_source != "classifier_unavailable":
         reasons.extend(
@@ -527,6 +568,22 @@ def apply_subjective_framing_authority(
             analysis.detector_source,
             analysis.scoring_mode,
         )
+        append_narrative_step(
+            trace=guardrail_input.session_trace,
+            step_label="LAYER 08",
+            title="Subjective Framing Accepted",
+            summary=(
+                "Layer 08 accepted the draft without rewriting. The response "
+                "stayed within the allowed subjectivity/objectivity and authority "
+                "envelope for the selected topic and response mode."
+            ),
+            details=[
+                ("Accepted subjectivity/objectivity", f"{analysis.subjectivity:.3f}/{analysis.objectivity:.3f}"),
+                ("Authority level", policy.authority_level),
+                ("Detector source", analysis.detector_source),
+                ("Reasons", "None"),
+            ],
+        )
         return SubjectiveAuthorityResult(
             final_response=response,
             subjectivity_score=analysis.subjectivity,
@@ -549,6 +606,21 @@ def apply_subjective_framing_authority(
     )
     opening_variation_note = select_opening_variation(policy)
     log.info("Layer 08 rewrite opening variation: %s", opening_variation_note.replace("\n", " "))
+    append_narrative_step(
+        trace=guardrail_input.session_trace,
+        step_label="LAYER 08",
+        title="Subjective Framing Rewrite Triggered",
+        summary=(
+            "Layer 08 decided the draft needed a corrective rewrite before the "
+            "user could see it. The rewrite should preserve meaning and persona "
+            "voice while reducing excessive factuality, objectivity, or authority."
+        ),
+        details=[
+            ("Rewrite reasons", reasons),
+            ("Opening variation for rewrite", opening_variation_note),
+            ("Original response", response),
+        ],
+    )
     correction_prompt = build_subjective_authority_correction_prompt(
         response=response,
         policy=policy,
@@ -594,6 +666,27 @@ def apply_subjective_framing_authority(
         corrected_analysis.objective_sentences or "None",
         corrected_analysis.subjective_sentences or "None",
         corrected_analysis.sentence_scores or "None",
+    )
+    append_narrative_step(
+        trace=guardrail_input.session_trace,
+        step_label="LAYER 08",
+        title="Subjective Framing Rewrite Completed",
+        summary=(
+            "Layer 08 produced a rewritten response and re-ran the subjectivity "
+            "classifier on the rewritten text so the trace records the final "
+            "post-rewrite scores."
+        ),
+        details=[
+            ("Original reasons", reasons),
+            ("Rewritten response", corrected or response),
+            ("Rewritten subjectivity/objectivity", f"{corrected_analysis.subjectivity:.3f}/{corrected_analysis.objectivity:.3f}"),
+            ("Rewritten classification", _classification_label(
+                detector_source=corrected_analysis.detector_source,
+                subjectivity=corrected_analysis.subjectivity,
+                objectivity=corrected_analysis.objectivity,
+            )),
+            ("Rewritten detector", f"{corrected_analysis.detector_source}/{corrected_analysis.scoring_mode}"),
+        ],
     )
     return SubjectiveAuthorityResult(
         final_response=corrected or response,

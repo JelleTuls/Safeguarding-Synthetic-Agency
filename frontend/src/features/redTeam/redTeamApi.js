@@ -68,6 +68,29 @@ export async function submitRedTeamReview({ runId, caseId, review }) {
   return parseJsonResponse(response, 'Could not save human review');
 }
 
+export async function resetRedTeamReview({ runId, caseId }) {
+  const response = await fetch(`${redTeamApiUrl}/api/runs/${runId}/review-items/${caseId}`, {
+    method: 'DELETE',
+  });
+  return parseJsonResponse(response, 'Could not reset human review');
+}
+
+export async function submitFinalReportReview({ runId, caseId, review }) {
+  const response = await fetch(`${backendApiUrl}/api/red-team/final-reports/${runId}/review-items/${caseId}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(review),
+  });
+  return parseJsonResponse(response, 'Could not save final report human review');
+}
+
+export async function resetFinalReportReview({ runId, caseId }) {
+  const response = await fetch(`${backendApiUrl}/api/red-team/final-reports/${runId}/review-items/${caseId}`, {
+    method: 'DELETE',
+  });
+  return parseJsonResponse(response, 'Could not reset final report human review');
+}
+
 export async function finalizeRedTeamRun(runId) {
   const response = await fetch(`${redTeamApiUrl}/api/runs/${runId}/finalize`, {
     method: 'POST',

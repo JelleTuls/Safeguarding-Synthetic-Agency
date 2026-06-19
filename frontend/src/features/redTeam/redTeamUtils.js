@@ -15,8 +15,11 @@ export const redTeamMethods = [
 export function normalizePromptSettings(prompts = []) {
   return prompts.map((prompt) => ({
     ...prompt,
+    calibration_example: prompt.calibration_example || {},
     original_expected_answer: prompt.expected_answer || '',
     expected_answer: prompt.expected_answer || '',
+    original_calibration_note: prompt.calibration_example?.note || '',
+    calibration_note: prompt.calibration_example?.note || '',
   }));
 }
 

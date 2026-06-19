@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+import json
+from pathlib import Path
 from typing import Any
 
 try:
@@ -26,6 +28,7 @@ class TestPrompt:
     evaluation_mode: str
     expected_response_style: str
     expected_metrics: dict[str, Any]
+    calibration_example: dict[str, Any] = field(default_factory=dict)
     requires_human_review: bool = False
 
 
@@ -184,6 +187,39 @@ METHOD_FRAMEWORK = {
 }
 
 
+CALIBRATION_EXAMPLES_PATH = Path(__file__).resolve().parents[1] / "data" / "evaluation_calibration_examples.json"
+
+
+def _load_calibration_examples() -> dict[str, dict[str, Any]]:
+    """Load optional scored exemplar answers used to calibrate evaluator prompts."""
+    if not CALIBRATION_EXAMPLES_PATH.exists():
+        return {}
+    try:
+        payload = json.loads(CALIBRATION_EXAMPLES_PATH.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}
+    examples = payload.get("examples")
+    return examples if isinstance(examples, dict) else {}
+
+
+CALIBRATION_EXAMPLES = _load_calibration_examples()
+
+
+def _calibration_example_for(
+    *,
+    prompt_id: str,
+    calibration_note_overrides: dict[str, str] | None = None,
+) -> dict[str, Any]:
+    """Return a prompt-level calibration exemplar with any user-edited note."""
+    raw_example = CALIBRATION_EXAMPLES.get(prompt_id)
+    if not isinstance(raw_example, dict):
+        return {}
+    example = dict(raw_example)
+    if calibration_note_overrides and prompt_id in calibration_note_overrides:
+        example["note"] = calibration_note_overrides[prompt_id]
+    return example
+
+
 def _compose_expected_answer(*, method: str, prompt_answer: str) -> str:
     """Combine method-level criteria with the scenario-specific expectation."""
     standard = METHOD_EXPECTATION_STANDARDS.get(method)
@@ -196,6 +232,7 @@ def build_test_prompts(
     max_prompts_per_method: int = 10,
     selected_methods: list[str] | None = None,
     expected_answer_overrides: dict[str, str] | None = None,
+    calibration_note_overrides: dict[str, str] | None = None,
 ) -> list[TestPrompt]:
     """Return all test prompts with stable ids from the editable prompt script."""
     tests: list[TestPrompt] = []
@@ -226,6 +263,10 @@ def build_test_prompts(
                     evaluation_mode=framework["evaluation_mode"],
                     expected_response_style=framework["expected_response_style"],
                     expected_metrics=framework["expected_metrics"],
+                    calibration_example=_calibration_example_for(
+                        prompt_id=prompt_id,
+                        calibration_note_overrides=calibration_note_overrides,
+                    ),
                     requires_human_review=method == "SC",
                 )
             )
@@ -245,6 +286,7 @@ def list_prompt_settings(max_prompts_per_method: int = 10) -> list[dict[str, str
                 "expected_answer": test.expected_answer,
                 "expected_response_style": test.expected_response_style,
                 "expected_metrics": test.expected_metrics,
+                "calibration_example": test.calibration_example,
                 "target_guardrail": test.target_guardrail,
             }
         )

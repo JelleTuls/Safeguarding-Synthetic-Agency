@@ -817,6 +817,69 @@
   padding: 13px;
 }
 
+.redTeamCalibrationExample {
+  background: #fbfcfd;
+  border: 1px solid #dfe7f0;
+  border-radius: 10px;
+  color: #334155;
+  display: grid;
+  gap: 8px;
+  max-height: 210px;
+  overflow: auto;
+  padding: 11px;
+  scrollbar-width: none;
+}
+
+.redTeamCalibrationExample::-webkit-scrollbar {
+  display: none;
+}
+
+.redTeamCalibrationExampleTopline {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+}
+
+.redTeamCalibrationExampleTopline span,
+.redTeamCalibrationExampleTopline b,
+.redTeamCalibrationMeta span {
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.redTeamCalibrationExampleTopline span {
+  color: #667085;
+  text-transform: uppercase;
+}
+
+.redTeamCalibrationExampleTopline b {
+  background: #eaf7ee;
+  border-radius: 999px;
+  color: #157347;
+  padding: 4px 7px;
+}
+
+.redTeamCalibrationMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.redTeamCalibrationMeta span {
+  background: #eef2f6;
+  border-radius: 999px;
+  color: #526171;
+  padding: 4px 7px;
+}
+
+.redTeamCalibrationExample p {
+  font-size: 12px;
+  line-height: 1.5;
+  margin: 0;
+  white-space: pre-wrap;
+}
+
 .redTeamPromptEditor label {
   color: #344054;
   display: grid;
@@ -838,6 +901,15 @@
   min-height: 0;
   padding: 12px;
   resize: vertical;
+}
+
+.redTeamPromptEditor .redTeamCalibrationNoteField {
+  flex: 0 0 auto;
+  grid-template-rows: auto minmax(88px, 130px);
+}
+
+.redTeamPromptEditor .redTeamCalibrationNoteField textarea {
+  min-height: 88px;
 }
 
 .redTeamSettingsFallback {

@@ -3,7 +3,7 @@
 import json
 
 from app.guardrails.schemas import GuardrailInput, GuardrailSignals, PolicyDecision
-from app.guardrails.session_trace import append_kv_block, append_named_block
+from app.guardrails.session_trace import append_kv_block, append_named_block, append_narrative_step
 from app.guardrails.topic_policy import normalize_topic_policy_category
 from app.logging import get_logger
 from app.utils import build_chat_messages, run_chat_completion
@@ -405,6 +405,9 @@ def _apply_dynamic_signal_constraints(policy: PolicyDecision, signals: Guardrail
         if dynamic.persuasion_intent_type in {"targeted_persuasion", "coercive_persuasion"}:
             policy.action = "refuse"
             policy.response_length_target = "very_short"
+        elif dynamic.persuasion_intent_type == "sensitive_persuasion":
+            policy.action = "redirect"
+            policy.response_length_target = "very_short"
         elif policy.action == "allow":
             policy.action = "limited_answer"
             policy.response_length_target = "short"
@@ -432,6 +435,36 @@ def _apply_dynamic_signal_constraints(policy: PolicyDecision, signals: Guardrail
                 "Dynamic stylometric guidance: the user requested a conflicting style "
                 f"({dynamic.requested_style}). Do not adopt that style. Answer in the persona's baseline voice, "
                 "with normal vocabulary, emotional intensity, and social role."
+            ),
+        )
+
+    if (
+        dynamic.factual_query_score >= 0.7
+        and dynamic.topic_profile_distance_hint in {"outside", "near_or_uncertain"}
+        and dynamic.topic_profile_overlap_score <= 0.2
+        and dynamic.high_stakes_domain != "political_persuasion"
+    ):
+        policy.detail_allowed = False
+        policy.expertise_basis = "none"
+        policy.knowledge_level = "very_limited"
+        policy.response_length_target = "very_short"
+        policy.hedging_style = "high"
+        policy.confidence_style = "tentative"
+        policy.authority_level = "low"
+        policy.postprocessing_mode = "full"
+        if policy.action == "allow":
+            policy.action = "limited_answer"
+        if policy.factuality_level in {"limited_factual", "uncertain_interpretation"}:
+            policy.factuality_level = "uncertain_interpretation"
+            policy.response_mode = "uncertain_interpretation"
+        _append_guidance(
+            policy,
+            (
+                "Dynamic profile-distance guidance: the user asked an open factual overview question "
+                f"({dynamic.factual_query_type}) whose topic is not grounded in the persona biography "
+                f"(profile overlap {dynamic.topic_profile_overlap_score:.3f}). Do not answer like an encyclopedia. "
+                "Give at most one or two short, hedged, layperson sentences, or gently point to a reliable source. "
+                "Avoid dates, origin histories, named examples, multi-paragraph background, and authoritative correction unless the biography supports them."
             ),
         )
 
@@ -491,6 +524,24 @@ def decide_policy(*, guardrail_input: GuardrailInput, signals: GuardrailSignals)
         content=messages,
         step_label="LAYER 06",
     )
+    append_narrative_step(
+        trace=guardrail_input.session_trace,
+        step_label="LAYER 06",
+        title="Judge Call Prepared",
+        summary=(
+            "The judge prompt has been assembled from the persona biography, "
+            "conversation history, current user request, and all pre-generation "
+            "guardrail signals. The next operation is the LLM-as-Judge call that "
+            "must return a structured policy object."
+        ),
+        details=[
+            ("Messages sent to judge", len(messages)),
+            ("Dynamic attack type", signals.dynamic.attack_type),
+            ("Dynamic persuasion intent", signals.dynamic.persuasion_intent_type),
+            ("Lexical risk", signals.lexical.risk_level),
+            ("Authority pre-reading", f"{signals.authority.factuality_level}/{signals.authority.authority_level}"),
+        ],
+    )
 
     raw_response = run_chat_completion(
         messages=messages,
@@ -503,9 +554,45 @@ def decide_policy(*, guardrail_input: GuardrailInput, signals: GuardrailSignals)
         content=raw_response,
         step_label="LAYER 06",
     )
-    decision = _apply_dynamic_signal_constraints(
-        _parse_judge_response(raw_response, signals, guardrail_input.user_message),
-        signals,
+    parsed_decision = _parse_judge_response(raw_response, signals, guardrail_input.user_message)
+    decision = _apply_dynamic_signal_constraints(parsed_decision, signals)
+    dynamic_adjustments = []
+    if parsed_decision.action != decision.action:
+        dynamic_adjustments.append(f"action {parsed_decision.action} -> {decision.action}")
+    if parsed_decision.response_length_target != decision.response_length_target:
+        dynamic_adjustments.append(
+            f"length {parsed_decision.response_length_target} -> {decision.response_length_target}"
+        )
+    if parsed_decision.detail_allowed != decision.detail_allowed:
+        dynamic_adjustments.append(f"detail_allowed {parsed_decision.detail_allowed} -> {decision.detail_allowed}")
+    if parsed_decision.authority_level != decision.authority_level:
+        dynamic_adjustments.append(f"authority {parsed_decision.authority_level} -> {decision.authority_level}")
+    if parsed_decision.knowledge_level != decision.knowledge_level:
+        dynamic_adjustments.append(f"knowledge {parsed_decision.knowledge_level} -> {decision.knowledge_level}")
+    if parsed_decision.factuality_level != decision.factuality_level:
+        dynamic_adjustments.append(f"factuality {parsed_decision.factuality_level} -> {decision.factuality_level}")
+    if parsed_decision.postprocessing_mode != decision.postprocessing_mode:
+        dynamic_adjustments.append(
+            f"postprocessing {parsed_decision.postprocessing_mode} -> {decision.postprocessing_mode}"
+        )
+    append_narrative_step(
+        trace=guardrail_input.session_trace,
+        step_label="LAYER 06",
+        title="Judge Policy Parsed And Normalized",
+        summary=(
+            "The judge response was parsed into a policy object. After parsing, "
+            "the backend checked whether the dynamic request-intent signal "
+            "required a stricter action, shorter answer, lower authority, or full "
+            "post-processing."
+        ),
+        details=[
+            ("Raw parsed action", parsed_decision.action),
+            ("Final action", decision.action),
+            ("Dynamic adjustments", dynamic_adjustments or "None"),
+            ("Final topic category", decision.topic_policy_category),
+            ("Final relevance/epistemic scores", f"{decision.relevance_score:.3f}/{decision.epistemic_score:.3f}"),
+            ("Final response guidance", decision.response_guidance),
+        ],
     )
 
     log.info(
@@ -552,6 +639,8 @@ def decide_policy(*, guardrail_input: GuardrailInput, signals: GuardrailSignals)
             ("Dynamic style conflict", signals.dynamic.requested_style),
             ("Dynamic attack type", signals.dynamic.attack_type),
             ("Dynamic high-stakes domain", signals.dynamic.high_stakes_domain),
+            ("Dynamic factual query", signals.dynamic.factual_query_type),
+            ("Dynamic topic-profile overlap", signals.dynamic.topic_profile_overlap_score),
             ("Rationale", decision.rationale),
             ("Response guidance", decision.response_guidance),
         ],

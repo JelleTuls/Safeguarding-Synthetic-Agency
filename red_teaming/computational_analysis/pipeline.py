@@ -1,10 +1,12 @@
-"""Generate reproducible tables, SVG plots, and summaries from red-team reports.
+"""Generate reproducible tables, figures, and summaries from red-team reports.
 
 The pipeline treats a final red-team JSON report as the canonical analysis
 dataset. It exports normalized case-level CSV data, method/profile summaries,
-Epistemic Boundary-specific pairwise examples, thesis-ready SVG figures, a Markdown summary, and
-an artifact zip. Plotting uses only the Python standard library so the outputs
-can be recreated without installing notebook or plotting stacks.
+Epistemic Boundary-specific pairwise examples, thesis-ready SVG figures, PNG
+companions, PDF/Markdown summaries, and artifact bundles. Plotting uses only the
+Python standard library so outputs can be recreated without installing notebook
+or plotting stacks. The frontend surfaces a selected thesis-figure set while the
+manifest preserves all generated diagnostics and skipped-plot warnings.
 """
 
 from __future__ import annotations
