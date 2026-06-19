@@ -1,6 +1,6 @@
 # Computational Analysis Summary: rt-20260618-180138-af1204a6
 
-- Generated at: 2026-06-19T08:05:11.064426+00:00
+- Generated at: 2026-06-19T17:57:18.292190+00:00
 - Analysis version: 2026-06-17.1
 - Total cases: 600
 - Paired guardrailed/lightweight cases: 300

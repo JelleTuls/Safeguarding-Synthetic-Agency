@@ -13,8 +13,9 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
 
-from app.api import chat_router, red_team_router
+from app.api import chat_router, logs_router, red_team_router
 from app.lifecycle import run_daily_rate_limit_reset, warm_guardrail_classifiers
+from app.logging.live_logs import install_live_log_capture
 
 
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://127.0.0.1:3000")
@@ -37,6 +38,7 @@ async def lifespan(app: FastAPI):
 
 def create_app() -> FastAPI:
     """Build the FastAPI application and register cross-cutting concerns."""
+    install_live_log_capture()
     app = FastAPI(title="Synthetic Social Agent Chat", lifespan=lifespan)
     app.add_middleware(
         CORSMiddleware,
@@ -51,5 +53,6 @@ def create_app() -> FastAPI:
         return RedirectResponse(FRONTEND_URL)
 
     app.include_router(chat_router, prefix="/api")
+    app.include_router(logs_router, prefix="/api")
     app.include_router(red_team_router, prefix="/api")
     return app

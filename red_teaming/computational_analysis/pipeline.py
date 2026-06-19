@@ -27,6 +27,7 @@ from typing import Any
 
 ANALYSIS_VERSION = "2026-06-17.1"
 BASE_DIR = Path(__file__).resolve().parents[1]
+REPO_ROOT = BASE_DIR.parent
 REPORTS_DIR = BASE_DIR / "data" / "reports"
 ANALYSIS_DIR = BASE_DIR / "data" / "analysis"
 METHOD_ORDER = ["PBAR", "TBAR", "EB", "SFAM", "SC", "PG"]
@@ -164,6 +165,17 @@ def analysis_artifact_path(run_id: str, artifact: str) -> Path:
         return analysis_output_dir(run_id) / f"{run_id}-computational-analysis.zip"
     relative = ANALYSIS_ARTIFACTS.get(artifact, artifact)
     return analysis_output_dir(run_id) / relative
+
+
+def _manifest_path(path: Path | str | None) -> str:
+    """Return a repository-relative path for portable manifest metadata."""
+    if not path:
+        return ""
+    resolved = Path(path)
+    try:
+        return resolved.resolve().relative_to(REPO_ROOT.resolve()).as_posix()
+    except (OSError, ValueError):
+        return resolved.as_posix()
 
 
 def _ensure_dirs(root: Path) -> None:
@@ -3053,7 +3065,7 @@ def generate_analysis(run_or_report: dict[str, Any], config: dict[str, Any] | No
     summary_lines = _write_summary(root / ANALYSIS_ARTIFACTS["summary"], report, method_summary, paired, eb_rows, warnings=warnings)
     _write_simple_pdf(root / ANALYSIS_ARTIFACTS["summary_pdf"], summary_lines)
     visual_zip_path = _write_visual_zip(root, run_id, png_paths, skipped_figures=skipped_figures)
-    zip_path = _write_zip(root, run_id)
+    zip_path = analysis_artifact_path(run_id, "zip")
     figure_descriptions = _figure_descriptions(
         report,
         case_rows,
@@ -3087,8 +3099,8 @@ def generate_analysis(run_or_report: dict[str, Any], config: dict[str, Any] | No
             "title": FIGURE_TITLES.get(key, key.replace("_", " ")),
             "type": "svg",
             "description": figure_descriptions.get(key, ""),
-            "path": str(analysis_artifact_path(run_id, key)),
-            "png_path": str(png_paths.get(key, "")),
+            "path": _manifest_path(analysis_artifact_path(run_id, key)),
+            "png_path": _manifest_path(png_paths.get(key)),
             "thesis_ready": key in figure_groups["thesis"],
             "group": next((group for group, keys in figure_groups.items() if key in keys), "descriptive"),
             "available": analysis_artifact_path(run_id, key).exists(),
@@ -3127,16 +3139,17 @@ def generate_analysis(run_or_report: dict[str, Any], config: dict[str, Any] | No
             for key in ANALYSIS_ARTIFACTS
         },
         "files": {
-            key: str(analysis_artifact_path(run_id, key))
+            key: _manifest_path(analysis_artifact_path(run_id, key))
             for key in ANALYSIS_ARTIFACTS
         },
         "png_files": {
-            key: str(path)
+            key: _manifest_path(path)
             for key, path in png_paths.items()
         },
-        "visual_zip_path": str(visual_zip_path),
-        "zip_path": str(zip_path),
+        "visual_zip_path": _manifest_path(visual_zip_path),
+        "zip_path": _manifest_path(zip_path),
     }
     manifest_path = root / ANALYSIS_ARTIFACTS["manifest"]
     manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True), encoding="utf-8")
+    _write_zip(root, run_id)
     return manifest

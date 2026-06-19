@@ -2,3 +2,4 @@
 @import './features/personas/personaWorkspace.css';
 @import './features/redTeam/redTeamWorkspace.css';
 @import './features/analysis/computationalAnalysisWorkspace.css';
+@import './features/logs/liveLogPanel.css';

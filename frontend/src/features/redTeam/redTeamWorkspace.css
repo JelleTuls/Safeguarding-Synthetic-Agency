@@ -899,8 +899,14 @@
   height: 100%;
   line-height: 1.55;
   min-height: 0;
+  overflow: auto;
   padding: 12px;
   resize: vertical;
+  scrollbar-width: none;
+}
+
+.redTeamPromptEditor textarea::-webkit-scrollbar {
+  display: none;
 }
 
 .redTeamPromptEditor .redTeamCalibrationNoteField {

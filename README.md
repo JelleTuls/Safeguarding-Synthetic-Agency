@@ -24,6 +24,24 @@ workspaces:
   regenerate thesis-ready plots, tables, summaries, PNG exports, and report
   bundles.
 
+## Public Research Artifact Notice
+
+This repository is a thesis-facing research prototype. It is designed for local
+inspection, demonstration, red-teaming experiments, and reproducible
+computational analysis of the included reference dataset. It is **not** a
+production safety product, hosted compliance service, or audited security
+control.
+
+For public reuse and academic reference:
+
+- [License](LICENSE): MIT license for the codebase.
+- [Citation](CITATION.cff): preferred software citation metadata.
+- [Security Policy](SECURITY.md): how to handle sensitive issues or leaked
+  secrets.
+- [Contributing](CONTRIBUTING.md): development and data-handling guidance.
+- [Release Notes](RELEASE_NOTES.md): thesis-artifact release summary and known
+  limitations.
+
 ## For Supervisors And Second Readers
 
 For an academic review of the repository, start with:
@@ -34,6 +52,8 @@ For an academic review of the repository, start with:
   and PG to implementation modules, prompt families, and computational plots.
 - [Reproducibility Checklist](docs/reproducibility-checklist.md): clean-machine
   setup and repeatable red-team/analysis steps.
+- [GitHub Branch Rules And Repository Protections](docs/github-protections.md):
+  recommended public-repo rulesets, required checks, and security settings.
 - [Reference Dataset](docs/reference-dataset.md): curated saved run and analysis
   artifacts for inspection without creating a new long run.
 - [Limitations And Third-Party Components](docs/limitations-and-citations.md):

@@ -10,6 +10,8 @@ explain specific parts of the system.
   supervisors, second readers, and examiners.
 - [Reproducibility Checklist](reproducibility-checklist.md): clean-machine setup,
   short evaluation run, full thesis-style evaluation, and smoke check.
+- [GitHub Branch Rules And Repository Protections](github-protections.md):
+  recommended main/dev rulesets, required checks, and security settings.
 - [Thesis To Code Map](thesis-code-map.md): maps SSA integrity dimensions to
   code modules, prompt families, saved data, and plots.
 - [Reference Dataset](reference-dataset.md): curated saved run and analysis
@@ -45,6 +47,14 @@ for the thesis-facing architecture, [Guardrail Framework](guardrail-framework.md
 for the layer-by-layer design, and [Red-Teaming Service](red-teaming-service.md)
 for the evaluation method. The reproducible thesis-plot package is documented in
 [Computational Analysis](../red_teaming/computational_analysis/README.md).
+
+Public artifact metadata lives at the repository root:
+
+- [License](../LICENSE)
+- [Citation metadata](../CITATION.cff)
+- [Security policy](../SECURITY.md)
+- [Contribution guide](../CONTRIBUTING.md)
+- [Release notes](../RELEASE_NOTES.md)
 
 ## For Users Pulling The Package
 

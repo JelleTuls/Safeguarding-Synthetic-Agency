@@ -33,7 +33,7 @@ This setup is useful for:
 
 ```env
 LLM_PROVIDER=auto
-OPENAI_API_KEY=your_openai_key
+OPENAI_API_KEY=<your-openai-key>
 OPENAI_MODEL=gpt-4o-mini
 OPENAI_BASE_URL=https://api.openai.com/v1
 ```
@@ -42,7 +42,7 @@ OPENAI_BASE_URL=https://api.openai.com/v1
 
 ```env
 LLM_PROVIDER=auto
-GROQ_API_KEY=your_groq_key
+GROQ_API_KEY=<your-groq-key>
 GROQ_API_KEY_2=
 GROQ_MODEL=openai/gpt-oss-120b
 GROQ_BASE_URL=https://api.groq.com/openai/v1
@@ -54,7 +54,7 @@ GROQ_BASE_URL=https://api.groq.com/openai/v1
 
 ```env
 LLM_PROVIDER=auto
-AZURE_OPENAI_API_KEY=your_azure_key
+AZURE_OPENAI_API_KEY=<your-azure-key>
 AZURE_OPENAI_MODEL=your_deployment_or_model_name
 AZURE_OPENAI_BASE_URL=https://your-resource.openai.azure.com/openai/v1
 ```

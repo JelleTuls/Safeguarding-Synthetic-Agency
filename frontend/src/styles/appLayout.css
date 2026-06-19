@@ -13,6 +13,11 @@
   margin: 0 auto;
   max-width: 1240px;
   transition: filter 0.25s ease, transform 0.25s ease;
+  width: 100%;
+}
+
+.pageSurface.hasLiveLogPanel {
+  max-width: 1580px;
 }
 
 .pageSurface::after {
@@ -124,6 +129,17 @@
   overflow: hidden;
 }
 
+.workspaceStage {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(0, 1fr) 30px;
+  min-height: 0;
+}
+
+.workspaceStage.isLogOpen {
+  grid-template-columns: minmax(0, 1fr) clamp(270px, 24vw, 360px);
+}
+
 .panelHeader {
   align-items: center;
   border-bottom: 1px solid #dfe7f0;
@@ -192,6 +208,10 @@
     min-height: calc(100vh - 44px);
   }
 
+  .pageSurface.hasLiveLogPanel {
+    max-width: 1240px;
+  }
+
   .appHeader {
     align-items: stretch;
     flex-direction: column;
@@ -204,6 +224,17 @@
   .workspaceTabs button {
     flex: 1;
     min-width: 0;
+  }
+
+  .workspaceStage,
+  .workspaceStage.isLogOpen {
+    grid-template-columns: 1fr;
+  }
+
+  .liveLogPanel {
+    height: 100%;
+    min-height: 260px;
+    transform: none;
   }
 
   .chatWorkspace,

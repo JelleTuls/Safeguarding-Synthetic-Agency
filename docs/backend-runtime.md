@@ -75,7 +75,7 @@ Named OpenAI setup:
 
 ```env
 LLM_PROVIDER="openai"
-OPENAI_API_KEY="primary_openai_key"
+OPENAI_API_KEY="<primary-openai-key>"
 OPENAI_MODEL="gpt-4o-mini"
 OPENAI_BASE_URL="https://api.openai.com/v1"
 ```
@@ -84,8 +84,8 @@ For Groq-only:
 
 ```env
 LLM_PROVIDER="groq"
-GROQ_API_KEY="primary_key"
-GROQ_API_KEY_2="fallback_key"
+GROQ_API_KEY="<primary-key>"
+GROQ_API_KEY_2="<fallback-key>"
 GROQ_MODEL="openai/gpt-oss-120b"
 GROQ_BASE_URL="https://api.groq.com/openai/v1"
 ```

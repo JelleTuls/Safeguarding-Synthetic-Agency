@@ -9,11 +9,20 @@ import './personaChat.css';
 import closeCross from '../../assets/images/closeCross.png'
 import sendArrow from '../../assets/images/sendArrow.png'
 
+import { LiveLogPanel } from "../../features/logs";
 import ReceivedMessage from "./receivedMessage";
 import UserMessage from "./userMessage";
 import AwaitingMessage from "./awaitingMessage";
 
-function PersonaChat({ personaProfile, personaDetails, personaCountry, pipelineMode, showChat }) {
+function PersonaChat({
+  personaProfile,
+  personaDetails,
+  personaCountry,
+  pipelineMode,
+  showChat,
+  logPanelOpen = false,
+  onToggleLogPanel,
+}) {
 
   // below code is for sending and retrieving messages
 
@@ -294,6 +303,7 @@ function PersonaChat({ personaProfile, personaDetails, personaCountry, pipelineM
 
   return (
     <div className="PersonaChat">
+      <div className={`PersonaChatStage ${logPanelOpen ? 'isLogOpen' : ''}`}>
         <div id="chat-bubble">
             <aside id="persona-profile-card">
                 <div id="profile-card-header">
@@ -374,6 +384,11 @@ function PersonaChat({ personaProfile, personaDetails, personaCountry, pipelineM
             </section>
 
         </div>
+        <LiveLogPanel
+          isOpen={logPanelOpen}
+          onToggle={onToggleLogPanel}
+        />
+      </div>
     </div>
   );
 };

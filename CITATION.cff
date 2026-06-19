@@ -1,0 +1,24 @@
+cff-version: 1.2.0
+message: "If you use this repository, please cite the thesis artifact below."
+title: "Safeguarding Synthetic Agency - A Framework for Measuring and Operationalizing System Integrity in Synthetic Social Agent Systems"
+url: "https://github.com/JelleTuls/Safeguarding-Synthetic-Agency"
+repository-code: "https://github.com/JelleTuls/Safeguarding-Synthetic-Agency"
+type: software
+authors:
+  - family-names: "Tuls"
+    given-names: "Jelle"
+version: "1.0-thesis-artifact"
+date-released: "2026-06-19"
+license: "MIT"
+abstract: >-
+  Companion codebase for a thesis project on safeguarding synthetic social
+  agents. The repository implements persona chat, a lightweight baseline, a
+  layered guardrailed SSA pipeline, automated red-teaming, optional human review,
+  saved final-result reports, and reproducible computational-analysis figures.
+keywords:
+  - synthetic social agents
+  - guardrails
+  - red-teaming
+  - LLM evaluation
+  - computational analysis
+  - system integrity

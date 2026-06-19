@@ -7,6 +7,7 @@ import { useEffect, useRef, useState } from 'react';
 
 import './App.css';
 import { ComputationalAnalysisWorkspace } from './features/analysis';
+import { LiveLogPanel } from './features/logs';
 import { PersonaWorkspace, usePersonas } from './features/personas';
 import {
   RedTeamSettingsView,
@@ -89,7 +90,9 @@ function SavedRedTeamRunsView({
 function App() {
   const [activeTab, setActiveTab] = useState('chat');
   const [tabHistory, setTabHistory] = useState([]);
+  const [chatLogPanelOpen, setChatLogPanelOpen] = useState(false);
   const [chatPipelineMode, setChatPipelineMode] = useState('guardrailed');
+  const [logPanelOpen, setLogPanelOpen] = useState(false);
   const [redTeamDetailsMode, setRedTeamDetailsMode] = useState('guardrailed');
   const [selectedResultProfileId, setSelectedResultProfileId] = useState('all');
   const initializedRedTeamProfiles = useRef(false);
@@ -208,7 +211,7 @@ function App() {
 
   return (
     <main className={`ChatApp unbounded-weight300 ${activePersona ? 'isBlurred' : ''}`}>
-      <div className="pageSurface">
+      <div className={`pageSurface ${logPanelOpen ? 'hasLiveLogPanel' : ''}`}>
         <header className="appHeader">
           <div>
             <p className="eyebrow">Synthetic social agent integrity</p>
@@ -251,101 +254,107 @@ function App() {
           </button>
         </div>
 
-        <section className="workspaceShell">
-          {activeTab === 'chat' && (
-            <PersonaWorkspace
-              error={error}
-              isComplete={isComplete}
-              loading={loading}
-              personas={personas}
-              selectedPersona={selectedPersona}
-              chatPipelineMode={chatPipelineMode}
-              setActivePersona={setActivePersona}
-              setChatPipelineMode={setChatPipelineMode}
-              setSelectedPersona={setSelectedPersona}
-              targetCount={targetCount}
-            />
-          )}
-
-          {activeTab === 'red-team' && redTeamSettingsOpen && (
-            <div className="redTeamSettingsFullWindow">
-              <RedTeamSettingsView
-                editedPromptCount={editedPromptCount}
-                loadPromptSettings={loadRedTeamPromptSettings}
-                promptSettingsStatus={redTeamPromptSettingsStatus}
-                resetPromptExpectedAnswer={resetPromptExpectedAnswer}
-                selectedPromptSetting={selectedPromptSetting}
-                setRedTeamSettingsOpen={setRedTeamSettingsOpen}
-                setSelectedPromptId={setSelectedPromptId}
-                updatePromptCalibrationNote={updatePromptCalibrationNote}
-                updatePromptExpectedAnswer={updatePromptExpectedAnswer}
-                visiblePromptSettings={visiblePromptSettings}
-              />
-            </div>
-          )}
-
-          {activeTab === 'red-team' && !redTeamSettingsOpen && (
-            <div className="redTeamWorkspace">
-              <RedTeamSetupPanel
-                redTeamError={redTeamError}
-                redTeamRun={redTeamRun}
-                redTeamScores={redTeamScores}
-                redTeamTargetMode={redTeamTargetMode}
-                redTeamAvailableProfileCount={redTeamAvailableProfileCount}
-                redTeamDetailsMode={redTeamDetailsMode}
+        <div className={`workspaceStage ${logPanelOpen ? 'isLogOpen' : ''}`}>
+          <section className="workspaceShell">
+            {activeTab === 'chat' && (
+              <PersonaWorkspace
+                error={error}
+                isComplete={isComplete}
+                loading={loading}
                 personas={personas}
-                finalizeRedTeamRun={finalizeRedTeamRun}
-                resetRedTeamRun={resetRedTeamRun}
-                selectedResultProfileId={selectedResultProfileId}
-                selectedRedTeamProfileIds={selectedRedTeamProfileIds}
-                selectedRedTeamMethods={selectedRedTeamMethods}
-                setRedTeamSettingsOpen={setRedTeamSettingsOpen}
-                setRedTeamDetailsMode={setRedTeamDetailsMode}
-                setSelectedResultProfileId={setSelectedResultProfileId}
-                setSelectedRedTeamProfileIds={setSelectedRedTeamProfileIds}
-                setRedTeamTargetMode={setRedTeamTargetMode}
-                startRedTeamRun={startRedTeamRun}
-                toggleRedTeamMethod={toggleRedTeamMethod}
+                selectedPersona={selectedPersona}
+                chatPipelineMode={chatPipelineMode}
+                setActivePersona={setActivePersona}
+                setChatPipelineMode={setChatPipelineMode}
+                setSelectedPersona={setSelectedPersona}
+                targetCount={targetCount}
               />
+            )}
 
-              <section className="redTeamContentPanel">
-                {redTeamRun ? (
-                  <RedTeamPanel
-                    embedded
-                    run={redTeamRun}
-                    reviewItems={redTeamReviewItems}
-                    selectedProfileId={selectedResultProfileId}
-                    error={redTeamError}
-                    analysis={redTeamAnalysis}
-                    analysisStatus={redTeamAnalysisStatus}
-                    onCancel={cancelRedTeamRun}
-                    onClose={resetRedTeamRun}
-                    onGenerateAnalysis={generateComputationalAnalysis}
-                    onRefresh={redTeamRun.loaded_from_final_report ? () => handleOpenSavedRedTeamReport(redTeamRun.run_id) : refreshRedTeamRun}
-                    onResetReview={resetHumanReview}
-                    onSubmitReview={submitHumanReview}
-                  />
-                ) : (
-                  <SavedRedTeamRunsView
-                    reports={savedRedTeamReports}
-                    status={savedRedTeamReportsStatus}
-                    error={redTeamError}
-                    onRefresh={loadSavedRedTeamReports}
-                    onSelectReport={handleOpenSavedRedTeamReport}
-                  />
-                )}
-              </section>
-            </div>
-          )}
+            {activeTab === 'red-team' && redTeamSettingsOpen && (
+              <div className="redTeamSettingsFullWindow">
+                <RedTeamSettingsView
+                  editedPromptCount={editedPromptCount}
+                  loadPromptSettings={loadRedTeamPromptSettings}
+                  promptSettingsStatus={redTeamPromptSettingsStatus}
+                  resetPromptExpectedAnswer={resetPromptExpectedAnswer}
+                  selectedPromptSetting={selectedPromptSetting}
+                  setRedTeamSettingsOpen={setRedTeamSettingsOpen}
+                  setSelectedPromptId={setSelectedPromptId}
+                  updatePromptCalibrationNote={updatePromptCalibrationNote}
+                  updatePromptExpectedAnswer={updatePromptExpectedAnswer}
+                  visiblePromptSettings={visiblePromptSettings}
+                />
+              </div>
+            )}
 
-          {activeTab === 'analysis' && (
-            <ComputationalAnalysisWorkspace
-              onRegisterBackHandler={(handler) => {
-                analysisBackHandlerRef.current = handler;
-              }}
-            />
-          )}
-        </section>
+            {activeTab === 'red-team' && !redTeamSettingsOpen && (
+              <div className="redTeamWorkspace">
+                <RedTeamSetupPanel
+                  redTeamError={redTeamError}
+                  redTeamRun={redTeamRun}
+                  redTeamScores={redTeamScores}
+                  redTeamTargetMode={redTeamTargetMode}
+                  redTeamAvailableProfileCount={redTeamAvailableProfileCount}
+                  redTeamDetailsMode={redTeamDetailsMode}
+                  personas={personas}
+                  finalizeRedTeamRun={finalizeRedTeamRun}
+                  resetRedTeamRun={resetRedTeamRun}
+                  selectedResultProfileId={selectedResultProfileId}
+                  selectedRedTeamProfileIds={selectedRedTeamProfileIds}
+                  selectedRedTeamMethods={selectedRedTeamMethods}
+                  setRedTeamSettingsOpen={setRedTeamSettingsOpen}
+                  setRedTeamDetailsMode={setRedTeamDetailsMode}
+                  setSelectedResultProfileId={setSelectedResultProfileId}
+                  setSelectedRedTeamProfileIds={setSelectedRedTeamProfileIds}
+                  setRedTeamTargetMode={setRedTeamTargetMode}
+                  startRedTeamRun={startRedTeamRun}
+                  toggleRedTeamMethod={toggleRedTeamMethod}
+                />
+
+                <section className="redTeamContentPanel">
+                  {redTeamRun ? (
+                    <RedTeamPanel
+                      embedded
+                      run={redTeamRun}
+                      reviewItems={redTeamReviewItems}
+                      selectedProfileId={selectedResultProfileId}
+                      error={redTeamError}
+                      analysis={redTeamAnalysis}
+                      analysisStatus={redTeamAnalysisStatus}
+                      onCancel={cancelRedTeamRun}
+                      onClose={resetRedTeamRun}
+                      onGenerateAnalysis={generateComputationalAnalysis}
+                      onRefresh={redTeamRun.loaded_from_final_report ? () => handleOpenSavedRedTeamReport(redTeamRun.run_id) : refreshRedTeamRun}
+                      onResetReview={resetHumanReview}
+                      onSubmitReview={submitHumanReview}
+                    />
+                  ) : (
+                    <SavedRedTeamRunsView
+                      reports={savedRedTeamReports}
+                      status={savedRedTeamReportsStatus}
+                      error={redTeamError}
+                      onRefresh={loadSavedRedTeamReports}
+                      onSelectReport={handleOpenSavedRedTeamReport}
+                    />
+                  )}
+                </section>
+              </div>
+            )}
+
+            {activeTab === 'analysis' && (
+              <ComputationalAnalysisWorkspace
+                onRegisterBackHandler={(handler) => {
+                  analysisBackHandlerRef.current = handler;
+                }}
+              />
+            )}
+          </section>
+          <LiveLogPanel
+            isOpen={logPanelOpen}
+            onToggle={() => setLogPanelOpen((current) => !current)}
+          />
+        </div>
       </div>
 
       {activePersona && (
@@ -355,6 +364,8 @@ function App() {
           personaCountry={activePersona.country}
           pipelineMode={chatPipelineMode}
           showChat={() => setActivePersona(null)}
+          logPanelOpen={chatLogPanelOpen}
+          onToggleLogPanel={() => setChatLogPanelOpen((current) => !current)}
         />
       )}
 

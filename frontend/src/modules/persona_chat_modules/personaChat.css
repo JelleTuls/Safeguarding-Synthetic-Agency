@@ -13,7 +13,7 @@
     width: 100vw;
     height: 100vh;
     display: flex;
-    align-items: stretch;
+    align-items: center;
     justify-content: center;
     padding: 28px;
     background: rgba(11, 20, 26, 0.34);
@@ -22,10 +22,26 @@
     z-index: 20;
 }
 
+.PersonaChatStage {
+    display: grid;
+    gap: 8px;
+    grid-template-columns: minmax(0, 1fr) 30px;
+    height: min(820px, 100%);
+    max-width: 100%;
+    min-height: 0;
+    transition: width 0.2s ease;
+    width: min(1278px, 100%);
+}
+
+.PersonaChatStage.isLogOpen {
+    width: min(1608px, 100%);
+    grid-template-columns: minmax(0, 1fr) clamp(270px, 24vw, 360px);
+}
+
 #chat-bubble {
     position: relative;
-    width: min(1240px, 100%);
-    height: min(820px, 100%);
+    width: 100%;
+    height: 100%;
     border: 1px solid rgba(185, 198, 214, 0.74);
     border-radius: 18px;
     padding: 0;
@@ -360,9 +376,23 @@
         padding: 16px;
     }
 
-    #chat-bubble {
-        width: calc(100vw - 32px);
+    .PersonaChatStage,
+    .PersonaChatStage.isLogOpen {
+        grid-template-columns: 1fr;
+        grid-template-rows: minmax(0, 1fr) minmax(240px, 36vh);
         height: calc(100vh - 32px);
+        width: calc(100vw - 32px);
+    }
+
+    .PersonaChatStage .liveLogPanel {
+        height: 100%;
+        min-height: 240px;
+        transform: none;
+    }
+
+    #chat-bubble {
+        width: 100%;
+        height: 100%;
         border-radius: 16px;
         grid-template-columns: 1fr;
         grid-template-rows: minmax(260px, 40vh) minmax(0, 1fr);
@@ -396,9 +426,15 @@
         padding: 10px;
     }
 
-    #chat-bubble {
-        width: calc(100vw - 20px);
+    .PersonaChatStage,
+    .PersonaChatStage.isLogOpen {
         height: calc(100vh - 20px);
+        width: calc(100vw - 20px);
+    }
+
+    #chat-bubble {
+        width: 100%;
+        height: 100%;
         border-radius: 18px;
         grid-template-rows: minmax(240px, 38vh) minmax(0, 1fr);
         min-height: 0;

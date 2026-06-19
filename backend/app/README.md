@@ -83,12 +83,12 @@ Dynamic primary model with optional Groq fallbacks:
 
 ```env
 LLM_PROVIDER="auto"
-LLM_API_KEY="primary_api_key"
+LLM_API_KEY="<primary-api-key>"
 LLM_MODEL="model_name"
 LLM_BASE_URL="https://provider.example/v1"
 
-GROQ_API_KEY="first_groq_fallback"
-GROQ_API_KEY_2="second_groq_fallback"
+GROQ_API_KEY="<first-groq-fallback>"
+GROQ_API_KEY_2="<second-groq-fallback>"
 GROQ_MODEL="openai/gpt-oss-120b"
 GROQ_BASE_URL="https://api.groq.com/openai/v1"
 ```
@@ -97,8 +97,8 @@ For Groq-only:
 
 ```env
 LLM_PROVIDER="auto"
-GROQ_API_KEY="primary_key"
-GROQ_API_KEY_2="fallback_key"
+GROQ_API_KEY="<primary-key>"
+GROQ_API_KEY_2="<fallback-key>"
 GROQ_MODEL="openai/gpt-oss-120b"
 GROQ_BASE_URL="https://api.groq.com/openai/v1"
 ```
